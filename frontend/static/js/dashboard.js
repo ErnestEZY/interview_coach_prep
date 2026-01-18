@@ -253,8 +253,24 @@ document.addEventListener('alpine:init', () => {
           return;
         }
         const fileInput = document.getElementById('resumeFile');
-        if (!fileInput.files[0]) {
+        const file = fileInput.files[0];
+        if (!file) {
           Swal.fire('Error', 'Please select a resume file', 'error');
+          return;
+        }
+
+        // Validation for file type and size
+        const allowedExtensions = ['pdf', 'doc', 'docx'];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+
+        if (!allowedExtensions.includes(fileExtension)) {
+          Swal.fire('Invalid Format', 'Only PDF, DOC, and DOCX files are acceptable.', 'warning');
+          return;
+        }
+
+        if (file.size > maxSizeInBytes) {
+          Swal.fire('File Too Large', 'Resume file size must not exceed 5MB.', 'warning');
           return;
         }
 
