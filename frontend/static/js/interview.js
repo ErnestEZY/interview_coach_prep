@@ -110,8 +110,13 @@ function interview() {
       this.startTimer();
       this.checkAdmin();
 
-      // Pre-load voices for TTS
+      // Pre-load voices for TTS and warm up the engine
       if ('speechSynthesis' in window) {
+        // Some mobile browsers need a small utterance to "unlock" the audio context
+        const warmUp = new SpeechSynthesisUtterance("");
+        warmUp.volume = 0;
+        window.speechSynthesis.speak(warmUp);
+
         window.speechSynthesis.getVoices();
         if (window.speechSynthesis.onvoiceschanged !== undefined) {
           window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
@@ -265,8 +270,20 @@ function interview() {
         const t = Array.from(e.results).map(r => r[0].transcript).join(' ').trim();
         if (t) this.answer = t;
       };
-      this.recognition.onerror = () => {
-        Swal.fire({ icon: 'error', title: 'Mic error', text: 'Please try recording again or type your answer.' });
+      this.recognition.onerror = (event) => {
+        console.error('Speech Recognition Error:', event.error);
+        let message = 'Please try recording again or type your answer.';
+        if (event.error === 'not-allowed') {
+          message = 'Microphone access denied. Please check your app permissions.';
+        } else if (event.error === 'no-speech') {
+          message = 'No speech detected. Please try speaking again.';
+        } else if (event.error === 'network') {
+          message = 'Network error during speech recognition.';
+        }
+        Swal.fire({ icon: 'error', title: 'Mic error', text: message });
+      };
+      this.recognition.onend = () => {
+        this.mic = false; // Reset mic status when recognition ends
       };
       this.recognition.start();
     },
