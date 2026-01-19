@@ -216,38 +216,58 @@ function interview() {
 
       const u = new SpeechSynthesisUtterance(text);
       
-      // Smoother settings
-      u.rate = 0.95;
-      u.pitch = 1.0;
-      u.volume = 1.0; // Ensure volume is max
+      // Handle the case where voices might not be ready yet
+      if (voices.length === 0) {
+        console.warn('Still no voices found. TTS may not work until user interacts more.');
+      }
+
+      // Priority for smoother male voices
+      let selectedVoice = null;
 
       if (this.voiceGender === 'male') {
-        // Priority for smoother male voices
-        const maleVoice = voices.find(v => v.lang.startsWith('en') && (
+        selectedVoice = voices.find(v => v.lang.startsWith('en') && (
           v.name.toLowerCase().includes('natural') && v.name.toLowerCase().includes('male') ||
           v.name.toLowerCase().includes('guy') || 
           v.name.toLowerCase().includes('google uk english male') ||
           v.name.toLowerCase().includes('microsoft james') ||
           v.name.toLowerCase().includes('david')
         )) || voices.find(v => v.name.toLowerCase().includes('male') && v.lang.startsWith('en'));
-        
-        if (maleVoice) u.voice = maleVoice;
       } else {
-        // Priority for smoother female voices
-        const femaleVoice = voices.find(v => v.lang.startsWith('en') && (
+        selectedVoice = voices.find(v => v.lang.startsWith('en') && (
           v.name.toLowerCase().includes('natural') && v.name.toLowerCase().includes('female') ||
           v.name.toLowerCase().includes('aria') ||
           v.name.toLowerCase().includes('google uk english female') ||
           v.name.toLowerCase().includes('microsoft zira') ||
           v.name.toLowerCase().includes('samantha')
         )) || voices.find(v => v.name.toLowerCase().includes('female') && v.lang.startsWith('en'));
-        
-        if (femaleVoice) u.voice = femaleVoice;
       }
 
-      u.onstart = () => { this.speaking = true };
-      u.onend = () => { this.speaking = false };
-      u.onerror = () => { this.speaking = false };
+      // If no gender-specific voice found, pick any English voice
+      if (!selectedVoice) {
+        selectedVoice = voices.find(v => v.lang.startsWith('en'));
+      }
+
+      if (selectedVoice) {
+        u.voice = selectedVoice;
+        u.lang = selectedVoice.lang;
+      }
+
+      u.rate = 0.95;
+      u.pitch = 1.0;
+      u.volume = 1.0;
+
+      u.onstart = () => { 
+        console.log('Speech started');
+        this.speaking = true;
+      };
+      u.onend = () => { 
+        console.log('Speech ended');
+        this.speaking = false;
+      };
+      u.onerror = (e) => { 
+        console.error('Speech error:', e);
+        this.speaking = false;
+      };
       
       window.speechSynthesis.speak(u);
     },
