@@ -195,6 +195,16 @@ function interview() {
     },
     tts(text) {
       if (!this.speaker) return;
+
+      // Try native Flutter TTS first if available
+      if (window.TTSHandler) {
+        window.TTSHandler.postMessage(JSON.stringify({
+          text: text,
+          gender: this.voiceGender
+        }));
+        return;
+      }
+
       if (!('speechSynthesis' in window)) {
         console.error('Speech Synthesis not supported in this browser.');
         return;
