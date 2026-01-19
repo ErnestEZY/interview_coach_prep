@@ -194,62 +194,68 @@ function interview() {
       return this.transcript.map(t => `<div><strong>${t.role === 'assistant' ? 'Interviewer' : 'You'}:</strong> ${t.text}</div>`).join('');
     },
     tts(text) {
-      console.log('TTS called. Speaker enabled:', this.speaker);
       if (!this.speaker) return;
       if (!('speechSynthesis' in window)) {
         console.error('Speech Synthesis not supported in this browser.');
         return;
       }
       
+      // Log for debugging in WebView
+      if (window.Toaster) {
+        window.Toaster.postMessage('Speaking: ' + text.substring(0, 30) + '...');
+      }
+      
       // Ensure voices are loaded
       let voices = window.speechSynthesis.getVoices();
       if (voices.length === 0) {
-        console.log('Voices not loaded, retrying...');
         window.speechSynthesis.getVoices();
         voices = window.speechSynthesis.getVoices();
       }
       
-      console.log('Available voices:', voices.length);
-
+      if (window.Toaster) {
+        window.Toaster.postMessage('Available voices: ' + voices.length);
+        if (voices.length > 0) {
+          window.Toaster.postMessage('First voice: ' + voices[0].name);
+        }
+      }
+      
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
 
       const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US'; // Default lang
       
-      // Handle the case where voices might not be ready yet
-      if (voices.length === 0) {
-        console.warn('Still no voices found. TTS may not work until user interacts more.');
-      }
-
       // Priority for smoother male voices
       let selectedVoice = null;
 
-      if (this.voiceGender === 'male') {
-        selectedVoice = voices.find(v => v.lang.startsWith('en') && (
-          v.name.toLowerCase().includes('natural') && v.name.toLowerCase().includes('male') ||
-          v.name.toLowerCase().includes('guy') || 
-          v.name.toLowerCase().includes('google uk english male') ||
-          v.name.toLowerCase().includes('microsoft james') ||
-          v.name.toLowerCase().includes('david')
-        )) || voices.find(v => v.name.toLowerCase().includes('male') && v.lang.startsWith('en'));
-      } else {
-        selectedVoice = voices.find(v => v.lang.startsWith('en') && (
-          v.name.toLowerCase().includes('natural') && v.name.toLowerCase().includes('female') ||
-          v.name.toLowerCase().includes('aria') ||
-          v.name.toLowerCase().includes('google uk english female') ||
-          v.name.toLowerCase().includes('microsoft zira') ||
-          v.name.toLowerCase().includes('samantha')
-        )) || voices.find(v => v.name.toLowerCase().includes('female') && v.lang.startsWith('en'));
-      }
+      if (voices.length > 0) {
+        if (this.voiceGender === 'male') {
+          selectedVoice = voices.find(v => v.lang.startsWith('en') && (
+            v.name.toLowerCase().includes('natural') && v.name.toLowerCase().includes('male') ||
+            v.name.toLowerCase().includes('guy') || 
+            v.name.toLowerCase().includes('google uk english male') ||
+            v.name.toLowerCase().includes('microsoft james') ||
+            v.name.toLowerCase().includes('david')
+          )) || voices.find(v => v.name.toLowerCase().includes('male') && v.lang.startsWith('en'));
+        } else {
+          selectedVoice = voices.find(v => v.lang.startsWith('en') && (
+            v.name.toLowerCase().includes('natural') && v.name.toLowerCase().includes('female') ||
+            v.name.toLowerCase().includes('aria') ||
+            v.name.toLowerCase().includes('google uk english female') ||
+            v.name.toLowerCase().includes('microsoft zira') ||
+            v.name.toLowerCase().includes('samantha')
+          )) || voices.find(v => v.name.toLowerCase().includes('female') && v.lang.startsWith('en'));
+        }
 
-      // If no gender-specific voice found, pick any English voice
-      if (!selectedVoice) {
-        selectedVoice = voices.find(v => v.lang.startsWith('en'));
-      }
+        // If no gender-specific voice found, pick any English voice
+        if (!selectedVoice) {
+          selectedVoice = voices.find(v => v.lang.startsWith('en'));
+        }
 
-      if (selectedVoice) {
-        u.voice = selectedVoice;
-        u.lang = selectedVoice.lang;
+        if (selectedVoice) {
+          u.voice = selectedVoice;
+          u.lang = selectedVoice.lang;
+        }
       }
 
       u.rate = 0.95;
@@ -257,16 +263,17 @@ function interview() {
       u.volume = 1.0;
 
       u.onstart = () => { 
-        console.log('Speech started');
         this.speaking = true;
       };
       u.onend = () => { 
-        console.log('Speech ended');
         this.speaking = false;
       };
       u.onerror = (e) => { 
         console.error('Speech error:', e);
         this.speaking = false;
+        if (window.Toaster) {
+          window.Toaster.postMessage('Speech error: ' + e.error);
+        }
       };
       
       window.speechSynthesis.speak(u);
@@ -342,6 +349,17 @@ function interview() {
         });
         return;
       }
+
+      // Aggressive unlock for TTS on mobile - must be in direct user gesture
+      if (this.speaker && 'speechSynthesis' in window) {
+        const unlock = new SpeechSynthesisUtterance(" ");
+        unlock.volume = 0;
+        window.speechSynthesis.speak(unlock);
+        if (window.Toaster) {
+          window.Toaster.postMessage('TTS unlocked via user gesture');
+        }
+      }
+
       this.thinking = true;
       this.transcript = [];
       this.readinessScore = null;
