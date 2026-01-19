@@ -8,9 +8,10 @@ function interview() {
     difficulty: "Intermediate",
     transcript: [],
     answer: "",
-    speaker: true,
+    speaker: localStorage.getItem('interview_speaker_enabled') !== 'false',
     voiceGender: localStorage.getItem('interview_voice_gender') || 'female',
-    mic: false,
+    mic: localStorage.getItem('interview_mic_enabled') === 'true',
+    recording: false,
     thinking: false,
     speaking: false,
     recognition: null,
@@ -193,18 +194,32 @@ function interview() {
       return this.transcript.map(t => `<div><strong>${t.role === 'assistant' ? 'Interviewer' : 'You'}:</strong> ${t.text}</div>`).join('');
     },
     tts(text) {
+      console.log('TTS called. Speaker enabled:', this.speaker);
       if (!this.speaker) return;
-      if (!('speechSynthesis' in window)) return;
+      if (!('speechSynthesis' in window)) {
+        console.error('Speech Synthesis not supported in this browser.');
+        return;
+      }
       
+      // Ensure voices are loaded
+      let voices = window.speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        console.log('Voices not loaded, retrying...');
+        window.speechSynthesis.getVoices();
+        voices = window.speechSynthesis.getVoices();
+      }
+      
+      console.log('Available voices:', voices.length);
+
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
 
       const u = new SpeechSynthesisUtterance(text);
-      const voices = window.speechSynthesis.getVoices();
-
+      
       // Smoother settings
-      u.rate = 0.95; // Slightly slower for better clarity
+      u.rate = 0.95;
       u.pitch = 1.0;
+      u.volume = 1.0; // Ensure volume is max
 
       if (this.voiceGender === 'male') {
         // Priority for smoother male voices
@@ -266,11 +281,17 @@ function interview() {
       }
       if (!this.recognition) this.recognition = this.initRecognition();
       if (!this.recognition) return;
+
+      this.recognition.onstart = () => {
+        this.recording = true;
+      };
+      
       this.recognition.onresult = (e) => {
         const t = Array.from(e.results).map(r => r[0].transcript).join(' ').trim();
         if (t) this.answer = t;
       };
       this.recognition.onerror = (event) => {
+        this.recording = false;
         console.error('Speech Recognition Error:', event.error);
         let message = 'Please try recording again or type your answer.';
         if (event.error === 'not-allowed') {
@@ -283,7 +304,7 @@ function interview() {
         Swal.fire({ icon: 'error', title: 'Mic error', text: message });
       };
       this.recognition.onend = () => {
-        this.mic = false; // Reset mic status when recognition ends
+        this.recording = false;
       };
       this.recognition.start();
     },

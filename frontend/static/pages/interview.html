@@ -129,7 +129,7 @@
               </div>
               <div class="d-flex flex-wrap align-items-center gap-3 gap-md-4">
                 <div class="form-check form-switch custom-switch">
-                  <input class="form-check-input" type="checkbox" id="micToggle" x-model="mic" :disabled="sessionId">
+                  <input class="form-check-input" type="checkbox" id="micToggle" x-model="mic" :disabled="sessionId" @change="localStorage.setItem('interview_mic_enabled', mic)">
                   <label class="form-check-label text-secondary small" for="micToggle">
                     <i class="bi bi-mic-fill me-1"></i> Use Microphone
                   </label>
@@ -137,8 +137,8 @@
 
                 <div class="d-flex align-items-center gap-3">
                   <div class="form-check form-switch custom-switch">
-                    <input class="form-check-input" type="checkbox" id="speakerToggle" x-model="speaker" :disabled="sessionId">
-                    <label class="form-check-label text-secondary small" for="speakerToggle">
+                  <input class="form-check-input" type="checkbox" id="speakerToggle" x-model="speaker" :disabled="sessionId" @change="localStorage.setItem('interview_speaker_enabled', speaker)">
+                  <label class="form-check-label text-secondary small" for="speakerToggle">
                       <i class="bi bi-volume-up-fill me-1"></i> AI Speaker
                     </label>
                   </div>
@@ -299,7 +299,13 @@
       <form class="d-flex gap-2" @submit.prevent="send()">
         <input type="text" class="form-control" placeholder="Type your answer..." x-model="answer" :disabled="!sessionId">
         <button type="submit" class="btn btn-primary" :disabled="!sessionId">Send</button>
-        <button type="button" class="btn btn-outline-light" x-show="mic" @click="record()" :disabled="!sessionId">Record</button>
+        <button type="button" class="btn" 
+                :class="recording ? 'btn-danger animate-pulse' : 'btn-outline-light'" 
+                x-show="mic" @click="record()" :disabled="!sessionId || recording"
+                title="Start voice recording for your answer">
+          <i class="bi" :class="recording ? 'bi-mic-fill' : 'bi-mic'"></i>
+          <span x-text="recording ? 'Recording...' : 'Record'"></span>
+        </button>
       </form>
     </div>
   </div>
