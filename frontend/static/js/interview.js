@@ -613,22 +613,37 @@ function interview() {
     },
     end() {
       if (!this.sessionId) return;
-      fetch('/api/interview/' + this.sessionId + '/end', { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token } })
-        .then(r => {
-          if (r.status === 401) return null;
-          return r.json();
-        })
-        .then(j => {
-          if (j && j.message) {
-            this.transcript.push({ role: 'assistant', text: j.message });
-            this.tts(j.message);
-            this.extractFeedback(j.message);
-          }
-          this.sessionId = null;
-          this.stopInterviewTimer();
-          if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
-          this.stopCamera();
-        });
+      
+      Swal.fire({
+        title: 'End Interview?',
+        text: "Ending now will stop the session immediately. You won't receive a score for this partial attempt.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, end it'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch('/api/interview/' + this.sessionId + '/end', { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token } })
+            .then(r => {
+              if (r.status === 401) return null;
+              return r.json();
+            })
+            .then(j => {
+              this.sessionId = null;
+              this.stopInterviewTimer();
+              if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+              this.stopCamera();
+              
+              Swal.fire({
+                icon: 'info',
+                title: 'Interview Ended',
+                text: 'Unfortunately, the interview ended too early, and a score cannot be provided. You can start a new session when you are ready.',
+                confirmButtonColor: '#2563eb'
+              });
+            });
+        }
+      });
     },
     async send() {
       const text = this.answer.trim();
