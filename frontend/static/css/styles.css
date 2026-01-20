@@ -393,7 +393,7 @@ body {
 /* Camera Preview Container */
 .camera-preview-container {
   position: fixed;
-  bottom: 20px;
+  top: 80px;
   right: 20px;
   width: 280px;
   background: rgba(15, 23, 42, 0.95);
@@ -426,7 +426,7 @@ body {
 @media (max-width: 576px) {
   .camera-preview-container {
     width: 160px;
-    bottom: 80px;
+    top: 70px;
     right: 15px;
   }
   .camera-header span:first-child {

@@ -129,6 +129,21 @@
                 </div>
               </div>
               <div class="d-flex flex-wrap align-items-center gap-3 gap-md-4">
+                <div class="form-check form-switch custom-switch">
+                  <input class="form-check-input" type="checkbox" id="micToggle" x-model="mic" :disabled="sessionId" @change="localStorage.setItem('interview_mic_enabled', mic)">
+                  <label class="form-check-label text-secondary small" for="micToggle">
+                    <i class="bi bi-mic-fill me-1"></i> Use Microphone
+                  </label>
+                </div>
+
+                <!-- Camera toggle -->
+                <div class="form-check form-switch custom-switch">
+                  <input class="form-check-input" type="checkbox" id="cameraToggle" x-model="useCamera" :disabled="sessionId" @change="localStorage.setItem('interview_camera_enabled', useCamera)">
+                  <label class="form-check-label text-secondary small" for="cameraToggle">
+                    <i class="bi bi-camera-video-fill me-1"></i> Use Camera
+                  </label>
+                </div>
+
                 <div class="d-flex align-items-center gap-3">
                   <div class="form-check form-switch custom-switch">
                     <input class="form-check-input" type="checkbox" id="speakerToggle" x-model="speaker" :disabled="sessionId" @change="localStorage.setItem('interview_speaker_enabled', speaker)">
@@ -155,21 +170,6 @@
                       </div>
                     </div>
                   </template>
-                </div>
-
-                <div class="form-check form-switch custom-switch">
-                  <input class="form-check-input" type="checkbox" id="micToggle" x-model="mic" :disabled="sessionId" @change="localStorage.setItem('interview_mic_enabled', mic)">
-                  <label class="form-check-label text-secondary small" for="micToggle">
-                    <i class="bi bi-mic-fill me-1"></i> Use Microphone
-                  </label>
-                </div>
-
-                <!-- Camera toggle -->
-                <div class="form-check form-switch custom-switch">
-                  <input class="form-check-input" type="checkbox" id="cameraToggle" x-model="useCamera" :disabled="sessionId" @change="localStorage.setItem('interview_camera_enabled', useCamera)">
-                  <label class="form-check-label text-secondary small" for="cameraToggle">
-                    <i class="bi bi-camera-video-fill me-1"></i> Use Camera
-                  </label>
                 </div>
               </div>
             </div>
