@@ -33,6 +33,56 @@ function interview() {
     timerId: null,
     interviewTime: 1200, // 20 minutes default
     interviewTimerId: null,
+    inactivityTimer: null,
+    lastInteractionTime: Date.now(),
+    useCamera: localStorage.getItem('interview_camera_enabled') === 'true',
+    cameraStream: null,
+    faceDetectionTimer: null,
+    faceAbsentTimer: null,
+    isFaceDetected: false,
+    
+    resetInactivityTimer() {
+      this.lastInteractionTime = Date.now();
+      if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+      if (!this.sessionId) return;
+      
+      this.inactivityTimer = setTimeout(() => {
+        if (this.sessionId) {
+          this.pauseInterview("Inactivity Timeout", "You haven't responded for 5 minutes. The interview has been paused.");
+        }
+      }, 5 * 60 * 1000); // 5 minutes
+    },
+    
+    pauseInterview(title, text) {
+      this.stopInterviewTimer();
+      if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+      this.stopCamera();
+      
+      const currentSid = this.sessionId;
+      this.sessionId = null; // Mark as inactive locally
+      
+      Swal.fire({
+        icon: 'info',
+        title: title,
+        text: text,
+        showCancelButton: true,
+        confirmButtonText: 'Continue Now',
+        cancelButtonText: 'Close & Resume Later',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#64748b'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Resume immediately
+          this.sessionId = currentSid;
+          this.startInterviewTimer();
+          this.resetInactivityTimer();
+          if (this.useCamera) this.startCamera();
+        } else {
+          // Go to history
+          window.location.href = '/static/pages/history.html';
+        }
+      });
+    },
     formatTime(seconds) {
       if (isNaN(seconds) || seconds === null || seconds === undefined) return '0:00';
       const totalSeconds = Math.max(0, Math.floor(seconds));
@@ -92,12 +142,7 @@ function interview() {
           this.interviewTime--;
         } else {
           this.stopInterviewTimer();
-          Swal.fire({
-            icon: 'info',
-            title: 'Practice Time Up',
-            text: 'Your recommended practice time has ended, but you can still continue to finish your interview.',
-            confirmButtonColor: '#2563eb'
-          });
+          this.pauseInterview('Time is Up', 'Your interview time has ended. The session is paused, but you can still continue.');
         }
       }, 1000);
     },
@@ -107,9 +152,155 @@ function interview() {
         this.interviewTimerId = null;
       }
     },
+    async startCamera() {
+      if (!this.useCamera) return;
+      
+      try {
+        // Load face-api models if not already loaded
+        if (!this.modelsLoaded) {
+          const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          ]);
+          this.modelsLoaded = true;
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+        this.cameraStream = stream;
+        
+        // Setup video element
+        let video = document.getElementById('interviewVideo');
+        if (!video) {
+          // Create video element if it doesn't exist
+          const container = document.createElement('div');
+          container.id = 'cameraContainer';
+          container.className = 'camera-preview-container';
+          container.innerHTML = `
+            <div class="camera-header">
+              <span class="small fw-bold"><i class="bi bi-camera-video-fill me-1"></i> Live Preview</span>
+              <span id="faceStatus" class="badge bg-danger">Initializing...</span>
+            </div>
+            <video id="interviewVideo" autoplay muted playsinline></video>
+          `;
+          document.body.appendChild(container);
+          video = document.getElementById('interviewVideo');
+        }
+        video.srcObject = stream;
+        
+        Swal.fire({
+          icon: 'info',
+          title: 'Camera Active',
+          text: 'Please ensure you have good lighting and your face is clearly visible for the best experience.',
+          timer: 3000,
+          showConfirmButton: false
+        });
+
+        this.startFaceDetection();
+      } catch (err) {
+        console.error("Camera error:", err);
+        this.useCamera = false;
+        localStorage.setItem('interview_camera_enabled', 'false');
+        Swal.fire('Camera Error', 'Could not access camera or load detection models. Please check permissions.', 'error');
+      }
+    },
+    stopCamera() {
+      if (this.cameraStream) {
+        this.cameraStream.getTracks().forEach(track => track.stop());
+        this.cameraStream = null;
+      }
+      if (this.faceDetectionTimer) clearInterval(this.faceDetectionTimer);
+      if (this.faceAbsentTimer) clearTimeout(this.faceAbsentTimer);
+      
+      const container = document.getElementById('cameraContainer');
+      if (container) container.remove();
+    },
+    async startFaceDetection() {
+      if (this.faceDetectionTimer) clearInterval(this.faceDetectionTimer);
+      
+      const video = document.getElementById('interviewVideo');
+      const statusBadge = document.getElementById('faceStatus');
+      
+      this.faceDetectionTimer = setInterval(async () => {
+        if (!this.sessionId || !video || video.paused || video.ended) return;
+        
+        try {
+          // Use tiny face detector for performance
+          const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions());
+          
+          if (detections) {
+            this.isFaceDetected = true;
+            if (statusBadge) {
+              statusBadge.className = 'badge bg-success';
+              statusBadge.innerText = 'Face Detected';
+            }
+            if (this.faceAbsentTimer) {
+              clearTimeout(this.faceAbsentTimer);
+              this.faceAbsentTimer = null;
+            }
+          } else {
+            this.isFaceDetected = false;
+            if (statusBadge) {
+              statusBadge.className = 'badge bg-danger';
+              statusBadge.innerText = 'Face Not Detected';
+            }
+            
+            if (!this.faceAbsentTimer) {
+              this.faceAbsentTimer = setTimeout(() => {
+                if (this.sessionId && !this.isFaceDetected) {
+                  // 15 seconds passed
+                  if (window.Toaster) window.Toaster.postMessage('Presence check: Are you still there?');
+                  
+                  // Show a small non-blocking toast first
+                  const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 15000,
+                    timerProgressBar: true
+                  });
+                  
+                  Toast.fire({
+                    icon: 'warning',
+                    title: 'Are you still there?',
+                    text: 'Face not detected for 15 seconds.'
+                  });
+
+                  // Set 30s timeout for full pause
+                  setTimeout(() => {
+                    if (this.sessionId && !this.isFaceDetected) {
+                      this.pauseInterview('Presence Timeout', 'You were away for too long. The interview has been paused.');
+                    }
+                  }, 15000); // 15s + 15s = 30s
+                }
+              }, 15000);
+            }
+          }
+        } catch (e) {
+          console.error("Face detection error:", e);
+        }
+      }, 1000); // Check every second for better responsiveness
+    },
     init() {
       this.startTimer();
       this.checkAdmin();
+
+      // Request permissions from Flutter if running in mobile app
+      if (window.PermissionHandler) {
+        if (this.useCamera) window.PermissionHandler.postMessage('camera');
+        if (this.mic) window.PermissionHandler.postMessage('microphone');
+      }
+
+      // Watchers for permissions
+      this.$watch('useCamera', (val) => {
+        if (val && window.PermissionHandler) {
+          window.PermissionHandler.postMessage('camera');
+        }
+      });
+      this.$watch('mic', (val) => {
+        if (val && window.PermissionHandler) {
+          window.PermissionHandler.postMessage('microphone');
+        }
+      });
 
       // Pre-load voices for TTS and warm up the engine
       if ('speechSynthesis' in window) {
@@ -415,6 +606,8 @@ function interview() {
           this.tts(j.message);
           this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
           this.startInterviewTimer();
+          this.resetInactivityTimer();
+          if (this.useCamera) this.startCamera();
         })
         .finally(() => { this.thinking = false });
     },
@@ -433,6 +626,8 @@ function interview() {
           }
           this.sessionId = null;
           this.stopInterviewTimer();
+          if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+          this.stopCamera();
         });
     },
     async send() {
@@ -441,6 +636,8 @@ function interview() {
       this.answer = "";
       this.transcript.push({ role: 'user', text });
       this.thinking = true;
+      this.resetInactivityTimer();
+      
       fetch('/api/interview/' + this.sessionId + '/reply', { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ user_text: text }).toString() })
         .then(r => { if (r.status === 401) return null; return r.json() })
         .then(j => {
@@ -452,6 +649,9 @@ function interview() {
           if (j.ended) {
             this.extractFeedback(j.message);
             this.stopInterviewTimer();
+            if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+            this.stopCamera();
+            
             Swal.fire({
               icon: 'success',
               title: 'Interview Completed',
