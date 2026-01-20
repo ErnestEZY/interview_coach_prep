@@ -635,12 +635,8 @@ function interview() {
               if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
               this.stopCamera();
               
-              Swal.fire({
-                icon: 'info',
-                title: 'Interview Ended',
-                text: 'Unfortunately, the interview ended too early, and a score cannot be provided. You can start a new session when you are ready.',
-                confirmButtonColor: '#2563eb'
-              });
+              this.readinessScore = 'N/A';
+              this.feedbackExplanation = "It looks like the interview ended a bit too quickly for a full assessment, and the score or feedback cannot be provided. Please start another session whenever you're ready.";
             });
         }
       });
@@ -667,12 +663,6 @@ function interview() {
             if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
             this.stopCamera();
             
-            Swal.fire({
-              icon: 'success',
-              title: 'Interview Completed',
-              text: 'Great job! You have completed the interview session. You can now view your history or start a new one.',
-              confirmButtonColor: '#2563eb'
-            });
             this.sessionId = null;
           }
         })
