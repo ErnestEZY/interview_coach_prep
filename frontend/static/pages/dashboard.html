@@ -65,7 +65,24 @@
             </a>
         </div>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <!-- Web Account Dropdown -->
+        <div class="dropdown d-none d-xl-inline-block" x-show="logged">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle me-1"></i>
+            Account
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 glass-card mt-2">
+            <li class="px-3 py-2">
+              <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
+              <div class="text-white fw-semibold" x-text="userName"></div>
+              <div class="text-secondary small" x-text="userEmail"></div>
+            </li>
+          </ul>
+        </div>
+        
+        <span class="text-secondary d-none d-xl-inline-block mx-1" x-show="logged">|</span>
+        
         <button class="btn btn-outline-danger btn-sm px-2 d-none d-xl-inline-block" onclick="icp.logout()" x-show="logged" title="Logout">
           <span>Logout</span>
         </button>
@@ -76,10 +93,16 @@
   <!-- Mobile Sidebar -->
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="window.handleMobileMenu()"></div>
   <div class="mobile-sidebar" id="mobileSidebar">
-    <div class="sidebar-header">
-      <a class="navbar-brand fw-bold fs-4 mb-0" href="/">
-        <span class="text-primary">I</span>CP
-      </a>
+    <div class="sidebar-header border-bottom border-secondary border-opacity-25 pb-3">
+      <div class="d-flex flex-column">
+        <a class="navbar-brand fw-bold fs-4 mb-1" href="/">
+          <span class="text-primary">I</span>CP
+        </a>
+        <div class="user-info-mobile mt-2" x-show="logged">
+          <div class="text-white fw-bold small" x-text="userName"></div>
+          <div class="text-secondary smaller user-email-text" x-text="userEmail"></div>
+        </div>
+      </div>
       <button class="btn btn-link text-white p-0" onclick="window.handleMobileMenu()" title="Close navigation menu">
         <i class="bi bi-x-lg fs-4"></i>
       </button>
@@ -138,6 +161,7 @@
         <div class="mb-4">
           <label for="jobTitle" class="form-label fw-bold small text-secondary">Target Job Title</label>
           <input type="text" id="jobTitle" name="job_title" class="form-control py-2 rounded-3" placeholder="e.g. Software Engineer, Marketing Manager..." required
+                 maxlength="128"
                  x-model="targetJobTitle"
                @input="localStorage.setItem('target_job_title', $event.target.value)"
                 @change="localStorage.setItem('target_job_title', $event.target.value)"
@@ -322,7 +346,7 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label small fw-bold text-secondary">Target Job Title</label>
-                  <input type="text" class="form-control rounded-3" x-model="manualData.jobTitle" placeholder="e.g. Data Scientist" required>
+                  <input type="text" class="form-control rounded-3" x-model="manualData.jobTitle" placeholder="e.g. Data Scientist" required maxlength="128">
                   <div class="coach-tip mt-1">
                     <i class="bi bi-lightbulb text-warning"></i>
                     <span class="small text-white-50">Tip: Be specific (e.g., 'Junior' or 'Senior').</span>

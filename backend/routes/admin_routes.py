@@ -36,10 +36,29 @@ async def list_resumes(
             created_iso = created.isoformat() if created else None
         except Exception:
             created_iso = str(created) if created else None
+        
+        # Fetch user email via user_id
+        user_email = "unknown"
+        user_id = r.get("user_id")
+        if user_id:
+            try:
+                # user_id in resume is the _id in users collection
+                try:
+                    query_id = ObjectId(user_id)
+                except:
+                    query_id = user_id
+                
+                user_doc = await users.find_one({"_id": {"$in": [query_id, user_id]}})
+                if user_doc:
+                    user_email = user_doc.get("email", "unknown")
+            except Exception:
+                pass
+
         items.append(
             {
                 "id": str(r["_id"]),
-                "user_id": r["user_id"],
+                "user_id": str(user_id) if user_id else None,
+                "user_email": user_email,
                 "filename": r["filename"],
                 "status": r.get("status", "pending"),
                 "tags": r.get("tags", []),
@@ -57,8 +76,28 @@ async def get_resume(resume_id: str, current=Depends(get_current_user)):
     r = await resumes.find_one({"_id": ObjectId(resume_id)})
     if not r:
         raise HTTPException(status_code=404, detail="Not found")
+    
+    # Fetch user email via user_id
+    user_email = "unknown"
+    user_id = r.get("user_id")
+    if user_id:
+        try:
+            # user_id in resume is the _id in users collection
+            try:
+                query_id = ObjectId(user_id)
+            except:
+                query_id = user_id
+                
+            user_doc = await users.find_one({"_id": {"$in": [query_id, user_id]}})
+            if user_doc:
+                user_email = user_doc.get("email", "unknown")
+        except Exception:
+            pass
+
     return {
         "id": str(r["_id"]),
+        "user_id": str(user_id) if user_id else None,
+        "user_email": user_email,
         "filename": r["filename"],
         "status": r.get("status", "pending"),
         "text": r.get("text", ""),

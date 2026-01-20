@@ -11,6 +11,8 @@ document.addEventListener('alpine:init', () => {
     return {
       logged: !!initialToken,
       isAdmin: false,
+      userName: '',
+      userEmail: '',
       hasAnalyzed: false,
       sessionTime: 0,
       timerId: null,
@@ -139,6 +141,8 @@ document.addEventListener('alpine:init', () => {
         .then(r => r.json())
         .then(me => {
           this.isAdmin = me.role === 'admin' || me.role === 'super_admin';
+          this.userName = me.name || 'Guest';
+          this.userEmail = me.email || '';
           const localFeedback = localStorage.getItem('resume_feedback');
           const hasLocal = localFeedback && localFeedback !== 'null' && localFeedback !== 'undefined';
           this.hasAnalyzed = me.has_analyzed || hasLocal;

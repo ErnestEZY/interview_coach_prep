@@ -2,6 +2,8 @@ function interview() {
   return {
     logged: !!icp.state.token,
     isAdmin: false,
+    userName: '',
+    userEmail: '',
     hasAnalyzed: false,
     sessionId: null,
     questionLimit: 10,
@@ -98,9 +100,9 @@ function interview() {
         .then(r => r.json())
         .then(me => {
           this.isAdmin = me.role === 'admin' || me.role === 'super_admin';
-          const localFeedback = localStorage.getItem('resume_feedback');
-          const hasLocal = localFeedback && localFeedback !== 'null' && localFeedback !== 'undefined';
-          this.hasAnalyzed = me.has_analyzed || hasLocal;
+          this.userName = me.name || 'Guest';
+          this.userEmail = me.email || '';
+          this.hasAnalyzed = me.has_analyzed || !!localStorage.getItem('resume_feedback');
         })
         .catch(() => { this.isAdmin = false; });
     },

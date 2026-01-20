@@ -5,6 +5,7 @@ from datetime import datetime
 class UserIn(BaseModel):
     email: EmailStr
     password: str
+    name: Optional[str] = None
 
 class ManualProfileIn(BaseModel):
     jobTitle: str
@@ -17,6 +18,7 @@ class User(BaseModel):
     id: str
     email: EmailStr
     password_hash: str
+    name: Optional[str] = None
     role: str = "user"
     created_at: datetime
     # Weekly quota for questions

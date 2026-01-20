@@ -299,6 +299,7 @@ body {
   }
 }
 .cursor-pointer { cursor: pointer; }
+.user-email-text { font-size: 0.75rem; }
 
 .upload-zone {
   transition: all 0.3s ease;
@@ -584,7 +585,11 @@ body {
 .admin-tags-column { min-width: 300px; width: 50%; } /* Increased width and flex for tags */
 .admin-created-column { width: 180px; } /* Slightly smaller date column */
 .admin-notes-column { width: auto; }
-.admin-actions-column { width: 80px; }
+.admin-actions-column { 
+  width: 120px; 
+  vertical-align: top;
+  padding-top: 1.25rem !important;
+}
 
 .admin-tags-container {
   width: 100%;

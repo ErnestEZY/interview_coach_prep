@@ -83,6 +83,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             "id": str(doc["_id"]), 
             "email": doc["email"], 
             "role": role,
+            "name": doc.get("name"),
             "target_job_title": doc.get("target_job_title", ""),
             "target_location": doc.get("target_location", ""),
             "has_analyzed": doc.get("has_analyzed", False)

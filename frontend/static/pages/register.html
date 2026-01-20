@@ -43,7 +43,7 @@
         <div class="auth-card p-4 p-md-5 animate-fade-in">
           <h2 class="auth-header mb-4">Create Account</h2>
           <div id="reg-msg"></div>
-          <form hx-post="/api/auth/register" hx-trigger="submit" hx-ext="json-enc" hx-include="[name=email],[name=password]" 
+          <form hx-post="/api/auth/register" hx-trigger="submit" hx-ext="json-enc" hx-include="[name=email],[name=password],[name=name]" 
                 hx-headers='{"Authorization": ""}'
                 hx-on::before-request="
                   const emailInput = document.querySelector('[name=email]');
@@ -166,6 +166,10 @@
                     });
                   }
                 ">
+            <div class="mb-4">
+              <label class="form-label text-secondary small text-uppercase fw-bold">Full Name (Optional)</label>
+              <input name="name" type="text" class="form-control form-control-lg" placeholder="Your Name" title="Full Name">
+            </div>
             <div class="mb-4">
               <label class="form-label text-secondary small text-uppercase fw-bold">Email Address</label>
               <input name="email" type="email" class="form-control form-control-lg" placeholder="name@example.com" title="Email address" required>

@@ -13,6 +13,9 @@ from ..config import (
     EMAILJS_PUBLIC_KEY, 
     EMAILJS_SERVICE_ID, 
     EMAILJS_TEMPLATE_ID,
+    ADMIN_EMAILJS_PUBLIC_KEY,
+    ADMIN_EMAILJS_SERVICE_ID,
+    ADMIN_EMAILJS_TEMPLATE_ID,
     CAREERJET_WIDGET_ID
 )
 
@@ -25,6 +28,9 @@ async def get_auth_config():
         "emailjs_public_key": EMAILJS_PUBLIC_KEY,
         "emailjs_service_id": EMAILJS_SERVICE_ID,
         "emailjs_template_id": EMAILJS_TEMPLATE_ID,
+        "admin_emailjs_public_key": ADMIN_EMAILJS_PUBLIC_KEY,
+        "admin_emailjs_service_id": ADMIN_EMAILJS_SERVICE_ID,
+        "admin_emailjs_template_id": ADMIN_EMAILJS_TEMPLATE_ID,
         "careerjet_widget_id": CAREERJET_WIDGET_ID
     }
 
@@ -49,6 +55,7 @@ async def register(payload: UserIn, request: Request):
     pending_doc = {
         "email": email,
         "password_hash": hash_password(payload.password),
+        "name": payload.name.strip() if payload.name else None,
         "verification_otp": otp,
         "otp_created_at": now,
         "ip_address": ip_address,
@@ -110,6 +117,7 @@ async def verify_email(payload: dict):
     user_doc = {
         "email": email,
         "password_hash": pending_user["password_hash"],
+        "name": pending_user.get("name"),
         "role": "user",
         "created_at": now,
         "last_login_ip": pending_user.get("ip_address", "unknown"),
