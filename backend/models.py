@@ -35,6 +35,9 @@ class User(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    is_anomaly: Optional[bool] = False
+    admin_emails: Optional[List[str]] = []
+    alert_reason: Optional[str] = None
 
 class ResumeFeedback(BaseModel):
     advantages: List[str]

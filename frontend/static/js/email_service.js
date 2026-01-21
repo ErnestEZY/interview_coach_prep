@@ -96,5 +96,48 @@ async function sendAdminNotificationEmail(email, message) {
     }
 }
 
+/**
+ * Sends a security alert email via Admin Alert EmailJS
+ * @param {string[]} adminEmails - Array of admin email addresses
+ * @param {string} offenderEmail - The email of the account that triggered the alert
+ * @param {string} ipAddress - The IP address of the attempt
+ * @param {string} reason - The reason for the alert
+ * @returns {Promise<{success: boolean, results: any[]}>}
+ */
+async function sendSecurityAlertEmail(adminEmails, offenderEmail, ipAddress, reason) {
+    const config = await fetchEmailJSConfig();
+    if (!config || !config.admin_alert_emailjs_public_key) {
+        console.error("Could not load Admin Alert EmailJS configuration.");
+        return { success: false, error: "Configuration missing" };
+    }
+
+    const results = [];
+    const timestamp = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Kuala_Lumpur' });
+    
+    for (const adminEmail of adminEmails) {
+        const templateParams = {
+            email_alert: adminEmail,
+            to_email: adminEmail,
+            offender_email: offenderEmail,
+            admin_message: `Security Alert: Suspicious Admin Activity\n\nReason: ${reason}\nOffender: ${offenderEmail}\nIP Address: ${ipAddress}\nTimestamp: ${timestamp}`,
+        };
+
+        try {
+            const response = await emailjs.send(
+                config.admin_alert_emailjs_service_id,
+                config.admin_alert_emailjs_template_id,
+                templateParams,
+                config.admin_alert_emailjs_public_key
+            );
+            results.push({ email: adminEmail, success: true, response });
+        } catch (error) {
+            console.error(`Failed to send security alert to ${adminEmail}:`, error);
+            results.push({ email: adminEmail, success: false, error });
+        }
+    }
+
+    return { success: results.some(r => r.success), results };
+}
+
 // Start fetching config immediately
 fetchEmailJSConfig();

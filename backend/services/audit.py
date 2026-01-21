@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 from ..db import audit_logs, users
-from ..config import ADMIN_ALLOWLIST, ADMIN_ALERT_EMAIL
+from ..config import ADMIN_ALLOWLIST
 from .email_service import send_admin_alert
 from .utils import get_malaysia_time
 import logging
@@ -72,7 +72,7 @@ async def trigger_admin_alert(email: str, ip_address: str, reason: str):
     
     # VISUAL CONSOLE ALERT
     print(f"\n{'='*60}")
-    print(f"!!! SECURITY ALERT !!!")
+    print(f"!!! SECURITY ALERT TRIGGERED !!!")
     print(f"Admin: {email}")
     print(f"Reason: {reason}")
     print(f"IP: {ip_address}")
@@ -80,7 +80,8 @@ async def trigger_admin_alert(email: str, ip_address: str, reason: str):
     
     logger.critical(alert_msg)
     
-    if ADMIN_ALERT_EMAIL:
-        subject = f"Security Alert: Suspicious Admin Activity ({email})"
-        await send_admin_alert(subject, alert_msg)
-        logger.info(f"Email alert sent to: {ADMIN_ALERT_EMAIL}")
+    # send_admin_alert now fetches admin emails from the database automatically
+    subject = f"Security Alert: Suspicious Admin Activity ({email})"
+    print(f"[DEBUG] Calling send_admin_alert for {email}...")
+    await send_admin_alert(subject, alert_msg, offender_email=email)
+    print(f"[DEBUG] send_admin_alert call completed.")

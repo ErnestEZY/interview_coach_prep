@@ -10,12 +10,9 @@ from ..services.audit import log_event, check_admin_ip, trigger_admin_alert
 from ..services.utils import get_malaysia_time
 
 from ..config import (
-    EMAILJS_PUBLIC_KEY, 
-    EMAILJS_SERVICE_ID, 
-    EMAILJS_TEMPLATE_ID,
-    ADMIN_EMAILJS_PUBLIC_KEY,
-    ADMIN_EMAILJS_SERVICE_ID,
-    ADMIN_EMAILJS_TEMPLATE_ID,
+    EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
+    ADMIN_EMAILJS_PUBLIC_KEY, ADMIN_EMAILJS_SERVICE_ID, ADMIN_EMAILJS_TEMPLATE_ID,
+    ADMIN_ALERT_EMAILJS_PUBLIC_KEY, ADMIN_ALERT_EMAILJS_SERVICE_ID, ADMIN_ALERT_EMAILJS_TEMPLATE_ID,
     CAREERJET_WIDGET_ID
 )
 
@@ -31,6 +28,9 @@ async def get_auth_config():
         "admin_emailjs_public_key": ADMIN_EMAILJS_PUBLIC_KEY,
         "admin_emailjs_service_id": ADMIN_EMAILJS_SERVICE_ID,
         "admin_emailjs_template_id": ADMIN_EMAILJS_TEMPLATE_ID,
+        "admin_alert_emailjs_public_key": ADMIN_ALERT_EMAILJS_PUBLIC_KEY,
+        "admin_alert_emailjs_service_id": ADMIN_ALERT_EMAILJS_SERVICE_ID,
+        "admin_alert_emailjs_template_id": ADMIN_ALERT_EMAILJS_TEMPLATE_ID,
         "careerjet_widget_id": CAREERJET_WIDGET_ID
     }
 
@@ -188,22 +188,51 @@ async def admin_login(request: Request, form_data: OAuth2PasswordRequestForm = D
         await log_event(str(user["_id"]), username, "admin_login", ip_address, "failure", {"reason": "not_admin"})
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admin or super_admin can login here")
 
-    # Handle IP issues
+    # Handle IP issues (Anomaly Detection)
+    is_anomaly = False
+    alert_reason = None
+    
+    # Check if IP is in allowlist
     if not ip_status["is_allowed"]:
-        await trigger_admin_alert(username, ip_address, "Unknown IP access attempt")
-        # Soft restriction: we still allow login if password is correct, but log it heavily and alert
+        is_anomaly = True
+        alert_reason = "Unknown IP access attempt (Not in Allowlist)"
         await log_event(str(user["_id"]), username, "admin_login", ip_address, "warning", {"reason": "unauthorized_ip"})
     
+    # Check if IP changed since last login
     if ip_status["is_anomaly"]:
-        await trigger_admin_alert(username, ip_address, f"IP Anomaly detected. Previous: {ip_status['last_ip']}")
+        is_anomaly = True
+        # If we already have a reason (from allowlist), append this one
+        anomaly_msg = f"IP Anomaly detected (Changed from: {ip_status['last_ip']})"
+        alert_reason = f"{alert_reason} | {anomaly_msg}" if alert_reason else anomaly_msg
         await log_event(str(user["_id"]), username, "admin_login", ip_address, "warning", {"reason": "ip_anomaly"})
+
+    # Trigger alert once if any anomaly was detected
+    if is_anomaly:
+        await trigger_admin_alert(username, ip_address, alert_reason)
 
     # Update last login info
     await users.update_one({"_id": user["_id"]}, {"$set": {"last_login_ip": ip_address}})
     
     await log_event(str(user["_id"]), username, "admin_login", ip_address, "success")
     token = create_access_token(str(user["_id"]), user.get("role"))
-    return Token(access_token=token)
+    
+    # Fetch admin emails to return for frontend alerting as fallback
+    admin_emails = []
+    if is_anomaly:
+        try:
+            cursor = users.find({"role": {"$in": ["admin", "super_admin"]}})
+            async for admin in cursor:
+                if "email" in admin:
+                    admin_emails.append(admin["email"])
+        except Exception:
+            pass
+
+    return Token(
+        access_token=token,
+        is_anomaly=is_anomaly,
+        admin_emails=admin_emails,
+        alert_reason=alert_reason
+    )
 
 @router.get("/me")
 async def me(current=Depends(get_current_user)):
