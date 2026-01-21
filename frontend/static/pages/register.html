@@ -46,6 +46,19 @@
           <form hx-post="/api/auth/register" hx-trigger="submit" hx-ext="json-enc" hx-include="[name=email],[name=password],[name=name]" 
                 hx-headers='{"Authorization": ""}'
                 hx-on::before-request="
+                  const nameInput = document.querySelector('[name=name]');
+                  const nameValue = nameInput.value.trim();
+                  if (nameValue && !/^[A-Za-z\s]*$/.test(nameValue)) {
+                    event.preventDefault();
+                    Swal.fire({
+                      icon: 'error',
+                      title: 'Invalid Name',
+                      text: 'Name can only contain alphabets and spaces.',
+                      confirmButtonColor: '#0d6efd'
+                    });
+                    return;
+                  }
+
                   const emailInput = document.querySelector('[name=email]');
                   const email = emailInput.value.trim().toLowerCase();
                   
@@ -168,11 +181,11 @@
                 ">
             <div class="mb-4">
               <label class="form-label text-secondary small text-uppercase fw-bold">Full Name (Optional)</label>
-              <input name="name" type="text" class="form-control form-control-lg" placeholder="Your Name" title="Full Name">
+              <input name="name" type="text" class="form-control form-control-lg" placeholder="Your Name" title="Full Name" maxlength="30" oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')">
             </div>
             <div class="mb-4">
               <label class="form-label text-secondary small text-uppercase fw-bold">Email Address</label>
-              <input name="email" type="email" class="form-control form-control-lg" placeholder="name@example.com" title="Email address" required>
+              <input name="email" type="email" class="form-control form-control-lg" placeholder="name@example.com" title="Email address" required maxlength="130">
             </div>
             <div class="mb-4">
               <label class="form-label text-secondary small text-uppercase fw-bold">Password</label>
