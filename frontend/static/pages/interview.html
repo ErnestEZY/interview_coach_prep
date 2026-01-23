@@ -27,6 +27,12 @@
     <div class="loader-spinner"></div>
     <div class="loader-text">Initializing Interview...</div>
   </div>
+
+  <!-- Interview Start Loader -->
+  <div class="page-loader interview-start-loader" x-show="isStarting" x-cloak x-transition:enter="fade-in" x-transition:leave="fade-out">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">Starting Interview Session...</div>
+  </div>
   <nav class="navbar navbar-dark glass-nav">
     <div class="container d-flex align-items-center justify-content-between">
       <div class="d-flex align-items-center gap-3">
@@ -240,7 +246,7 @@
                   </div>
                   <div class="readiness-label">READINESS SCORE</div>
                 </div>
-                <div class="p-4 rounded-4 feedback-box shadow-lg feedback-box-max">
+                <div class="p-4 rounded-4 feedback-box shadow-lg feedback-box-max w-100 max-w-600">
                   <h6 class="text-primary small fw-bold text-uppercase mb-2 tracking-widest">Constructive Feedback</h6>
                   <p class="small text-light mb-0 feedback-text" x-text="feedbackExplanation"></p>
                 </div>
@@ -292,10 +298,10 @@
         </template>
       </div>
 
-      <div class="p-3 bg-dark rounded mb-3 interview-transcript-container" x-show="transcript.length > 0" x-ref="transcriptBox">
+      <div class="bg-dark rounded mb-3 interview-transcript-container overflow-hidden" x-show="transcript.length > 0" x-ref="transcriptBox">
         <!-- Sticky Chat Header with Interviewer Icon -->
         <div class="sticky-top bg-dark border-bottom border-white border-opacity-10 pb-2 mb-3 d-flex align-items-center justify-content-between sticky-header-container">
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 ps-2">
             <div :class="iconClass" class="d-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle interviewer-avatar">
               <template x-if="thinking">
                 <i class="bi bi-cpu fs-6 text-primary icon-thinking"></i>
@@ -307,13 +313,13 @@
                 <i class="bi bi-robot fs-6 text-primary"></i>
               </template>
             </div>
-            <div class="d-flex flex-column">
+            <div class="d-flex flex-column overflow-hidden">
               <span class="small fw-bold text-white interviewer-label">Interviewer</span>
-              <span class="text-primary interviewer-status" x-text="thinking ? 'Thinking...' : (speaking ? 'Speaking...' : 'Ready')"></span>
+              <span class="text-primary interviewer-status text-truncate" x-text="thinking ? 'Thinking...' : (speaking ? 'Speaking...' : 'Ready')"></span>
             </div>
           </div>
           <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-primary rounded-pill px-3 py-1 question-badge" x-show="sessionId" x-text="`Q: ${currentQuestion} / ${questionLimit}`"></span>
+            <span class="badge bg-primary rounded-pill px-3 py-1 question-badge" x-show="sessionId" x-text="typeof currentQuestion === 'number' ? `Q: ${currentQuestion} / ${questionLimit}` : currentQuestion"></span>
             <div class="session-timer-mini d-flex align-items-center gap-1 text-warning small timer-mini" x-show="sessionId">
               <i class="bi bi-clock-fill"></i>
               <span x-text="formatTime(interviewTime)"></span>
@@ -329,15 +335,25 @@
           </template>
         </div>
       </div>
-      <form class="d-flex gap-2" @submit.prevent="send()">
-        <input type="text" class="form-control" placeholder="Type your answer..." x-model="answer" :disabled="!sessionId" maxlength="800">
-        <button type="submit" class="btn btn-primary" :disabled="!sessionId">Send</button>
-        <button type="button" class="btn" 
+      <form class="d-flex gap-2 align-items-end" @submit.prevent="send()">
+        <textarea 
+          class="form-control auto-expand-textarea" 
+          placeholder="Type your answer..." 
+          x-model="answer" 
+          :disabled="!sessionId" 
+          maxlength="800"
+          @input="$el.style.height = '45px'; $el.style.height = $el.scrollHeight + 'px'"
+          @keydown.enter.prevent="if(!$event.shiftKey) send()"
+        ></textarea>
+        <button type="submit" class="btn btn-primary h-100 py-2 px-3" :disabled="!sessionId" title="Send your answer">
+          <i class="bi bi-send-fill"></i>
+        </button>
+        <button type="button" class="btn h-100 py-2 px-3" 
                 :class="recording ? 'btn-danger animate-pulse' : 'btn-outline-light'" 
                 x-show="mic" @click="record()" :disabled="!sessionId || recording"
                 title="Start voice recording for your answer">
           <i class="bi" :class="recording ? 'bi-mic-fill' : 'bi-mic'"></i>
-          <span x-text="recording ? 'Recording...' : 'Record'"></span>
+          <span class="d-none d-sm-inline ms-1" x-text="recording ? 'Recording...' : 'Record'"></span>
         </button>
       </form>
     </div>

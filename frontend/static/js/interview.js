@@ -6,6 +6,7 @@ function interview() {
     userEmail: '',
     hasAnalyzed: false,
     sessionId: null,
+    currentQuestion: 0,
     questionLimit: 10,
     difficulty: "Intermediate",
     transcript: [],
@@ -26,7 +27,9 @@ function interview() {
     feedbackExplanation: "",
     getScoreColorClass() {
       if (!this.readinessScore) return '';
+      if (this.readinessScore === 'N/A') return 'score-na';
       const score = parseInt(this.readinessScore);
+      if (isNaN(score)) return 'score-na';
       if (score >= 80) return 'score-high';
       if (score >= 50) return 'score-medium';
       return 'score-low';
@@ -42,6 +45,7 @@ function interview() {
     faceDetectionTimer: null,
     faceAbsentTimer: null,
     isFaceDetected: false,
+    isStarting: false,
     
     resetInactivityTimer() {
       this.lastInteractionTime = Date.now();
@@ -283,9 +287,9 @@ function interview() {
       }, 1000); // Check every second for better responsiveness
     },
     init() {
-      this.startTimer();
       this.checkAdmin();
-
+      this.startTimer();
+      
       // Request permissions from Flutter if running in mobile app
       if (window.PermissionHandler) {
         if (this.useCamera) window.PermissionHandler.postMessage('camera');
@@ -306,7 +310,6 @@ function interview() {
 
       // Pre-load voices for TTS and warm up the engine
       if ('speechSynthesis' in window) {
-        // Some mobile browsers need a small utterance to "unlock" the audio context
         const warmUp = new SpeechSynthesisUtterance("");
         warmUp.volume = 0;
         window.speechSynthesis.speak(warmUp);
@@ -330,57 +333,60 @@ function interview() {
         });
       });
 
-      // Fetch limits
-      try {
-        fetch('/api/interview/limits', {
-          headers: { 'Authorization': 'Bearer ' + icp.state.token }
-        })
-          .then(r => {
-            if (r.status === 200) return r.json();
-            return null;
-          })
-          .then(j => {
-            if (j) {
-              this.interviewAttempts = j.remaining;
-              this.maxInterviewAttempts = j.limit;
-            }
-          })
-          .catch(() => { });
-      } catch (e) { }
-
-      const feedback = localStorage.getItem("resume_feedback");
+      // Strictly get job title from localStorage (set by dashboard)
       const title = localStorage.getItem("target_job_title");
-      if (feedback && title) {
-        try {
-          this.resumeFeedback = JSON.parse(feedback);
-          this.jobTitle = title;
-          this.hasResume = true;
-          this.hasAnalyzed = true;
-        } catch (e) {
-          console.error("Error parsing resume feedback", e);
+      const feedback = localStorage.getItem("resume_feedback");
+      
+      if (title) {
+        this.jobTitle = title;
+        if (feedback) {
+          try {
+            this.resumeFeedback = JSON.parse(feedback);
+            this.hasResume = true;
+            this.hasAnalyzed = true;
+          } catch (e) {
+            console.error("Error parsing resume feedback", e);
+          }
         }
-      } else {
-        // If not in local storage, try to fetch the latest from backend
+      }
+
+      // If missing data, fetch latest from backend as fallback
+      if (!this.jobTitle || !this.resumeFeedback) {
         fetch('/api/resume/my', {
           headers: { 'Authorization': 'Bearer ' + icp.state.token }
         })
         .then(r => r.ok ? r.json() : [])
         .then(items => {
           if (items && items.length > 0) {
-            // Sort by created_at desc and take the first
             const latest = items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-            if (latest && latest.feedback) {
-              this.resumeFeedback = latest.feedback;
-                      this.jobTitle = latest.job_title;
-                      this.hasResume = true;
-                      this.hasAnalyzed = true;
-                      localStorage.setItem('resume_feedback', JSON.stringify(latest.feedback));
-              localStorage.setItem('target_job_title', latest.job_title);
+            if (latest) {
+              if (!this.jobTitle) {
+                this.jobTitle = latest.job_title;
+                localStorage.setItem('target_job_title', latest.job_title);
+              }
+              if (!this.resumeFeedback && latest.feedback) {
+                this.resumeFeedback = latest.feedback;
+                this.hasResume = true;
+                this.hasAnalyzed = true;
+                localStorage.setItem('resume_feedback', JSON.stringify(latest.feedback));
+              }
             }
           }
         })
         .catch(() => {});
       }
+      
+      // Fetch daily limits
+      fetch('/api/interview/limits', {
+        headers: { 'Authorization': 'Bearer ' + icp.state.token }
+      })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        if (j) {
+          this.interviewAttempts = j.remaining;
+          this.maxInterviewAttempts = j.limit;
+        }
+      });
     },
     get iconClass() { if (this.thinking) return 'icon thinking'; if (this.speaking) return 'icon speaking'; return 'icon idle'; },
     get transcriptHtml() {
@@ -482,16 +488,33 @@ function interview() {
       window.speechSynthesis.speak(u);
     },
     extractFeedback(text) {
-      // Regular expression to find score (e.g., 85/100 or Score: 85)
-      const scoreMatch = text.match(/(\d{1,3})\s?\/\s?100/) || text.match(/Score:\s?(\d{1,3})/i);
+      if (!text) return;
+      
+      // Look for the score first using a more robust regex
+      const scoreMatch = text.match(/Interview Readiness Score:\s*(\d+)\/100/i);
+      
       if (scoreMatch) {
         this.readinessScore = scoreMatch[1];
-        // The rest of the message is the explanation
-        this.feedbackExplanation = text.replace(scoreMatch[0], "").replace(/Interview Readiness Score/i, "").trim();
-      } else if (text.includes("accuracy") || text.includes("incomplete") || text.includes("early")) {
-        // Case for early exit
+        
+        const parts = text.split('\n\n');
+        if (parts.length >= 2) {
+          let feedback = parts.slice(1).join('\n\n');
+          feedback = feedback.replace(/Interview Readiness Score:\s*\d+\/100/i, '').replace('[FINISH]', '').trim();
+          this.feedbackExplanation = feedback;
+        } else {
+          this.feedbackExplanation = text.replace(/Interview Readiness Score:\s*\d+\/100/i, '').replace('[FINISH]', '').trim();
+        }
+      } else {
+        // Even if no score is found, if this function is called, the interview has ended.
+        // We must show the design.
         this.readinessScore = "N/A";
-        this.feedbackExplanation = text;
+        // Try to extract some feedback if possible
+        const parts = text.split('\n\n');
+        if (parts.length >= 2) {
+          this.feedbackExplanation = parts.slice(1).join('\n\n').replace('[FINISH]', '').trim();
+        } else {
+          this.feedbackExplanation = text.replace('[FINISH]', '').trim();
+        }
       }
     },
     initRecognition() {
@@ -539,6 +562,7 @@ function interview() {
       this.recognition.start();
     },
     async start() {
+      if (this.sessionId) return;
       if (!this.hasResume) {
         Swal.fire('Error', 'Please upload your resume in the dashboard first.', 'error');
         return;
@@ -564,9 +588,11 @@ function interview() {
       }
 
       this.thinking = true;
+      this.isStarting = true;
       this.transcript = [];
       this.readinessScore = null;
       this.feedbackExplanation = "";
+      this.currentQuestion = 1;
       const fd = new FormData();
       if (this.jobTitle) fd.append('job_title', this.jobTitle);
       if (this.resumeFeedback) fd.append('resume_feedback', JSON.stringify(this.resumeFeedback));
@@ -604,6 +630,8 @@ function interview() {
         .then(j => {
           if (!j) return;
           this.sessionId = j.session_id;
+          this.currentQuestion = j.asked_count || 1;
+          this.questionLimit = j.questions_limit || this.questionLimit;
           this.transcript.push({ role: 'assistant', text: j.message });
           this.tts(j.message);
           this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
@@ -611,7 +639,10 @@ function interview() {
           this.resetInactivityTimer();
           if (this.useCamera) this.startCamera();
         })
-        .finally(() => { this.thinking = false });
+        .finally(() => { 
+          this.thinking = false;
+          this.isStarting = false;
+        });
     },
     end() {
       if (!this.sessionId) return;
@@ -626,19 +657,30 @@ function interview() {
         confirmButtonText: 'Yes, end it'
       }).then((result) => {
         if (result.isConfirmed) {
+          this.thinking = true;
           fetch('/api/interview/' + this.sessionId + '/end', { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token } })
             .then(r => {
               if (r.status === 401) return null;
               return r.json();
             })
             .then(j => {
+              if (!j) return;
               this.sessionId = null;
               this.stopInterviewTimer();
               if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
               this.stopCamera();
               
-              this.readinessScore = 'N/A';
-              this.feedbackExplanation = "It looks like the interview ended a bit too quickly for a full assessment, and the score or feedback cannot be provided. Please start another session whenever you're ready.";
+              if (j.message) {
+                this.transcript.push({ role: 'assistant', text: j.message });
+                this.tts(j.message);
+                this.extractFeedback(j.message);
+              } else {
+                this.readinessScore = 'N/A';
+                this.feedbackExplanation = "Interview ended early. Please try again when you're ready.";
+              }
+            })
+            .finally(() => {
+              this.thinking = false;
             });
         }
       });
@@ -647,6 +689,10 @@ function interview() {
       const text = this.answer.trim();
       if (!text) return;
       this.answer = "";
+      // Reset textarea height after sending
+      const textarea = document.querySelector('.auto-expand-textarea');
+      if (textarea) textarea.style.height = '45px';
+      
       this.transcript.push({ role: 'user', text });
       this.thinking = true;
       this.resetInactivityTimer();
@@ -655,9 +701,37 @@ function interview() {
         .then(r => { if (r.status === 401) return null; return r.json() })
         .then(j => {
           if (!j) return;
+          if (j.asked_count) {
+            // asked_count 1 -> Question 1
+            // asked_count 10 -> Question 10
+            // asked_count 11 -> Thank You / Summary
+            if (j.asked_count > (j.questions_limit || this.questionLimit)) {
+              this.currentQuestion = "Summary";
+            } else {
+              this.currentQuestion = j.asked_count;
+            }
+          }
+          if (j.questions_limit) this.questionLimit = j.questions_limit;
+          
           if (j.message) {
-            this.transcript.push({ role: 'assistant', text: j.message });
-            this.tts(j.message);
+            if (j.ended) {
+              // Final message: split "Thank you" from "Feedback"
+              // The AI is instructed to use \n\n as a separator
+              const parts = j.message.split('\n\n');
+              let thankYou = parts[0].replace("[FINISH]", "").trim();
+              
+              // If splitting didn't work (no double newline), try single newline
+              if (parts.length === 1) {
+                const lines = j.message.split('\n');
+                thankYou = lines[0].replace("[FINISH]", "").trim();
+              }
+              
+              this.transcript.push({ role: 'assistant', text: thankYou });
+              this.tts(thankYou);
+            } else {
+              this.transcript.push({ role: 'assistant', text: j.message });
+              this.tts(j.message);
+            }
           }
           if (j.ended) {
             this.extractFeedback(j.message);

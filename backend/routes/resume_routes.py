@@ -51,10 +51,24 @@ async def upload_resume(
     feedback = get_feedback(text)
 
     # Validate if it's actually a resume
-    if not feedback.get("IsResume", True):
+    # We add a small fallback check: if the text is long enough and contains certain keywords, 
+    # we might override the AI's false negative if it's borderline.
+    is_valid_resume = feedback.get("IsResume", True)
+    resume_text_lower = text.lower()
+    keywords_check = ["experience", "education", "skills", "projects", "achievement", "summary", "contact"]
+    has_structure = sum(1 for kw in keywords_check if kw in resume_text_lower) >= 2
+    
+    if not is_valid_resume and has_structure and len(text) > 300:
+        # Override false negative from AI if the text clearly has resume-like structure
+        is_valid_resume = True
+        feedback["IsResume"] = True
+        if feedback.get("Score") == 0:
+            feedback["Score"] = 40 # Give a base score if it was 0
+
+    if not is_valid_resume:
         raise HTTPException(
             status_code=400, 
-            detail="The uploaded file does not appear to be a professional resume or CV. Please upload a valid resume."
+            detail="The uploaded file does not appear to be a professional resume or CV. Please ensure the file contains your professional experience, education, and skills."
         )
     
     # Use AI detected job title if it's available and the provided one is generic

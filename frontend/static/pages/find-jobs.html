@@ -123,12 +123,16 @@
             
             // Primary Careerjet attributes - always set even if empty to clear previous state
             widgetDiv.setAttribute('data-keywords', query);
+            widgetDiv.setAttribute('data-q', query); // Fallback attribute for some widget versions
+            widgetDiv.setAttribute('data-s', query); // User specified selector fallback
             widgetDiv.setAttribute('data-location', location);
 
             // Construct URL with standard q and l parameters
             let widgetUrl = 'https://widget.careerjet.net/search-box/' + this.careerjetWidgetId;
             let params = [];
             params.push('q=' + encodeURIComponent(query));
+            params.push('keywords=' + encodeURIComponent(query)); // Another common parameter
+            params.push('s=' + encodeURIComponent(query)); // Add 's' as fallback for job title
             params.push('l=' + encodeURIComponent(location));
             if (params.length > 0) widgetUrl += '?' + params.join('&');
 
@@ -143,7 +147,98 @@
             container.appendChild(script);
           }
           setTimeout(() => { this.isLoading = false; }, 1000);
-        }
+          
+          // Start manual sync to ensure fields are populated correctly
+          this.syncFields();
+        },
+
+        syncFields() {
+              const query = localStorage.getItem('target_job_title') || '';
+              const location = localStorage.getItem('target_location') || '';
+              
+              if (!query && !location) return;
+              console.log('[JobSearch] Starting persistent sync...', { query, location });
+   
+              let attempts = 0;
+              const maxAttempts = 60; // Increase to 1 minute
+              const interval = setInterval(() => {
+                const findInputs = (doc) => {
+                  let s = doc.getElementById('s');
+                  let l = doc.getElementById('l');
+
+                  if (!s || !l) {
+                    const allInputs = Array.from(doc.querySelectorAll('input:not([type="hidden"])'));
+                    if (!s) s = allInputs.find(i => i.name === 's' || i.name === 'q' || i.name === 'keywords' || i.id === 's' || (i.placeholder && /job|title|keyword/i.test(i.placeholder)));
+                    if (!l) l = allInputs.find(i => i.name === 'l' || i.id === 'l' || (i.placeholder && /location|city|postcode/i.test(i.placeholder)));
+                    
+                    // Absolute fallback: first text input is usually job, second is location
+                    if (!s || !l) {
+                      const textInputs = allInputs.filter(i => i.type === 'text' || !i.type);
+                      if (textInputs.length >= 1 && !s) s = textInputs[0];
+                      if (textInputs.length >= 2 && !l) l = textInputs[1];
+                    }
+                  }
+                  return { s, l };
+                };
+
+                const setVal = (el, val, name) => {
+                   if (el && val && el.value !== val) {
+                     console.log(`[JobSearch] Setting ${name}:`, val, 'on element:', { id: el.id, name: el.name, class: el.className });
+                     
+                     // 1. Standard value setting
+                     el.value = val;
+                     
+                     // 2. Event dispatching
+                     ['input', 'change', 'blur', 'keyup', 'keydown'].forEach(type => {
+                       el.dispatchEvent(new Event(type, { bubbles: true }));
+                     });
+
+                     // 3. React/Vue/Angular specific: update internal state by calling the native setter
+                     try {
+                       const nativeValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                       nativeValueSetter.call(el, val);
+                       el.dispatchEvent(new Event('input', { bubbles: true }));
+                     } catch (e) {}
+
+                     // 4. Force attribute update
+                     el.setAttribute('value', val);
+                   }
+                 };
+  
+                // Check main document and iframes
+                let inputs = findInputs(document);
+                if (!inputs.s || !inputs.l) {
+                  document.querySelectorAll('iframe').forEach(iframe => {
+                    try {
+                      const doc = iframe.contentDocument || iframe.contentWindow.document;
+                      const found = findInputs(doc);
+                      if (!inputs.s) inputs.s = found.s;
+                      if (!inputs.l) inputs.l = found.l;
+                    } catch (e) {}
+                  });
+                }
+   
+                if (inputs.s || inputs.l) {
+                  if (inputs.s) setVal(inputs.s, query, 'Job Title');
+                  if (inputs.l) setVal(inputs.l, location, 'Location');
+   
+                  // Stop if both are set correctly and have stayed that way for a bit
+                  const sOk = !query || (inputs.s && inputs.s.value === query);
+                  const lOk = !location || (inputs.l && inputs.l.value === location);
+                  
+                  if (sOk && lOk && attempts > 10) { 
+                    console.log('[JobSearch] Sync verified and stable');
+                    clearInterval(interval);
+                  }
+                }
+                
+                attempts++;
+                if (attempts >= maxAttempts) {
+                  console.log('[JobSearch] Sync reached max attempts');
+                  clearInterval(interval);
+                }
+              }, 500); 
+            }
       }
     }
   </script>

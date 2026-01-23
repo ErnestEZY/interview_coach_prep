@@ -334,7 +334,30 @@ document.addEventListener('alpine:init', () => {
           }
         } catch (err) {
           Swal.close();
-          Swal.fire('Error', err.message || 'Failed to analyze resume', 'error');
+          const errorMsg = err.message || 'Failed to analyze resume';
+          
+          if (errorMsg.includes("image-based PDF") || errorMsg.includes("scanned document")) {
+            Swal.fire({
+              title: 'Extraction Failed',
+              html: `
+                <div class="text-start">
+                  <p class="mb-3">${errorMsg}</p>
+                  <p class="small text-secondary mb-3">Don't worry! You can still use our <strong>Guided Profile Builder</strong> to manually enter your details and get the same quality analysis.</p>
+                </div>
+              `,
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonText: 'Use Manual Builder',
+              cancelButtonText: 'Try Another File',
+              confirmButtonColor: '#3b82f6',
+            }).then((result) => {
+              if (result.isConfirmed) {
+                this.openManualBuilder();
+              }
+            });
+          } else {
+            Swal.fire('Error', errorMsg, 'error');
+          }
           console.error('Upload error:', err);
         }
       },

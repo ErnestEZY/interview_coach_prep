@@ -21,7 +21,7 @@ def build_resume_prompt(text: str, context: str = "") -> str:
 
     prompt += (
         "The JSON must have the following keys:\n"
-        "- \"IsResume\": a boolean (true/false) indicating if the provided text is actually a professional resume or CV.\n"
+        "- \"IsResume\": a boolean (true/false). Be lenient: if the text contains professional experience, education, skills, or contact info, set this to true. Only set to false if the text is clearly irrelevant (e.g., a story, a recipe, random gibberish, or a completely different type of document).\n"
         "- \"Score\": an integer from 0 to 100 representing the overall quality.\n"
         "- \"Advantages\": a list of strings highlighting strong points.\n"
         "- \"Disadvantages\": a list of strings highlighting weak points.\n"
@@ -29,6 +29,10 @@ def build_resume_prompt(text: str, context: str = "") -> str:
         "- \"Keywords\": a list of 10-15 essential skills and industry keywords strictly extracted from the resume text.\n"
         "- \"Location\": a string representing the user's current city or state (e.g., 'Kuala Lumpur', 'Petaling Jaya') extracted from the resume. If not found, return an empty string.\n"
         "- \"DetectedJobTitle\": a string representing the most likely target job title for this user based on their experience and skills (e.g., 'Software Engineer', 'Data Scientist'). If not clear, return an empty string.\n\n"
+        "STRICT GUIDELINE FOR IsResume:\n"
+        "1. If the text has a name and at least one section like 'Experience', 'Education', or 'Skills', it is a resume (true).\n"
+        "2. If the text is a short bio or a list of skills, it is still a resume (true).\n"
+        "3. Only set to false if the content is malicious, nonsensical, or entirely unrelated to professional identity.\n\n"
         "IMPORTANT: If \"IsResume\" is false, set Score to 0 and all lists to empty, but still return a valid JSON.\n\n"
         "Resume Text:\n" + text
     )

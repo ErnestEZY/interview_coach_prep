@@ -19,6 +19,19 @@
   visibility: hidden;
 }
 
+.page-loader.fade-in {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Interview Start Loader with Blur Effect */
+.interview-start-loader {
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.7) !important; /* Semi-transparent version of #0f172a */
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
 .loader-spinner {
   width: 50px;
   height: 50px;
@@ -700,6 +713,54 @@ body {
   font-size: 0.75rem;
 }
 
+.sticky-header-container {
+  background-color: #1e293b !important; /* Solid dark blue/slate background */
+  z-index: 100;
+  padding: 1rem !important; /* Internal padding instead of parent padding */
+  margin-bottom: 0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.interview-transcript-container {
+  max-height: 600px;
+  overflow-y: scroll !important; /* Force scroll bar visibility */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar for better visibility */
+.interview-transcript-container::-webkit-scrollbar {
+  width: 8px;
+}
+.interview-transcript-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+.interview-transcript-container::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.3);
+  border-radius: 4px;
+}
+.interview-transcript-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.5);
+}
+
+.chat {
+  padding: 1rem;
+}
+
+/* Auto-expanding textarea styling */
+.auto-expand-textarea {
+  resize: none;
+  overflow-y: hidden;
+  min-height: 45px;
+  max-height: 150px;
+  transition: height 0.1s ease;
+  line-height: 1.5;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
 .question-limit-select {
   width: 80px;
 }
@@ -782,6 +843,7 @@ body {
 .score-high { border-color: #059669 !important; color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
 .score-medium { border-color: #d97706 !important; color: #f59e0b; text-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
 .score-low { border-color: #dc2626 !important; color: #ef4444; text-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+.score-na { border-color: #475569 !important; color: #94a3b8; text-shadow: none; }
 
 .max-w-600 {
   max-width: 600px;
@@ -816,7 +878,10 @@ body {
 }
 
 .file-name-text {
-  max-width: 300px;
+  max-width: 100%;
+  word-break: break-all;
+  white-space: normal;
+  line-height: 1.2;
 }
 
 .file-ready-text {
@@ -1031,7 +1096,7 @@ body {
 }
 
 .interviewer-label { font-size: 0.75rem; line-height: 1; }
-.interviewer-status { font-size: 0.65rem; }
+.interviewer-status { font-size: 0.75rem; opacity: 0.8; max-width: 80px; }
 .question-badge { font-size: 0.7rem; }
 /* Job Search Page Styles */
 .job-card {

@@ -98,10 +98,10 @@ async def start(
         "ended_at": None,
     }
     res = await interviews.insert_one(doc)
-    ai = interview_reply([], job_title=job_title, resume_feedback=feedback_dict, questions_limit=questions_limit, difficulty=difficulty)
+    ai = interview_reply([], job_title=job_title, resume_feedback=feedback_dict, questions_limit=questions_limit, difficulty=difficulty, current_asked_count=0)
     await inc_question(current["id"])
     await interviews.update_one({"_id": res.inserted_id}, {"$push": {"transcript": {"role": "assistant", "text": ai, "at": get_malaysia_time()}}, "$inc": {"asked_count": 1}})
-    return {"session_id": sid, "message": ai}
+    return {"session_id": sid, "message": ai, "asked_count": 1, "questions_limit": questions_limit}
 
 @router.post("/{session_id}/reply")
 async def reply(session_id: str, user_text: str = Form(...), current=Depends(get_current_user), _: None = Depends(rate_limit)):
@@ -136,7 +136,9 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
         raise HTTPException(status_code=429, detail="Daily question quota reached (60 questions per day). Resets at 00:00 Malaysia Time.")
     history = [{"role": t["role"], "content": t["text"]} for t in s.get("transcript", [])]
     history.append({"role": "user", "content": user_text})
-    ai = interview_reply(history, job_title=job_title, resume_feedback=resume_feedback, questions_limit=questions_limit, difficulty=difficulty)
+    
+    current_asked_count = s.get("asked_count", 0)
+    ai = interview_reply(history, job_title=job_title, resume_feedback=resume_feedback, questions_limit=questions_limit, difficulty=difficulty, current_asked_count=current_asked_count)
     
     # Check for AI signaling completion
     ai_ended = "[FINISH]" in ai
@@ -155,11 +157,17 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
         },
     )
     
-    # Session ends if AI signals it OR if hard limit reached
+    # Session ends ONLY if we've asked enough questions AND (AI signals it OR we hit the hard limit)
+    # limit + 1 is the magic number because:
+    # - Start: asked_count=0 -> AI sends Q1 -> asked_count=1
+    # - User R1 -> AI sends Q2 -> asked_count=2
+    # ...
+    # - User R10 -> AI sends Wrap-up -> asked_count=11
     asked_now = int(s.get("asked_count", 0)) + 1
     limit = int(s.get("questions_limit", SESSION_MAX_QUESTIONS))
-    # Allow one extra message for the final feedback/conclusion
-    ended_now = ai_ended or (asked_now > limit)
+    
+    # Force end if we reach limit + 1, OR if AI signals end and we have at least 'limit' questions
+    ended_now = (asked_now > limit) or (ai_ended and asked_now >= limit)
 
     if ended_now:
         # Check if session was already ended to avoid double counting
@@ -189,12 +197,12 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
                     "$set": {
                         "ended_at": get_malaysia_time(),
                         "readiness_score": readiness_score,
-                        "feedback_summary": feedback_text,
+                        "readiness_feedback": feedback_text,
                     }
                 }
             )
-        return {"message": ai, "ended": True}
-    return {"message": ai}
+        return {"message": ai, "ended": True, "asked_count": asked_now, "questions_limit": limit}
+    return {"message": ai, "asked_count": asked_now, "questions_limit": limit}
 
 @router.post("/{session_id}/end")
 async def end(session_id: str, current=Depends(get_current_user)):
@@ -206,11 +214,25 @@ async def end(session_id: str, current=Depends(get_current_user)):
         resume_feedback = s.get("resume_feedback")
         questions_limit = s.get("questions_limit", INTERVIEW_DEFAULT_QUESTIONS)
         difficulty = s.get("difficulty", "Intermediate")
+        asked_count = s.get("asked_count", 0)
         
         history = [{"role": t["role"], "content": t["text"]} for t in s.get("transcript", [])]
-        history.append({"role": "user", "content": "[USER ENDED INTERVIEW EARLY]"})
+        # Inform the AI that the user ended the session early and ask it to explain why no score is generated
+        history.append({
+            "role": "user", 
+            "content": "[SYSTEM MESSAGE]: The user has ended the interview session early. Please explain to the user that the session is now closed. Explicitly state that because the interview was not completed, a Readiness Score cannot be generated (it will be shown as N/A). Provide some brief, encouraging words about their progress so far. Be professional and polite."
+        })
         
-        ai_msg = interview_reply(history, job_title=job_title, resume_feedback=resume_feedback, questions_limit=questions_limit, difficulty=difficulty)
+        # Call AI to get the explanation message
+        ai_msg = interview_reply(
+            history, 
+            job_title=job_title, 
+            resume_feedback=resume_feedback, 
+            questions_limit=questions_limit, 
+            difficulty=difficulty,
+            current_asked_count=asked_count,
+            force_end=True
+        )
         ai_msg = ai_msg.replace("[FINISH]", "").strip()
 
         await increment_daily_limit(current["id"], "daily_interview_count")
