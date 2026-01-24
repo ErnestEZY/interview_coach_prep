@@ -249,8 +249,10 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     # Check if user exists in permanent collection
     user = await users.find_one({"email": email})
     if not user:
-        # To avoid user enumeration, we still return success but don't send anything
-        return {"message": "If your email is registered, you will receive a reset link shortly."}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="We couldn't find an account with that email address. Please check and try again."
+        )
     
     # Generate reset token
     token = await create_reset_token(email)
@@ -263,13 +265,12 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     success = await send_reset_password_email(email, reset_link)
     
     if not success:
-        # Fallback: return the generic message
-        return {
-            "message": "If your email is registered, you will receive a reset link shortly.",
-            "debug_link": reset_link # REMOVE THIS IN PRODUCTION
-        }
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send reset email. Please try again later."
+        )
     
-    return {"message": "If your email is registered, you will receive a reset link shortly."}
+    return {"message": "A password reset link has been sent to your email address."}
 
 @router.get("/verify-token/{token}")
 async def verify_token_endpoint(token: str):
