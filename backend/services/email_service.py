@@ -22,21 +22,12 @@ async def send_reset_password_email(email: str, reset_link: str):
 
     async with httpx.AsyncClient() as client:
         # Template parameters for the forgot password email
+        # The user has updated the template in EmailJS dashboard to use {{reset_link}}
         template_params = {
             "to_email": email,
             "reset_email": email,
             "reset_link": reset_link,
-            "message": f"""
-                    <div> 
-                        <p>We received a request to reset the password for your account.</p> 
-                        <p>To proceed with the password reset, please click the button below. This link will expire in 30 minutes for your security.</p> 
-                        <p><a style="display: inline-block; text-decoration: none; outline: none; color: #fff; background-color: #fc0038; padding: 8px 16px; border-radius: 4px;" href="{reset_link}" target="_blank" rel="noopener">&nbsp;Reset Password</a></p> 
-                        <p>If you did not request a password reset, no further action is required. Your account remains secure.</p> 
-                        <p>If the button above doesn't work, you can also use this direct link:</p> 
-                        <p><a style="text-decoration: none; outline: none; color: #fc0038;" href="{reset_link}">{reset_link}</a></p> 
-                        <p>We're here to assist you every step of the way!</p> 
-                    </div>
-                """
+            "message": f"Reset Link: {reset_link}" # Simplified fallback
         }
 
         payload = {
