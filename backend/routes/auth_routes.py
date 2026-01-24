@@ -270,7 +270,7 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
             detail="Failed to send reset email. Please try again later."
         )
     
-    return {"message": "A password reset link has been sent to your email address."}
+    return {"message": "A password reset link has been sent. It may take a few minutes to arrive in your inbox."}
 
 @router.get("/verify-token/{token}")
 async def verify_token_endpoint(token: str):
