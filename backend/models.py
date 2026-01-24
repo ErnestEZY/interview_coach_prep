@@ -39,6 +39,13 @@ class Token(BaseModel):
     admin_emails: Optional[List[str]] = []
     alert_reason: Optional[str] = None
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str
+
 class ResumeFeedback(BaseModel):
     advantages: List[str]
     disadvantages: List[str]

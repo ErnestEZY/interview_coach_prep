@@ -69,7 +69,19 @@
 }
 /* --- End Global Loading Screen --- */
 
-[x-cloak] { display: none !important; }
+/* Auth Page Components */
+.password-criteria-list {
+  background: rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.password-criteria-list li {
+  font-weight: 700 !important; /* Bold text */
+}
+
+.password-strength-progress {
+  height: 4px;
+}
 
 body { 
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
@@ -841,6 +853,27 @@ body {
 }
 
 .score-high { border-color: #059669 !important; color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+
+.password-strength-progress {
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.password-criteria-list {
+  background-color: rgba(255, 255, 255, 0.05) !important; /* Slightly lighter glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-weight: 700; /* Bold text */
+}
+
+.password-criteria-list li {
+  transition: color 0.3s ease;
+}
+
+.transition-all {
+  transition: all 0.3s ease;
+}
 .score-medium { border-color: #d97706 !important; color: #f59e0b; text-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
 .score-low { border-color: #dc2626 !important; color: #ef4444; text-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
 .score-na { border-color: #475569 !important; color: #94a3b8; text-shadow: none; }

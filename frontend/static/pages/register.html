@@ -31,7 +31,25 @@
     form: {
       name: localStorage.getItem('reg_name') || '',
       email: localStorage.getItem('reg_email') || '',
-      password: ''
+      password: '',
+      confirmPassword: ''
+    },
+    get passwordCriteria() {
+      return {
+        length: this.form.password.length >= 8,
+        upper: /[A-Z]/.test(this.form.password),
+        lower: /[a-z]/.test(this.form.password),
+        number: /[0-9]/.test(this.form.password),
+        special: /[!@#$%^&*(),.?\&quot;:{}|<>]/.test(this.form.password)
+      };
+    },
+    get passwordStrength() {
+      if (!this.form.password) return { label: 'None', color: 'text-secondary', width: '0%', class: 'bg-secondary' };
+      const criteria = this.passwordCriteria;
+      const metCount = Object.values(criteria).filter(Boolean).length;
+      if (metCount <= 2) return { label: 'Weak', color: 'text-danger', width: '33%', class: 'bg-danger' };
+      if (metCount <= 4) return { label: 'Medium', color: 'text-warning', width: '66%', class: 'bg-warning' };
+      return { label: 'Strong', color: 'text-success', width: '100%', class: 'bg-success' };
     },
     saveForm() {
       localStorage.setItem('reg_name', this.form.name);
@@ -104,12 +122,25 @@
                   }
 
                   const pwd = document.querySelector('[name=password]').value;
+                  const confirmPwd = document.querySelector('[name=confirmPassword]').value;
                   const hasUpper = /[A-Z]/.test(pwd);
+                  const hasLower = /[a-z]/.test(pwd);
                   const hasSymbol = /[!@#$%^&*(),.?\&quot;:{}|<>]/.test(pwd);
                   const hasNumber = /[0-9]/.test(pwd);
                   const validLength = pwd.length >= 8 && pwd.length <= 12;
 
-                  if (!hasUpper || !hasSymbol || !hasNumber || !validLength) {
+                  if (pwd !== confirmPwd) {
+                    event.preventDefault();
+                    Swal.fire({
+                      icon: 'error',
+                      title: 'Passwords do not match',
+                      text: 'Please ensure both passwords are the same.',
+                      confirmButtonColor: '#0d6efd'
+                    });
+                    return;
+                  }
+
+                  if (!hasUpper || !hasLower || !hasSymbol || !hasNumber || !validLength) {
                     event.preventDefault();
                     Swal.fire({
                       icon: 'error',
@@ -118,17 +149,20 @@
                         <div class='text-start small'>
                           <p class='mb-2 fw-bold text-danger'>Password must include:</p>
                           <ul class='list-unstyled'>
-                            <li class='${hasUpper ? 'text-success' : 'text-danger'}'>
-                              <i class='bi ${hasUpper ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>At least 1 Uppercase
+                            <li class='${validLength ? 'text-success' : 'text-danger'}'>
+                              <i class='bi ${validLength ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>At least 8 characters
                             </li>
-                            <li class='${hasSymbol ? 'text-success' : 'text-danger'}'>
-                              <i class='bi ${hasSymbol ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>At least 1 Symbol
+                            <li class='${hasUpper ? 'text-success' : 'text-danger'}'>
+                              <i class='bi ${hasUpper ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>Contains uppercase letter
+                            </li>
+                            <li class='${hasLower ? 'text-success' : 'text-danger'}'>
+                              <i class='bi ${hasLower ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>Contains lowercase letter
                             </li>
                             <li class='${hasNumber ? 'text-success' : 'text-danger'}'>
-                              <i class='bi ${hasNumber ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>At least 1 Number
+                              <i class='bi ${hasNumber ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>Contains number
                             </li>
-                            <li class='${validLength ? 'text-success' : 'text-danger'}'>
-                              <i class='bi ${validLength ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>Between 8 to 12 characters
+                            <li class='${hasSymbol ? 'text-success' : 'text-danger'}'>
+                              <i class='bi ${hasSymbol ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>Contains special character
                             </li>
                           </ul>
                         </div>
@@ -234,6 +268,69 @@
                     <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>
                   </svg>
                 </button>
+              </div>
+              
+              <!-- Password Strength Indicator -->
+              <div class="mt-2" x-show="form.password">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="small text-secondary">Password Strength: <span class="fw-bold" :class="passwordStrength.color" x-text="passwordStrength.label"></span></span>
+                </div>
+                <div class="progress password-strength-progress">
+                  <div class="progress-bar transition-all" role="progressbar" 
+                       title="'Password Strength: ' + passwordStrength.label"
+                       :style="'width: ' + passwordStrength.width" :class="passwordStrength.class"></div>
+                </div>
+              </div>
+
+              <!-- Password Criteria List -->
+              <div class="mt-3 p-3 rounded-3 password-criteria-list">
+                <ul class="list-unstyled mb-0 small">
+                  <li class="d-flex align-items-center mb-1" :class="passwordCriteria.length ? 'text-success' : 'text-secondary'">
+                    <i class="bi me-2" :class="passwordCriteria.length ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                    At least 8 characters
+                  </li>
+                  <li class="d-flex align-items-center mb-1" :class="passwordCriteria.upper ? 'text-success' : 'text-secondary'">
+                    <i class="bi me-2" :class="passwordCriteria.upper ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                    Contains uppercase letter
+                  </li>
+                  <li class="d-flex align-items-center mb-1" :class="passwordCriteria.lower ? 'text-success' : 'text-secondary'">
+                    <i class="bi me-2" :class="passwordCriteria.lower ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                    Contains lowercase letter
+                  </li>
+                  <li class="d-flex align-items-center mb-1" :class="passwordCriteria.number ? 'text-success' : 'text-secondary'">
+                    <i class="bi me-2" :class="passwordCriteria.number ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                    Contains number
+                  </li>
+                  <li class="d-flex align-items-center" :class="passwordCriteria.special ? 'text-success' : 'text-secondary'">
+                    <i class="bi me-2" :class="passwordCriteria.special ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                    Contains special character
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label text-secondary small text-uppercase fw-bold">Confirm Password</label>
+              <div class="input-group input-group-lg" x-data="{show: false}">
+                <input name="confirmPassword" :type="show ? 'text' : 'password'" class="form-control" placeholder="Re-enter your password" title="Confirm Password" required maxlength="12"
+                       x-model="form.confirmPassword">
+                <button class="btn password-toggle-btn" type="button" @click="show = !show" title="Toggle password visibility">
+                  <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                    <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/>
+                    <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>
+                  </svg>
+                  <svg x-show="show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-eye-slash eye-slash-icon" viewBox="0 0 16 16">
+                    <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/>
+                    <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/>
+                    <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="mt-1" x-show="form.confirmPassword">
+                <span class="small" :class="form.password === form.confirmPassword ? 'text-success' : 'text-danger'">
+                  <i class="bi me-1" :class="form.password === form.confirmPassword ? 'bi-check-circle-fill' : 'bi-x-circle-fill'"></i>
+                  <span x-text="form.password === form.confirmPassword ? 'Passwords match' : 'Passwords do not match'"></span>
+                </span>
               </div>
             </div>
             <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">Create Account</button>

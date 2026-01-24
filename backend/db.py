@@ -6,6 +6,7 @@ db = client[DB_NAME]
 
 users = db["users"]
 pending_users = db["pending_users"]
+reset_tokens = db["reset_tokens"]
 resumes = db["resumes"]
 interviews = db["interviews"]
 usage = db["usage"]

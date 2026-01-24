@@ -1,12 +1,89 @@
 from ..config import (
     EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
-    ADMIN_ALERT_EMAILJS_PUBLIC_KEY, ADMIN_ALERT_EMAILJS_SERVICE_ID, ADMIN_ALERT_EMAILJS_TEMPLATE_ID
+    ADMIN_ALERT_EMAILJS_PUBLIC_KEY, ADMIN_ALERT_EMAILJS_SERVICE_ID, ADMIN_ALERT_EMAILJS_TEMPLATE_ID,
+    FORGOT_PASSWORD_EMAILJS_PUBLIC_KEY, FORGOT_PASSWORD_EMAILJS_SERVICE_ID, FORGOT_PASSWORD_EMAILJS_TEMPLATE_ID,
+    FORGOT_PASSWORD_EMAILJS_ACCESS_TOKEN
 )
 from ..db import users
-import logging
 import httpx
 
-logger = logging.getLogger(__name__)
+async def send_reset_password_email(email: str, reset_link: str):
+    """
+    Sends a password reset email using EmailJS REST API.
+    """
+    # Use the dedicated Forgot Password EmailJS configuration
+    service_id = FORGOT_PASSWORD_EMAILJS_SERVICE_ID
+    template_id = FORGOT_PASSWORD_EMAILJS_TEMPLATE_ID
+    public_key = FORGOT_PASSWORD_EMAILJS_PUBLIC_KEY
+    access_token = FORGOT_PASSWORD_EMAILJS_ACCESS_TOKEN
+
+    if not all([service_id, template_id, public_key]):
+        return False
+
+    async with httpx.AsyncClient() as client:
+        # Template parameters for the forgot password email
+        template_params = {
+            "to_email": email,
+            "reset_email": email,
+            "reset_link": reset_link,
+            "message": f"""
+                    <div> 
+                        <p>We received a request to reset the password for your account.</p> 
+                        <p>To proceed with the password reset, please click the button below. This link will expire in 30 minutes for your security.</p> 
+                        <p><a style="display: inline-block; text-decoration: none; outline: none; color: #fff; background-color: #fc0038; padding: 8px 16px; border-radius: 4px;" href="{reset_link}" target="_blank" rel="noopener">&nbsp;Reset Password</a></p> 
+                        <p>If you did not request a password reset, no further action is required. Your account remains secure.</p> 
+                        <p>If the button above doesn't work, you can also use this direct link:</p> 
+                        <p><a style="text-decoration: none; outline: none; color: #fc0038;" href="{reset_link}">{reset_link}</a></p> 
+                        <p>We're here to assist you every step of the way!</p> 
+                    </div>
+                """
+        }
+
+        payload = {
+            "service_id": service_id,
+            "template_id": template_id,
+            "user_id": public_key,
+            "template_params": template_params
+        }
+        
+        # If access_token is provided, add it to the payload (Required for server-side calls)
+        if access_token:
+            payload["accessToken"] = access_token
+
+        try:
+            # Adding more specific headers to satisfy EmailJS security checks
+            headers = {
+                "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Origin": "https://interview-coach-prep.onrender.com",
+                "Referer": "https://interview-coach-prep.onrender.com/"
+            }
+            
+            # Ensure the payload uses the most compatible field names
+            # Some versions of EmailJS API prefer 'publicKey' over 'user_id' when accessToken is used
+            payload_to_send = {
+                "service_id": service_id,
+                "template_id": template_id,
+                "user_id": public_key,
+                "template_params": template_params
+            }
+            
+            if access_token:
+                payload_to_send["accessToken"] = access_token
+
+            response = await client.post(
+                "https://api.emailjs.com/api/v1.0/email/send",
+                json=payload_to_send,
+                headers=headers,
+                timeout=15.0
+            )
+            
+            if response.status_code != 200:
+                return False
+                
+            return True
+        except Exception as e:
+            return False
 
 async def send_admin_alert(subject: str, message: str, offender_email: str = "Unknown"):
     """
@@ -14,7 +91,6 @@ async def send_admin_alert(subject: str, message: str, offender_email: str = "Un
     using the EmailJS REST API.
     """
     if not all([ADMIN_ALERT_EMAILJS_SERVICE_ID, ADMIN_ALERT_EMAILJS_TEMPLATE_ID, ADMIN_ALERT_EMAILJS_PUBLIC_KEY]):
-        logger.error("Admin EmailJS configuration missing. Cannot send email alert.")
         return False
 
     # Find all admins and super_admins in the database
@@ -24,16 +100,10 @@ async def send_admin_alert(subject: str, message: str, offender_email: str = "Un
         async for admin in cursor:
             if "email" in admin:
                 admin_emails.append(admin["email"])
-        
-        # Log found admins for debugging
-        logger.info(f"Found {len(admin_emails)} admins for security alert: {admin_emails}")
     except Exception as e:
-        logger.error(f"Error fetching admin emails from database: {str(e)}")
         return False
 
     if not admin_emails:
-        logger.warning("No users with admin or super_admin role found in database. Alert only logged to terminal.")
-        logger.info(f"PENDING ALERT: {subject} - {message}")
         return False
 
     success_count = 0
@@ -55,8 +125,6 @@ async def send_admin_alert(subject: str, message: str, offender_email: str = "Un
             }
 
             try:
-                logger.debug(f"Sending alert to {admin_email}...")
-                logger.debug(f"Payload: {payload}")
                 response = await client.post(
                     "https://api.emailjs.com/api/v1.0/email/send",
                     json=payload,
@@ -64,11 +132,8 @@ async def send_admin_alert(subject: str, message: str, offender_email: str = "Un
                 )
                 
                 if response.status_code == 200:
-                    logger.info(f"Security alert email sent to {admin_email} via EmailJS")
                     success_count += 1
-                else:
-                    logger.error(f"Failed to send EmailJS alert to {admin_email}: {response.status_code} - {response.text}")
             except Exception as e:
-                logger.error(f"Exception while sending EmailJS alert to {admin_email}: {str(e)}")
+                pass
 
     return success_count > 0

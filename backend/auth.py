@@ -6,8 +6,9 @@ import bcrypt
 import jwt
 import hashlib
 import uuid
+import secrets
 from .config import JWT_SECRET, JWT_ALGORITHM, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD, JWT_EXPIRATION_SECONDS
-from .db import users
+from .db import users, reset_tokens
 from .services.utils import get_malaysia_time
 
 # Session Clearing Mechanism:
@@ -51,6 +52,45 @@ def create_access_token(sub: str, role: str, expires_delta: Optional[timedelta] 
         expire = now + timedelta(seconds=JWT_EXPIRATION_SECONDS)
     payload = {"sub": sub, "role": role, "exp": expire, "sid": STARTUP_SALT}
     return jwt.encode(payload, DYNAMIC_JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def create_reset_token(email: str) -> str:
+    """
+    Generates a short random reset token and stores it in the database.
+    Valid for 30 minutes.
+    """
+    token = secrets.token_urlsafe(16) # Shorter than JWT
+    now = get_malaysia_time()
+    expire = now + timedelta(minutes=30)
+    
+    # Store in database
+    await reset_tokens.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "token": token,
+                "expires_at": expire,
+                "created_at": now
+            }
+        },
+        upsert=True
+    )
+    return token
+
+async def verify_reset_token(token: str) -> Optional[str]:
+    """
+    Verifies the short token against the database and checks expiry.
+    Returns the email if valid, else None.
+    """
+    now = get_malaysia_time()
+    doc = await reset_tokens.find_one({
+        "token": token,
+        "expires_at": {"$gt": now}
+    })
+    
+    if not doc:
+        return None
+        
+    return doc.get("email")
 
 from bson import ObjectId
 

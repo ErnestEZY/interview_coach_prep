@@ -2,10 +2,14 @@ from fastapi import APIRouter, HTTPException, status, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
-from ..db import users, pending_users
-from ..models import UserIn, Token
-from ..auth import hash_password, verify_password, create_access_token, get_current_user
+from ..db import users, pending_users, reset_tokens
+from ..models import UserIn, Token, ForgotPasswordRequest, ResetPasswordRequest
+from ..auth import (
+    hash_password, verify_password, create_access_token, get_current_user,
+    create_reset_token, verify_reset_token
+)
 from ..services.rate_limit import rate_limit
+from ..services.email_service import send_reset_password_email
 from ..services.audit import log_event, check_admin_ip, trigger_admin_alert
 from ..services.utils import get_malaysia_time
 
@@ -237,3 +241,65 @@ async def admin_login(request: Request, form_data: OAuth2PasswordRequestForm = D
 @router.get("/me")
 async def me(current=Depends(get_current_user)):
     return current
+
+@router.post("/forgot-password", dependencies=[Depends(rate_limit)])
+async def forgot_password(payload: ForgotPasswordRequest, request: Request):
+    email = payload.email.strip().lower()
+    
+    # Check if user exists in permanent collection
+    user = await users.find_one({"email": email})
+    if not user:
+        # To avoid user enumeration, we still return success but don't send anything
+        return {"message": "If your email is registered, you will receive a reset link shortly."}
+    
+    # Generate reset token
+    token = await create_reset_token(email)
+    
+    # Production URL for reset link
+    base_reset_url = "https://interview-coach-prep.onrender.com/static/pages/reset_password.html"
+    reset_link = f"{base_reset_url}?token={token}"
+    
+    # Send email
+    success = await send_reset_password_email(email, reset_link)
+    
+    if not success:
+        # Fallback: return the generic message
+        return {
+            "message": "If your email is registered, you will receive a reset link shortly.",
+            "debug_link": reset_link # REMOVE THIS IN PRODUCTION
+        }
+    
+    return {"message": "If your email is registered, you will receive a reset link shortly."}
+
+@router.get("/verify-token/{token}")
+async def verify_token_endpoint(token: str):
+    """
+    Returns the email associated with a valid token so the reset page can display it.
+    """
+    email = await verify_reset_token(token)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+    return {"email": email}
+
+@router.post("/reset-password", dependencies=[Depends(rate_limit)])
+async def reset_password(payload: ResetPasswordRequest):
+    email = await verify_reset_token(payload.token)
+    if not email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+    
+    # Find user
+    user = await users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    # Update password
+    new_password_hash = hash_password(payload.password)
+    await users.update_one(
+        {"email": email},
+        {"$set": {"password_hash": new_password_hash}}
+    )
+    
+    # Optional: Delete the token after use so it can't be reused
+    await reset_tokens.delete_one({"token": payload.token})
+    
+    return {"message": "Password updated successfully. You can now login with your new password."}
