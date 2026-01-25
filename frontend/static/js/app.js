@@ -99,6 +99,58 @@ function decodeToken(token) {
 if (!window.icp) {
   window.icp = {};
 }
+
+/**
+ * Handles the response from the forgot password request
+ * @param {Event} event HTMX after-request event
+ */
+window.handleForgotPasswordResponse = function(event) {
+  if (event.detail.successful) {
+    localStorage.removeItem('forgot_email');
+    let message = 'A password reset link has been sent to your email address.';
+    let debugLink = null;
+    
+    try {
+      const res = JSON.parse(event.detail.xhr.response);
+      message = res.message || message;
+      debugLink = res.debug_link;
+    } catch (e) {}
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Email Sent!',
+      text: message,
+      footer: '<div class="text-center w-100"><p class="text-secondary small mb-1"><i class="bi bi-clock-history me-1"></i>Arrival time: 4-5 minutes (Gmail processing)</p><p class="text-secondary small mb-0"><i class="bi bi-info-circle me-1"></i>Check your <b>Spam/Junk</b> folder</p></div>',
+      confirmButtonText: 'Back to Login',
+      confirmButtonColor: '#fc0038',
+      allowOutsideClick: false
+    }).then(() => {
+      window.location = '/static/pages/login.html';
+    });
+
+    if (debugLink) {
+      console.log('Reset Link (Dev Only):', debugLink);
+    }
+  } else {
+    let msg = 'We encountered an issue sending the reset link.';
+    let title = 'Request Failed';
+    
+    try {
+      const res = JSON.parse(event.detail.xhr.response);
+      msg = res.detail || msg;
+      if (event.detail.xhr.status === 404) {
+        title = 'Account Not Found';
+      }
+    } catch (e) {}
+
+    Swal.fire({
+      icon: 'error',
+      title: title,
+      text: msg,
+      confirmButtonColor: '#fc0038'
+    });
+  }
+};
 window.icp.state = state;
 window.icp.logout = logout;
 window.icp.decodeToken = decodeToken;
