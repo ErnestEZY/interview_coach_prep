@@ -14,6 +14,18 @@
   transition: opacity 0.5s ease, visibility 0.5s ease;
 }
 
+/* Remove default browser password toggle icon (Edge/WebView2) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+}
+
+/* For Chrome/Safari if they add it in future */
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
+
 .page-loader.fade-out {
   opacity: 0;
   visibility: hidden;

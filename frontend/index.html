@@ -22,7 +22,7 @@
     async checkRole() {
       if (!this.logged) return;
       try {
-        const response = await fetch('/api/auth/me', {
+        const response = await fetch(icp.apiUrl('/api/auth/me'), {
           headers: { 'Authorization': 'Bearer ' + icp.state.token }
         });
         const me = await response.json();
@@ -92,7 +92,7 @@
         </div>
         <!-- Desktop Right Menu -->
         <div class="ms-auto d-none d-md-flex gap-2 align-items-center">
-          <a class="btn btn-outline-warning btn-sm px-3 admin-portal-btn" href="/static/pages/admin.html" title="Admin Portal">
+          <a x-show="!icp.state.isTauri" class="btn btn-outline-warning btn-sm px-3 admin-portal-btn" href="/static/pages/admin.html" title="Admin Portal">
             <span>Admin Portal</span>
           </a>
         </div>

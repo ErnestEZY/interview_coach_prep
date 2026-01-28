@@ -95,7 +95,7 @@ function panel(){
       if(!icp.state.token){ window.location='/static/pages/admin.html'; return; }
       this.startTimer();
       try{
-        const me = await fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+icp.state.token}}).then(r=>r.json());
+        const me = await fetch(icp.apiUrl('/api/auth/me'),{headers:{'Authorization':'Bearer '+icp.state.token}}).then(r=>r.json());
         if(!(me.role==='admin'||me.role==='super_admin')){ window.location='/static/pages/admin.html'; return; }
         // Use role instead of name as requested
         this.userName = (me.role || 'Admin').replace('_', ' ').toUpperCase();
@@ -106,7 +106,7 @@ function panel(){
       this.load();
     },
     load(){
-      const u = new URL('/api/admin/resumes', window.location.origin);
+      const u = new URL(icp.apiUrl('/api/admin/resumes'));
       if(this.q) u.searchParams.set('q', this.q);
       if(this.status) u.searchParams.set('status', this.status);
       if(this.tag) u.searchParams.set('tag', this.tag);
@@ -132,7 +132,7 @@ function panel(){
         });
     },
     open(id){
-      fetch('/api/admin/resumes/'+id, {headers:{'Authorization':'Bearer '+icp.state.token}})
+      fetch(icp.apiUrl('/api/admin/resumes/'+id), {headers:{'Authorization':'Bearer '+icp.state.token}})
         .then(r=>{
           if(r.status===401){ window.location.href='/static/pages/login.html'; return null; }
           if(r.status===403){ Swal.fire({icon:'error', title:'Forbidden', text:'Admin privileges required'}); return null; }
@@ -162,7 +162,7 @@ function panel(){
       params.set('tags', JSON.stringify(tags));
       const btns = document.querySelectorAll('.admin-status-select, .quick-save-btn');
       btns.forEach(b=>b.disabled=true);
-      fetch('/api/admin/resumes/'+this.detail.id, {
+      fetch(icp.apiUrl('/api/admin/resumes/'+this.detail.id), {
           method:'PATCH',
           headers:{'Authorization':'Bearer '+icp.state.token, 'Content-Type':'application/x-www-form-urlencoded'},
           body: params.toString()
@@ -177,7 +177,7 @@ function panel(){
           }
           Swal.fire({icon:'success', title:'Saved', timer:1000, showConfirmButton:false});
           // Refresh detail to reflect updated fields
-          return fetch('/api/admin/resumes/'+this.detail.id, {headers:{'Authorization':'Bearer '+icp.state.token}})
+          return fetch(icp.apiUrl('/api/admin/resumes/'+this.detail.id), {headers:{'Authorization':'Bearer '+icp.state.token}})
             .then(rr=>rr.json())
             .then(j=>{
               this.detail.status = j.status || this.detail.status;
@@ -191,7 +191,7 @@ function panel(){
     },
     async notify(id) {
       try {
-        const res = await fetch('/api/admin/resumes/' + id, {
+        const res = await fetch(icp.apiUrl('/api/admin/resumes/' + id), {
           headers: { 'Authorization': 'Bearer ' + icp.state.token }
         });
         if (!res.ok) throw new Error('Failed to fetch resume details');

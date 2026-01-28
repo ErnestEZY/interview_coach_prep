@@ -45,6 +45,16 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access for your interview sessions and profile picture.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs microphone access for your voice during the interview simulation.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photo library access to upload your resume and profile documents.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs access to save interview reports to your gallery.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app needs speech recognition access to convert your speech to text during interviews.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

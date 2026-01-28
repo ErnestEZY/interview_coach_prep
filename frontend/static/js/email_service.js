@@ -7,7 +7,7 @@ let emailjsConfig = null;
 async function fetchEmailJSConfig() {
     if (emailjsConfig) return emailjsConfig;
     try {
-        const response = await fetch('/api/auth/config');
+        const response = await fetch(icp.apiUrl('/api/auth/config'));
         if (!response.ok) throw new Error('Failed to fetch config');
         emailjsConfig = await response.json();
         

@@ -33,7 +33,7 @@
 
         async fetchConfig() {
           try {
-            const r = await fetch('/api/auth/config');
+            const r = await fetch(icp.apiUrl('/api/auth/config'));
             const j = await r.json();
             this.careerjetWidgetId = j.careerjet_widget_id || '';
           } catch (e) {}
@@ -41,7 +41,7 @@
 
         checkAdmin() {
           if (!this.logged) return Promise.resolve();
-          return fetch('/api/auth/me', {
+          return fetch(icp.apiUrl('/api/auth/me'), {
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
           })
           .then(r => r.json())
@@ -58,7 +58,7 @@
                 this.hasAnalyzed = true;
               } else {
                 // Fallback: Fetch latest resume to see if feedback exists
-                fetch('/api/resume/my', {
+                fetch(icp.apiUrl('/api/resume/my'), {
                   headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
                 })
                 .then(r => r.ok ? r.json() : [])

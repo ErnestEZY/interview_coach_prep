@@ -56,7 +56,7 @@
                   if(event.detail.successful){
                     const res = JSON.parse(event.detail.xhr.response);
                     icp.state.setToken(res.access_token);
-                    fetch('/api/auth/me',{headers:{'Authorization':'Bearer '+icp.state.token}})
+                    fetch(icp.apiUrl('/api/auth/me'),{headers:{'Authorization':'Bearer '+icp.state.token}})
                       .then(r=>r.json())
                       .then(me=>{
                         if(me.role==='user'){

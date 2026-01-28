@@ -1,0 +1,34 @@
+{
+  "productName": "Interview Coach Prep",
+  "version": "0.1.0",
+  "identifier": "com.icp.app",
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": "",
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Interview Coach Prep",
+        "width": 1280,
+        "height": 800,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icon.ico"
+    ],
+    "category": "Education"
+  }
+}

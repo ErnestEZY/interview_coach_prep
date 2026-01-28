@@ -24,6 +24,42 @@ window.handleMobileMenu = function() {
 const state = {
   token: localStorage.getItem("token") || "",
   
+  // Detect if running in Tauri
+  get isTauri() {
+    return !!window.__TAURI_INTERNALS__ || 
+           !!window.__TAURI__ || 
+           window.location.protocol === 'tauri:' || 
+           window.location.protocol === 'asset:';
+  },
+  
+  // Base API URL for Tauri
+  get apiBase() {
+    // If we're not in Tauri, we use relative paths ('')
+    if (!this.isTauri) return '';
+    
+    // Check for a manual override in localStorage (useful for debugging)
+    const override = localStorage.getItem('ICP_API_URL');
+    if (override) return override;
+
+    const prodUrl = 'https://interview-coach-prep.onrender.com';
+    
+    // In Tauri dev mode (running on localhost), we might want local backend.
+    // However, to ensure "it works like production", we'll default to production
+    // unless the user has specifically enabled "Local Mode" or a local backend is detected
+    // and they are in a dev environment.
+    
+    const isDev = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    // If we're in dev mode AND the user has set a flag to use local, or we want to be helpful:
+    if (isDev && isLocalHost && localStorage.getItem('ICP_LOCAL_MODE') === 'true') {
+      return 'http://127.0.0.1:5000';
+    }
+    
+    // Default to production so it "just works" with real data
+    return prodUrl;
+  },
+  
   setToken(t) {
     if (!t || t === "undefined" || t === "null") return;
     this.token = t;
@@ -65,6 +101,13 @@ if (state.token === "undefined" || state.token === "null") {
 
 document.addEventListener("htmx:configRequest", function (evt) {
   if (state.token) evt.detail.headers["Authorization"] = "Bearer " + state.token;
+  
+  // Prepend API base URL if in Tauri and request is for /api
+  if (state.isTauri && evt.detail.path.startsWith('/api')) {
+    const originalPath = evt.detail.path;
+    evt.detail.path = state.apiBase + originalPath;
+    console.log(`[Tauri HTMX] ${originalPath} -> ${evt.detail.path}`);
+  }
 });
 
 document.addEventListener("htmx:responseError", function (evt) {
@@ -94,6 +137,48 @@ function decodeToken(token) {
     return null;
   }
 }
+
+/**
+ * Helper to get absolute API URL
+ */
+function apiUrl(path) {
+  if (path.startsWith('http')) return path;
+  const p = path.startsWith('/') ? path : '/' + path;
+  const fullUrl = state.apiBase + p;
+  // Log API calls in Tauri for easier debugging
+  if (state.isTauri) {
+    console.log(`[Tauri API] ${path} -> ${fullUrl}`);
+  }
+  return fullUrl;
+}
+
+/**
+ * Debug helpers for Tauri
+ */
+window.icp_debug = {
+  useLocal: () => {
+    localStorage.setItem('ICP_LOCAL_MODE', 'true');
+    console.log("Local mode enabled. Reloading...");
+    location.reload();
+  },
+  useProd: () => {
+    localStorage.removeItem('ICP_LOCAL_MODE');
+    localStorage.removeItem('ICP_API_URL');
+    console.log("Production mode enabled. Reloading...");
+    location.reload();
+  },
+  setApi: (url) => {
+    localStorage.setItem('ICP_API_URL', url);
+    console.log(`API URL set to ${url}. Reloading...`);
+    location.reload();
+  },
+  getStatus: () => {
+    console.log("Tauri Detected:", state.isTauri);
+    console.log("Current API Base:", state.apiBase);
+    console.log("Protocol:", window.location.protocol);
+    console.log("Hostname:", window.location.hostname);
+  }
+};
 
 // Initialize icp object with all required properties
 if (!window.icp) {
@@ -151,13 +236,17 @@ window.handleForgotPasswordResponse = function(event) {
     });
   }
 };
-window.icp.state = state;
-window.icp.logout = logout;
-window.icp.decodeToken = decodeToken;
+// Attach to window.icp for global access
+Object.assign(window.icp, {
+  state,
+  decodeToken,
+  apiUrl,
+  logout
+});
 
 // Global Startup Check: Clear sessions if server has restarted
 (function checkStartup() {
-  fetch('/api/meta/startup_id')
+  fetch(apiUrl('/api/meta/startup_id'))
     .then(r => r.ok ? r.json() : null)
     .then(j => {
       if (j && j.startup_id) {

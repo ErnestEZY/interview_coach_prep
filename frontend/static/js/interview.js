@@ -98,7 +98,7 @@ function interview() {
     },
     checkAdmin() {
       if (!this.logged) return;
-      fetch('/api/auth/me', {
+      fetch(icp.apiUrl('/api/auth/me'), {
         headers: { 'Authorization': 'Bearer ' + icp.state.token }
       })
         .then(r => r.json())
@@ -352,7 +352,7 @@ function interview() {
 
       // If missing data, fetch latest from backend as fallback
       if (!this.jobTitle || !this.resumeFeedback) {
-        fetch('/api/resume/my', {
+        fetch(icp.apiUrl('/api/resume/my'), {
           headers: { 'Authorization': 'Bearer ' + icp.state.token }
         })
         .then(r => r.ok ? r.json() : [])
@@ -377,7 +377,7 @@ function interview() {
       }
       
       // Fetch daily limits
-      fetch('/api/interview/limits', {
+      fetch(icp.apiUrl('/api/interview/limits'), {
         headers: { 'Authorization': 'Bearer ' + icp.state.token }
       })
       .then(r => r.ok ? r.json() : null)
@@ -599,7 +599,7 @@ function interview() {
       fd.append('questions_limit', this.questionLimit);
       fd.append('difficulty', this.difficulty);
 
-      fetch('/api/interview/start', {
+      fetch(icp.apiUrl('/api/interview/start'), {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + icp.state.token },
         body: fd
@@ -658,7 +658,7 @@ function interview() {
       }).then((result) => {
         if (result.isConfirmed) {
           this.thinking = true;
-          fetch('/api/interview/' + this.sessionId + '/end', { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token } })
+          fetch(icp.apiUrl('/api/interview/' + this.sessionId + '/end'), { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token } })
             .then(r => {
               if (r.status === 401) return null;
               return r.json();
@@ -697,7 +697,7 @@ function interview() {
       this.thinking = true;
       this.resetInactivityTimer();
       
-      fetch('/api/interview/' + this.sessionId + '/reply', { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ user_text: text }).toString() })
+      fetch(icp.apiUrl('/api/interview/' + this.sessionId + '/reply'), { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ user_text: text }).toString() })
         .then(r => { if (r.status === 401) return null; return r.json() })
         .then(j => {
           if (!j) return;
@@ -747,14 +747,14 @@ function interview() {
     async resetQuota() {
       if (!confirm('Are you sure you want to reset your quotas? (This is for development/testing only)')) return;
       try {
-        const r = await fetch('/api/interview/reset-quota', {
+        const r = await fetch(icp.apiUrl('/api/interview/reset-quota'), {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + icp.state.token }
         });
         if (r.ok) {
           Swal.fire('Success', 'Quotas have been reset. Please refresh the page or wait for limits to update.', 'success');
           // Refresh limits
-          const res = await fetch('/api/interview/limits', {
+          const res = await fetch(icp.apiUrl('/api/interview/limits'), {
             headers: { 'Authorization': 'Bearer ' + icp.state.token }
           });
           if (res.ok) {

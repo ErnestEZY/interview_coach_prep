@@ -72,6 +72,9 @@ ICP is an AI-powered career preparation platform designed to help job seekers ma
 ## 📱 Mobile App
 The project includes a cross-platform mobile application built with **Flutter**, located in the `mobile_app/` directory.
 
+## 💻 Desktop App
+The project now includes a native desktop application built with **Tauri**, located in the `src-tauri/` directory. It leverages the existing web frontend to provide a fast and secure desktop experience. See [DESKTOP_APP.md](DESKTOP_APP.md) for setup instructions.
+
 ## 📄 License
 Distributed under the MIT License. See `LICENSE` for more information.
 
