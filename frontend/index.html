@@ -92,7 +92,7 @@
         </div>
         <!-- Desktop Right Menu -->
         <div class="ms-auto d-none d-md-flex gap-2 align-items-center">
-          <a x-show="!icp.state.isTauri" class="btn btn-outline-warning btn-sm px-3 admin-portal-btn" href="/static/pages/admin.html" title="Admin Portal">
+          <a x-show="!logged && !icp.state.isTauri" class="btn btn-outline-warning btn-sm px-3 admin-portal-btn" href="/static/pages/admin.html" title="Admin Portal">
             <span>Admin Portal</span>
           </a>
         </div>
