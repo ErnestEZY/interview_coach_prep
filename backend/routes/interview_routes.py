@@ -84,6 +84,13 @@ async def start(
     if not can_start:
         raise HTTPException(status_code=429, detail="Daily interview session limit reached. Resets at 00:00 Malaysia Time.")
     
+    try:
+        ai = interview_reply([], job_title=job_title, resume_feedback=feedback_dict, questions_limit=questions_limit, difficulty=difficulty, current_asked_count=0)
+    except Exception as e:
+        if "429" in str(e) or "rate_limit" in str(e).lower():
+            raise HTTPException(status_code=429, detail="Mistral AI rate limit exceeded. Please wait a moment.")
+        raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
+
     sid = str(ObjectId())
     doc = {
         "session_id": sid,
@@ -98,7 +105,6 @@ async def start(
         "ended_at": None,
     }
     res = await interviews.insert_one(doc)
-    ai = interview_reply([], job_title=job_title, resume_feedback=feedback_dict, questions_limit=questions_limit, difficulty=difficulty, current_asked_count=0)
     await inc_question(current["id"])
     await interviews.update_one({"_id": res.inserted_id}, {"$push": {"transcript": {"role": "assistant", "text": ai, "at": get_malaysia_time()}}, "$inc": {"asked_count": 1}})
     return {"session_id": sid, "message": ai, "asked_count": 1, "questions_limit": questions_limit}
@@ -138,7 +144,12 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
     history.append({"role": "user", "content": user_text})
     
     current_asked_count = s.get("asked_count", 0)
-    ai = interview_reply(history, job_title=job_title, resume_feedback=resume_feedback, questions_limit=questions_limit, difficulty=difficulty, current_asked_count=current_asked_count)
+    try:
+        ai = interview_reply(history, job_title=job_title, resume_feedback=resume_feedback, questions_limit=questions_limit, difficulty=difficulty, current_asked_count=current_asked_count)
+    except Exception as e:
+        if "429" in str(e) or "rate_limit" in str(e).lower():
+            raise HTTPException(status_code=429, detail="Mistral AI rate limit exceeded. Please wait a moment.")
+        raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
     
     # Check for AI signaling completion
     ai_ended = "[FINISH]" in ai

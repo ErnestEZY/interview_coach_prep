@@ -606,9 +606,39 @@ function interview() {
       })
         .then(r => {
           if (r.status === 401) return null;
+          if (r.status === 429) {
+            // Check if it's Mistral rate limit vs App daily limit
+            return r.json().then(j => {
+              if (j.detail && j.detail.includes("Daily interview session limit")) {
+                this.interviewAttempts = 0;
+                Swal.fire({
+                  title: 'Limit Reached',
+                  html: `
+                        <div class='mb-3'>${j.detail}</div>
+                        <div class='small text-secondary reset-info-text'>Resets at 00:00 Malaysia Time (GMT+8)</div>
+                      `,
+                  icon: 'warning',
+                  confirmButtonColor: '#3085d6'
+                });
+              } else {
+                Swal.fire({
+                  title: 'AI is Busy',
+                  html: `
+                    <div class="text-center">
+                      <p class="mb-3">The AI Interviewer is currently busy with other candidates.</p>
+                      <p class="small text-secondary">Please wait a minute and try starting again.</p>
+                    </div>
+                  `,
+                  icon: 'info',
+                  confirmButtonColor: '#2563eb'
+                });
+              }
+              return null;
+            });
+          }
           if (!r.ok) {
             return r.json().then(j => {
-              if ((r.status === 429 || r.status === 400) && j.detail && j.detail.includes("Daily interview session limit")) {
+              if (r.status === 400 && j.detail && j.detail.includes("Daily interview session limit")) {
                 this.interviewAttempts = 0;
                 Swal.fire({
                   title: 'Limit Reached',
@@ -698,7 +728,21 @@ function interview() {
       this.resetInactivityTimer();
       
       fetch(icp.apiUrl('/api/interview/' + this.sessionId + '/reply'), { method: 'POST', headers: { 'Authorization': 'Bearer ' + icp.state.token, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ user_text: text }).toString() })
-        .then(r => { if (r.status === 401) return null; return r.json() })
+        .then(r => { 
+          if (r.status === 401) return null; 
+          if (r.status === 429) {
+            Swal.fire({
+              title: 'AI is Busy',
+              text: 'The AI is taking a moment to catch its breath. Please wait about 30 seconds and try sending your answer again.',
+              icon: 'info',
+              confirmButtonColor: '#2563eb'
+            });
+            // Put the text back in the input so user doesn't lose it
+            this.answer = text;
+            return null;
+          }
+          return r.json();
+        })
         .then(j => {
           if (!j) return;
           if (j.asked_count) {

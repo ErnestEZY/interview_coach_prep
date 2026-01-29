@@ -48,7 +48,12 @@ async def upload_resume(
         os.remove(tmp_path)
         raise HTTPException(status_code=400, detail=str(e))
     os.remove(tmp_path)
-    feedback = get_feedback(text)
+    try:
+        feedback = get_feedback(text)
+    except Exception as e:
+        if "429" in str(e) or "rate_limit" in str(e).lower():
+            raise HTTPException(status_code=429, detail="Mistral AI rate limit exceeded. Please wait a moment.")
+        raise HTTPException(status_code=500, detail=f"AI Analysis failed: {str(e)}")
 
     # Validate if it's actually a resume
     # We add a small fallback check: if the text is long enough and contains certain keywords, 

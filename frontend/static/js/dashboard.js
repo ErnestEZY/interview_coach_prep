@@ -116,11 +116,29 @@ document.addEventListener('alpine:init', () => {
             // Reset manual data
             this.manualData = { jobTitle: '', experience: '', summary: '', skills: '', achievement: '' };
           } else {
+            if (response.status === 429) {
+              throw new Error('AI_RATE_LIMIT');
+            }
             throw new Error(res.detail || 'Failed to generate profile');
           }
         } catch (err) {
           Swal.close();
-          Swal.fire('Error', err.message || 'Failed to analyze profile', 'error');
+          if (err.message === 'AI_RATE_LIMIT') {
+            Swal.fire({
+              title: 'AI is Busy',
+              html: `
+                <div class="text-center">
+                  <p class="mb-3">The AI Coach is currently helping many users at once.</p>
+                  <p class="small text-secondary">Please wait about 30-60 seconds and try again. We appreciate your patience!</p>
+                </div>
+              `,
+              icon: 'info',
+              confirmButtonText: 'Understood',
+              confirmButtonColor: '#2563eb'
+            });
+          } else {
+            Swal.fire('Error', err.message || 'Failed to analyze profile', 'error');
+          }
         }
       },
 
@@ -330,11 +348,30 @@ document.addEventListener('alpine:init', () => {
               throw new Error('Invalid response from server');
             }
           } else {
+            if (r.status === 429) {
+              throw new Error('AI_RATE_LIMIT');
+            }
             throw new Error(res.detail || 'Upload failed');
           }
         } catch (err) {
           Swal.close();
           const errorMsg = err.message || 'Failed to analyze resume';
+
+          if (errorMsg === 'AI_RATE_LIMIT') {
+            Swal.fire({
+              title: 'AI is Busy',
+              html: `
+                <div class="text-center">
+                  <p class="mb-3">Our AI systems are currently handling high traffic.</p>
+                  <p class="small text-secondary">Please wait about 30-60 seconds before retrying your upload. Thank you for your patience!</p>
+                </div>
+              `,
+              icon: 'info',
+              confirmButtonText: 'Understood',
+              confirmButtonColor: '#2563eb'
+            });
+            return;
+          }
           
           if (errorMsg.includes("image-based PDF") || errorMsg.includes("scanned document")) {
             Swal.fire({
