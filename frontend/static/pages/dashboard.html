@@ -366,7 +366,9 @@
                 </div>
                 <div class="col-12">
                   <label class="form-label small fw-bold text-secondary">Professional Summary</label>
-                  <textarea class="form-control rounded-3" rows="3" x-model="manualData.summary" placeholder="Describe your professional background..." required maxlength="500"></textarea>
+                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="3" x-model="manualData.summary" placeholder="Describe your professional background..." required maxlength="500"
+                            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
+                            x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' })"></textarea>
                   <div class="coach-tip mt-1">
                     <i class="bi bi-lightbulb text-warning"></i>
                     <span class="small text-white-50">Tip: Focus on your biggest career impact in 2-3 sentences.</span>
@@ -374,7 +376,9 @@
                 </div>
                 <div class="col-12">
                   <label class="form-label small fw-bold text-secondary">Top 5 Skills</label>
-                  <input type="text" class="form-control rounded-3" x-model="manualData.skills" placeholder="e.g. Python, SQL, Project Management..." required maxlength="300">
+                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="2" x-model="manualData.skills" placeholder="e.g. Python, SQL, Project Management..." required maxlength="300"
+                            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
+                            x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' })"></textarea>
                   <div class="coach-tip mt-1">
                     <i class="bi bi-lightbulb text-warning"></i>
                     <span class="small text-white-50">Tip: Mix technical skills with soft skills like 'Communication'.</span>
@@ -382,7 +386,9 @@
                 </div>
                 <div class="col-12">
                   <label class="form-label small fw-bold text-secondary">Key Achievement</label>
-                  <textarea class="form-control rounded-3" rows="2" x-model="manualData.achievement" placeholder="Describe a project or goal you successfully completed..." required maxlength="500"></textarea>
+                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="2" x-model="manualData.achievement" placeholder="Describe a project or goal you successfully completed..." required maxlength="500"
+                            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px'"
+                            x-init="$nextTick(() => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' })"></textarea>
                   <div class="coach-tip mt-1">
                     <i class="bi bi-lightbulb text-warning"></i>
                     <span class="small text-white-50">Tip: Use numbers if possible (e.g., 'Reduced costs by 15%').</span>

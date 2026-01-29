@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Form
 from fastapi.responses import Response
 import base64
 from bson import ObjectId
-from ..auth import get_current_user
+from ..auth import get_current_user, DYNAMIC_JWT_SECRET
 from ..db import resumes, interviews, users, fs
 import jwt
-from ..config import JWT_SECRET, JWT_ALGORITHM
+from ..config import JWT_ALGORITHM
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -20,6 +20,8 @@ async def list_resumes(
     tag: str = Query(None),
     current=Depends(get_current_user),
 ):
+    print(f"DEBUG: list_resumes called with q={q}, status={status}, tag={tag}")
+    print(f"DEBUG: Current user: {current.get('email')} (Role: {current.get('role')})")
     ensure_admin_role(current)
     filt = {}
     if q:
@@ -28,9 +30,12 @@ async def list_resumes(
         filt["status"] = status
     if tag:
         filt["tags"] = tag
+    
+    print(f"DEBUG: Database filter: {filt}")
     cur = resumes.find(filt)
     items = []
     async for r in cur:
+        print(f"DEBUG: Processing resume {r.get('_id')} - {r.get('filename')}")
         created = r.get("created_at")
         try:
             created_iso = created.isoformat() if created else None
@@ -68,6 +73,7 @@ async def list_resumes(
                 "notes": r.get("notes", ""),
             }
         )
+    print(f"DEBUG: Returning {len(items)} items to frontend")
     return items
 
 @router.get("/resumes/{resume_id}")
@@ -136,39 +142,91 @@ async def update_resume(
     await resumes.update_one({"_id": ObjectId(resume_id)}, {"$set": update})
     return {"updated": True}
 
+@router.delete("/resumes/{resume_id}")
+async def delete_resume(resume_id: str, current=Depends(get_current_user)):
+    ensure_admin_role(current)
+    try:
+        oid = ObjectId(resume_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid Resume ID format")
+    
+    r = await resumes.find_one({"_id": oid})
+    if not r:
+        raise HTTPException(status_code=404, detail="Resume not found in database")
+    
+    fid = r.get("file_id")
+    gridfs_deleted = False
+    if fid:
+        try:
+            # GridFS delete handles both files and chunks
+            await fs.delete(ObjectId(fid))
+            gridfs_deleted = True
+        except Exception as e:
+            # Log but don't block resume document deletion
+            print(f"Error deleting GridFS file {fid}: {e}")
+            
+    res = await resumes.delete_one({"_id": oid})
+    return {
+        "deleted": res.deleted_count > 0,
+        "gridfs_deleted": gridfs_deleted,
+        "resume_id": resume_id
+    }
+
 @router.get("/resumes/{resume_id}/file")
 async def get_resume_file(resume_id: str, current=Depends(get_current_user)):
+    print(f"DEBUG: get_resume_file called for {resume_id}")
     ensure_admin_role(current)
-    r = await resumes.find_one({"_id": ObjectId(resume_id)})
+    try:
+        r = await resumes.find_one({"_id": ObjectId(resume_id)})
+    except Exception as e:
+        print(f"DEBUG: Invalid ObjectId {resume_id}: {e}")
+        raise HTTPException(status_code=400, detail="Invalid ID format")
+        
     if not r:
+        print(f"DEBUG: Resume {resume_id} not found")
         raise HTTPException(status_code=404, detail="Not found")
+    
+    print(f"DEBUG: Resume found: {r.get('filename')}, file_id: {r.get('file_id')}, mime_type: {r.get('mime_type')}")
     try:
         raw = None
         fid = r.get("file_id")
         if fid:
             try:
-                stream = await fs.open_download_stream(ObjectId(fid))
+                print(f"DEBUG: Attempting to open GridFS stream for {fid}")
+                stream = fs.open_download_stream(ObjectId(fid))
                 raw = await stream.read()
+                print(f"DEBUG: Successfully read {len(raw)} bytes from GridFS")
             except Exception as e:
+                print(f"DEBUG: GridFS read error: {e}")
                 raise HTTPException(status_code=500, detail=f"File download error: {e}")
         elif r.get("file_b64"):
             try:
+                print("DEBUG: Using base64 data")
                 raw = base64.b64decode(r.get("file_b64"))
-            except Exception:
+            except Exception as e:
+                print(f"DEBUG: Base64 decode error: {e}")
                 raise HTTPException(status_code=500, detail="File decode error")
         else:
+            print("DEBUG: No file_id or file_b64 found")
             raise HTTPException(status_code=404, detail="No stored file")
     except HTTPException:
         raise
     except Exception as e:
+        print(f"DEBUG: Unexpected error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    headers = {"Content-Disposition": f'inline; filename="{r.get("filename", "resume")}"'}
-    return Response(content=raw, media_type=r.get("mime_type") or "application/octet-stream", headers=headers)
+    
+    mtype = r.get("mime_type") or "application/octet-stream"
+    headers = {
+        "Content-Disposition": f'inline; filename="{r.get("filename", "resume")}"',
+        "Content-Length": str(len(raw))
+    }
+    print(f"DEBUG: Returning Response with mtype={mtype}, headers={headers}")
+    return Response(content=raw, media_type=mtype, headers=headers)
 
 @router.get("/resumes/{resume_id}/file_open")
 async def get_resume_file_open(resume_id: str, token: str = Query(...)):
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, DYNAMIC_JWT_SECRET, algorithms=[JWT_ALGORITHM])
         user_id = payload.get("sub")
         role = payload.get("role")
         if not user_id or role not in ("admin", "super_admin"):
@@ -187,23 +245,35 @@ async def get_resume_file_open(resume_id: str, token: str = Query(...)):
         raise HTTPException(status_code=401, detail="Invalid token")
     r = await resumes.find_one({"_id": ObjectId(resume_id)})
     if not r:
+        print(f"DEBUG: file_open - Resume {resume_id} not found")
         raise HTTPException(status_code=404, detail="Not found")
     try:
         raw = None
         fid = r.get("file_id")
         if fid:
-            stream = await fs.open_download_stream(ObjectId(fid))
+            print(f"DEBUG: file_open - Attempting to open GridFS stream for {fid}")
+            stream = fs.open_download_stream(ObjectId(fid))
             raw = await stream.read()
+            print(f"DEBUG: file_open - Successfully read {len(raw)} bytes from GridFS")
         elif r.get("file_b64"):
+            print("DEBUG: file_open - Using base64 data")
             raw = base64.b64decode(r.get("file_b64"))
         else:
+            print("DEBUG: file_open - No file_id or file_b64 found")
             raise HTTPException(status_code=404, detail="No stored file")
     except HTTPException:
         raise
     except Exception as e:
+        print(f"DEBUG: file_open - Unexpected error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    headers = {"Content-Disposition": f'inline; filename="{r.get("filename", "resume")}"'}
-    return Response(content=raw, media_type=r.get("mime_type") or "application/octet-stream", headers=headers)
+    
+    mtype = r.get("mime_type") or "application/octet-stream"
+    headers = {
+        "Content-Disposition": f'inline; filename="{r.get("filename", "resume")}"',
+        "Content-Length": str(len(raw))
+    }
+    print(f"DEBUG: file_open - Returning Response with mtype={mtype}, headers={headers}")
+    return Response(content=raw, media_type=mtype, headers=headers)
 
 @router.get("/metrics")
 async def metrics(current=Depends(get_current_user)):

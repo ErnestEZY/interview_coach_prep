@@ -11,10 +11,10 @@ from .config import JWT_SECRET, JWT_ALGORITHM, SUPERADMIN_EMAIL, SUPERADMIN_PASS
 from .db import users, reset_tokens
 from .services.utils import get_malaysia_time
 
-# Session Clearing Mechanism:
-# By adding a unique salt on every startup, we invalidate all previously issued tokens.
-STARTUP_SALT = str(uuid.uuid4())
-DYNAMIC_JWT_SECRET = JWT_SECRET + STARTUP_SALT
+# Session Clearing Mechanism: Disabled for persistence across restarts.
+# To re-enable, uncomment the salt and use DYNAMIC_JWT_SECRET.
+STARTUP_SALT = "DISABLED" 
+DYNAMIC_JWT_SECRET = JWT_SECRET
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 

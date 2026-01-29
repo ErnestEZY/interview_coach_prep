@@ -48,9 +48,15 @@ function panel(){
     },
     escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])) },
     renderList(){
+      console.log('DEBUG: renderList() called, items count:', this.items.length);
       const tbody = document.getElementById('list-body');
-      if(!tbody) return;
-      const rows = (this.paginatedItems||[]).map(it=>{
+      if(!tbody){
+        console.warn('DEBUG: list-body not found');
+        return;
+      }
+      const pItems = this.paginatedItems || [];
+      console.log('DEBUG: paginatedItems count:', pItems.length);
+      const rows = pItems.map(it=>{
         const name = this.escapeHtml(it.filename || it.name || '(missing)');
         const status = this.escapeHtml(it.status || 'pending');
         const created = it.created_at ? new Date(it.created_at).toLocaleString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' }) : '';
@@ -105,31 +111,54 @@ function panel(){
       }
       this.load();
     },
-    load(){
-      const u = new URL(icp.apiUrl('/api/admin/resumes'));
+    async load(){
+      console.log('DEBUG: load() called');
+      this.detail = null; // Close details section when filtering
+      const apiUrl = icp.apiUrl('/api/admin/resumes');
+      const u = new URL(apiUrl, window.location.origin);
+      console.log('DEBUG: Fetching from:', u.href);
       if(this.q) u.searchParams.set('q', this.q);
       if(this.status) u.searchParams.set('status', this.status);
       if(this.tag) u.searchParams.set('tag', this.tag);
-      fetch(u, {headers:{'Authorization':'Bearer '+icp.state.token}})
-        .then(r=>{
-          if(r.status===401){ window.location.href='/static/pages/login.html'; return []; }
-          if(r.status===403){ Swal.fire({icon:'error', title:'Forbidden', text:'Admin privileges required'}); return []; }
-          return r.json();
-        })
-        .then(j=>{
-          const arr = Array.isArray(j) ? j : [];
-          this.items = arr.map(it=>({
-            id: it.id,
-            filename: it.filename || it.name || '',
-            status: it.status || 'pending',
-            tags: Array.isArray(it.tags) ? it.tags : [],
-            created_at: it.created_at || null,
-            file_available: !!it.file_available,
-            notes: it.notes || ''
-          }));
-          this.page = 1;
+      
+      try {
+        const r = await fetch(u, {headers:{'Authorization':'Bearer '+icp.state.token}});
+        if(r.status===401){ window.location.href='/static/pages/login.html'; return; }
+        if(r.status===403){ Swal.fire({icon:'error', title:'Forbidden', text:'Admin privileges required'}); return; }
+        
+        const data = await r.json();
+        console.log('DEBUG: load() response data:', data);
+        if (!Array.isArray(data)) {
+          console.error('DEBUG: Response is not an array:', data);
+          Swal.fire({icon:'error', title:'Invalid Data', text:'Expected array from server'});
+          this.items = [];
           this.renderList();
-        });
+          return;
+        }
+        this.items = data.map(it=>{
+          try {
+            return {
+              id: it.id || it._id || '',
+              filename: it.filename || it.name || '(no name)',
+              status: it.status || 'pending',
+              tags: Array.isArray(it.tags) ? it.tags : [],
+              created_at: it.created_at || null,
+              file_available: !!it.file_available,
+              notes: it.notes || ''
+            };
+          } catch (e) {
+            console.error('DEBUG: Mapping error for item:', it, e);
+            return null;
+          }
+        }).filter(x => x !== null);
+        
+        console.log('DEBUG: Final items count:', this.items.length);
+        this.page = 1;
+        this.renderList();
+      } catch (err) {
+        console.error('DEBUG: load error:', err);
+        Swal.fire({icon:'error', title:'Load Error', text: err.message});
+      }
     },
     open(id){
       fetch(icp.apiUrl('/api/admin/resumes/'+id), {headers:{'Authorization':'Bearer '+icp.state.token}})
@@ -233,6 +262,56 @@ function panel(){
       } catch (err) {
         console.error(err);
         Swal.fire({ icon: 'error', title: 'Error', text: err.message });
+      }
+    },
+    async deleteResume(id) {
+      console.log('DEBUG: deleteResume called with id:', id);
+      if (!id) {
+        Swal.fire('Error', 'No resume ID found', 'error');
+        return;
+      }
+
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "This will permanently delete this resume and its associated file.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        const res = await fetch(icp.apiUrl('/api/admin/resumes/' + id), {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + icp.state.token }
+        });
+
+        if (!res.ok) {
+          let msg = 'Delete failed';
+          try { 
+            const j = await res.json(); 
+            msg = j.detail || msg; 
+          } catch (e) {}
+          throw new Error(msg);
+        }
+
+        const data = await res.json();
+        console.log('DEBUG: Delete response data:', data);
+
+        let successMsg = 'The resume has been deleted.';
+        if (data.gridfs_deleted) {
+          successMsg += ' Associated GridFS file was also removed.';
+        }
+
+        await Swal.fire('Deleted!', successMsg, 'success');
+        this.detail = null;
+        this.load();
+      } catch (err) {
+        console.error('DEBUG: Delete error:', err);
+        Swal.fire('Error', err.message, 'error');
       }
     }
   }

@@ -10,9 +10,7 @@
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js" defer></script>
   <link rel="stylesheet" href="/static/css/styles.css">
-  <script src="/static/js/app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <script src="/static/js/email_service.js"></script>
 </head>
 <body x-data="panel()" x-init="init()" @auth:changed.window="logged = !!icp.state.token; if(logged) startTimer();">
   <!-- Page Loader -->
@@ -101,24 +99,35 @@
               <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
             </svg>
           </button>
-          <span class="small text-nowrap">Page</span>
-          <input type="number" class="form-control text-center pagination-input"
-                 :value="page" @change="goToPage($event.target.value)" min="1" :max="totalPages" title="Current page">
-          <span class="small text-nowrap">of <span x-text="totalPages"></span></span>
+          <div class="d-flex align-items-center gap-1">
+            <input type="number" class="form-control form-control-sm text-center bg-dark text-white border-secondary admin-pagination-input" 
+                   title="Page Number" :value="page" @change="goToPage($event.target.value)">
+            <span class="text-secondary small">/ <span x-text="totalPages"></span></span>
+          </div>
           <button class="btn btn-outline-light btn-sm px-2" @click="nextPage()" :disabled="page >= totalPages" title="Next page">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
               <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
             </svg>
           </button>
         </div>
-        <div class="small text-secondary mt-1">
-          Showing <span x-text="((page-1)*perPage)+1"></span>-<span x-text="Math.min(page*perPage, items.length)"></span> of <span x-text="items.length"></span>
+        <div class="text-secondary small mt-2">
+          Showing <span x-text="Math.min((page-1)*perPage + 1, items.length)"></span> - 
+          <span x-text="Math.min(page*perPage, items.length)"></span> of 
+          <span x-text="items.length"></span> resumes
         </div>
       </div>
     </div>
-    <div class="card p-4 text-center" x-show="!items.length">
-      <h6 class="mb-2">No resumes found</h6>
-      <p class="mb-0">Try adjusting your filters or ask users to consent to store resumes.</p>
+
+    <!-- Empty State -->
+    <div class="card p-5 text-center bg-dark border-secondary shadow-lg" x-show="!items.length">
+      <div class="mb-3">
+        <i class="bi bi-folder-x text-secondary display-1"></i>
+      </div>
+      <h4 class="text-light">No Resumes Found</h4>
+      <p class="text-secondary mb-4">There are no candidate resumes matching your current filters or the database is empty.</p>
+      <button class="btn btn-outline-warning px-4 admin-refresh-btn" @click="load()">
+        <i class="bi bi-arrow-clockwise me-2"></i>Refresh List
+      </button>
     </div>
     <div x-show="detail" class="card p-4 mt-4 shadow-lg border-warning border-opacity-25 animate-fade-in" x-cloak>
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -141,8 +150,8 @@
           <button class="btn btn-primary px-3" @click="save()">
             <i class="bi bi-check-lg me-1"></i> Save
           </button>
-          <button class="btn btn-info px-3" @click="notify(detail.id)" :disabled="detail.status !== 'approved' && detail.status !== 'rejected'">
-            <i class="bi bi-envelope me-1"></i> Notify
+          <button type="button" class="btn btn-danger px-3" @click="console.log('Delete button clicked for ID:', detail.id); deleteResume(detail.id)">
+            <i class="bi bi-trash me-1"></i> Delete
           </button>
           <button class="btn btn-outline-light" @click="detail = null">Close</button>
         </div>

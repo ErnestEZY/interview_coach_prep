@@ -698,6 +698,24 @@ html {
   cursor: default;
 }
 
+.auto-expand-textarea {
+  overflow-y: auto !important;
+  resize: none;
+  min-height: 45px;
+  max-height: 200px;
+  transition: height 0.1s ease-out;
+}
+
+.admin-pagination-input {
+  width: 40px !important;
+  flex: none !important;
+}
+
+.admin-refresh-btn {
+  max-width: 200px;
+  margin: 0 auto;
+}
+
 /* Utility Classes */
 .step-number {
   width: 24px;

@@ -154,40 +154,10 @@ async def manual_upload_profile(
     # Increment daily count
     await increment_daily_limit(current["id"], "daily_resume_count")
     
-    # Update user status
-    user_id_obj = None
-    try:
-        user_id_obj = ObjectId(current["id"])
-    except:
-        user_id_obj = current["id"]
-
     final_job_title = feedback.get("DetectedJobTitle") or data.jobTitle
-    update_data = {"has_analyzed": True, "target_job_title": final_job_title}
-    if feedback.get("Location"):
-        update_data["target_location"] = feedback["Location"]
-
-    await users.update_one(
-        {"_id": user_id_obj}, 
-        {"$set": update_data}
-    )
-
-    # Store a record for history (optional, but good for UX)
-    doc = {
-        "resume_id": str(ObjectId()),
-        "user_id": current["id"],
-        "filename": "Guided Profile Builder",
-        "mime_type": "text/plain",
-        "consent": True,
-        "file_id": None,
-        "text": text,
-        "job_title": final_job_title,
-        "feedback": feedback,
-        "status": "completed",
-        "tags": feedback.get("Keywords", []),
-        "notes": "Generated via Guided Profile Builder",
-        "created_at": get_malaysia_time(),
-    }
-    await resumes.insert_one(doc)
+    
+    # We DO NOT store this in the database as per user request
+    # We also DO NOT update user document's has_analyzed status permanently
     
     return {"feedback": feedback, "job_title": final_job_title}
 
