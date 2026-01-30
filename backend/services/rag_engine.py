@@ -1,83 +1,76 @@
 import os
-import re
-from typing import List, Dict, Any
+from typing import List
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, Settings
+from llama_index.llms.mistralai import MistralAI
+from llama_index.embeddings.mistralai import MistralAIEmbedding
+from ..config import MISTRAL_API_KEY
 
 class RAGEngine:
     """
-    Memory-efficient RAG Engine for Free Tier deployments.
-    Uses a simple keyword-based ranking instead of heavy vector embeddings (PyTorch/FAISS).
-    This reduces memory usage from >1GB to <50MB.
+    RAG Engine using LlamaIndex with Mistral AI.
+    Optimized for low-memory environments (Render Free Tier) by offloading 
+    embeddings and LLM tasks to Mistral's API.
     """
     def __init__(self, docs_dir: str = "backend/data/rag_docs"):
         self.docs_dir = docs_dir
-        self.documents = []
+        self.index = None
         self._initialized = False
 
     def initialize(self):
-        """Loads documents into memory."""
+        """Initializes the LlamaIndex with Mistral AI."""
         if self._initialized:
             return
 
-        print("Initializing Lightweight RAG Engine...")
-        self._load_documents()
-        self._initialized = True
-        print(f"RAG Engine ready with {len(self.documents)} chunks.")
+        if not MISTRAL_API_KEY:
+            print("Warning: MISTRAL_API_KEY not found. RAG Engine will not be initialized.")
+            return
+
+        print("Initializing LlamaIndex RAG Engine with Mistral AI...")
+        
+        try:
+            # Configure LlamaIndex to use Mistral for both LLM and Embeddings
+            # This is crucial for keeping local memory usage low
+            Settings.llm = MistralAI(api_key=MISTRAL_API_KEY, model="mistral-large-latest")
+            Settings.embed_model = MistralAIEmbedding(api_key=MISTRAL_API_KEY)
+            Settings.chunk_size = 512
+            Settings.chunk_overlap = 50
+
+            if not os.path.exists(self.docs_dir):
+                print(f"Warning: RAG docs directory not found at {self.docs_dir}")
+                return
+
+            # Load documents and create index
+            documents = SimpleDirectoryReader(self.docs_dir).load_data()
+            if not documents:
+                print(f"Warning: No documents found in {self.docs_dir}")
+                return
+
+            self.index = VectorStoreIndex.from_documents(documents)
+            self._initialized = True
+            print(f"LlamaIndex RAG Engine ready with {len(documents)} documents.")
+        except Exception as e:
+            print(f"Error initializing LlamaIndex: {e}")
 
     def _ensure_initialized(self):
         if not self._initialized:
             self.initialize()
 
-    def _load_documents(self):
-        """Loads and chunks documents from the rag_docs directory."""
-        if not os.path.exists(self.docs_dir):
-            print(f"Warning: RAG docs directory not found at {self.docs_dir}")
-            return
-
-        for filename in os.listdir(self.docs_dir):
-            if filename.endswith(".txt"):
-                path = os.path.join(self.docs_dir, filename)
-                try:
-                    with open(path, "r", encoding="utf-8") as f:
-                        content = f.read()
-                        # Split by double newline to get logical chunks
-                        sections = content.split("\n\n")
-                        for section in sections:
-                            text = section.strip()
-                            if text:
-                                # Pre-process text for faster matching
-                                words = set(re.findall(r'\w+', text.lower()))
-                                self.documents.append({
-                                    "content": text,
-                                    "source": filename,
-                                    "words": words
-                                })
-                except Exception as e:
-                    print(f"Error loading {filename}: {e}")
-
-    def retrieve(self, query: str, top_k: int = 5) -> List[str]:
+    def retrieve(self, query: str, top_k: int = 3) -> List[str]:
         """
-        Retrieves relevant chunks using simple keyword overlap.
-        Perfect for small document sets and low-memory environments.
+        Retrieves relevant chunks using LlamaIndex vector search.
         """
         self._ensure_initialized()
-        if not self.documents:
+        if not self.index:
+            print("RAG Engine not initialized. Returning empty results.")
             return []
 
-        # Tokenize query
-        query_words = set(re.findall(r'\w+', query.lower()))
-        
-        # Rank documents by word overlap (Jaccard-like or simple count)
-        scored_docs = []
-        for doc in self.documents:
-            overlap = len(query_words.intersection(doc["words"]))
-            if overlap > 0:
-                scored_docs.append((overlap, doc["content"]))
-        
-        # Sort by overlap count (descending)
-        scored_docs.sort(key=lambda x: x[0], reverse=True)
-        
-        # Return top K contents
-        return [doc[1] for doc in scored_docs[:top_k]]
+        try:
+            retriever = self.index.as_retriever(similarity_top_k=top_k)
+            nodes = retriever.retrieve(query)
+            return [node.get_content() for node in nodes]
+        except Exception as e:
+            print(f"Error during retrieval: {e}")
+            return []
 
 # Singleton instance
 rag_engine = RAGEngine()
