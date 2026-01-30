@@ -4,8 +4,9 @@ ICP is an AI-powered career preparation platform designed to help job seekers ma
 
 ## 🌟 Key Features 
 
-### 1. AI Resume Analysis
+### 1. AI Resume Analysis & Builder
 *   **Intelligent Scoring**: Get a 0-100 score based on industry standards.
+*   **Resume Builder**: Dynamic form with auto-expanding fields (Professional Summary, Achievements, Skills) for easy editing.
 *   **Semantic Validation**: Ensures only valid professional resumes are processed.
 *   **Structured Feedback**: Detailed breakdown of Advantages, Disadvantages, and actionable Suggestions.
 *   **Keyword Extraction**: Automatically identifies 10-15 essential skills from your text.
@@ -14,24 +15,27 @@ ICP is an AI-powered career preparation platform designed to help job seekers ma
 ### 2. Mock Interview Simulator
 *   **Dynamic Questions**: AI generates role-specific technical and behavioral questions.
 *   **Adaptive Difficulty**: Choose between Beginner, Intermediate, and Advanced levels.
-*   **Voice Integration**: Practice using your microphone with AI-powered speech-to-text and text-to-speech.
+*   **Voice Integration**: Practice using your microphone with AI-powered speech-to-text (STT) and text-to-speech (TTS).
+*   **Real-time Interaction**: Seamless conversation flow with AI interviewers.
 *   **Readiness Scoring**: Receive an "Interview Readiness Score" and detailed performance feedback after each session.
 
 ### 3. Smart Job Search
 *   **Tailored Results**: Job recommendations based on your AI-detected skills and job title.
 *   **Careerjet Integration**: Access thousands of real-time job listings directly through the dashboard.
-*   **Location Awareness**: Automatically detects your preferred work location from your resume.
+*   **Location Awareness**: Automatically detects your preferred work location from your resume for localized searching.
 
-### 4. Admin Portal
-*   **User Management**: Monitor platform usage and manage user accounts.
-*   **File Oversight**: View and manage uploaded resumes and interview histories.
-*   **Audit Logs**: Detailed tracking of system activities for security and maintenance.
+### 4. Advanced Admin Portal
+*   **Dashboard Analytics**: Monitor platform usage, user activity, and system health.
+*   **User Management**: Full control over user accounts and platform access.
+*   **File & History Oversight**: View and manage uploaded resumes and interview histories with integrated previews.
+*   **Clean UI**: Modern, responsive administrative interface with advanced filtering and pagination.
 
 ## 🛠️ Tech Stack
 
 *   **Frontend**: HTML5, CSS3 (Bootstrap 5), JavaScript (Alpine.js, HTMX).
 *   **Backend**: Python (FastAPI), MongoDB (Motor).
-*   **AI Engine**: Mistral AI (Large-latest model), RAG (Retrieval-Augmented Generation) for specialized scoring guidelines.
+*   **AI Framework**: **LlamaIndex** for advanced RAG (Retrieval-Augmented Generation) processing.
+*   **AI Engine**: Mistral AI (Large-latest model) for intelligent analysis and generation.
 *   **Security**: JWT Authentication, Rate Limiting, and Semantic File Validation.
 *   **Infrastructure**: Docker, Render-ready deployment.
 
@@ -51,7 +55,7 @@ ICP is an AI-powered career preparation platform designed to help job seekers ma
    ```
 
 2. **Set up environment variables**:
-   Create a `.env` file in the root directory based on `.env.example`:
+   Create a `.env` file in the root directory:
    ```env
    MISTRAL_API_KEY=your_key_here
    MONGO_URI=your_mongodb_uri
@@ -69,11 +73,10 @@ ICP is an AI-powered career preparation platform designed to help job seekers ma
    ```
    The backend will start on `http://localhost:8000`.
 
-## 📱 Mobile App
-The project includes a cross-platform mobile application built with **Flutter**, located in the `mobile_app/` directory.
+## 📱 Mobile & Desktop Apps
 
-## 💻 Desktop App
-The project now includes a native desktop application built with **Tauri**, located in the `src-tauri/` directory. It leverages the existing web frontend to provide a fast and secure desktop experience. See [DESKTOP_APP.md](DESKTOP_APP.md) for setup instructions.
+*   **Mobile App**: A cross-platform mobile application built with **Flutter**, located in the `mobile_app/` directory.
+*   **Desktop App**: A native desktop application built with **Tauri**, located in the `src-tauri/` directory. See [DESKTOP_APP.md](DESKTOP_APP.md) for setup instructions.
 
 ## 📄 License
 Distributed under the MIT License. See `LICENSE` for more information.

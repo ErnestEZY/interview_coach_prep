@@ -40,6 +40,7 @@ htmlcov/
 Thumbs.db
 
 # Project Specific
+backend/data/rag_docs/
 backend/__pycache__/
 backend/routes/__pycache__/
 backend/services/__pycache__/
