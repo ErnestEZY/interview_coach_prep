@@ -1,6 +1,6 @@
 # ICP - Interview Coach Prep 🚀
 
-ICP is an AI-powered career preparation platform designed to help job seekers master their interview skills and optimize their professional profiles. By combining advanced AI analysis with real-world job data, ICP provides a comprehensive ecosystem for career advancement.
+ICP is an AI-assisted career preparation platform designed to help job seekers master their interview skills and optimize their professional profiles. By combining advanced AI analysis with real-world job data, ICP provides a comprehensive ecosystem for career advancement.
 
 ## 🌟 Key Features 
 
