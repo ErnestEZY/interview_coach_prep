@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mock Interview</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="/static/js/app.js"></script>
+  <style>
+    [v-cloak] { display: none; }
+    .camera-preview-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 280px;
+      height: 220px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      z-index: 1050;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all 0.3s ease;
+    }
+    @media (max-width: 768px) {
+      .camera-preview-container {
+        width: 140px;
+        height: 120px;
+        top: 85px;
+        bottom: auto;
+        right: 10px;
+        border-radius: 8px;
+      }
+      .camera-header {
+        padding: 4px 8px !important;
+      }
+      .camera-header span, .camera-header i {
+        font-size: 0.7rem;
+      }
+    }
+    .camera-header {
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+    }
+    /* Hide device pickers on smaller screens (mobile/tablet up to 1450px) */
+    @media (max-width: 1450px) {
+      .device-picker {
+        display: none !important;
+      }
+    }
+    #interviewVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .msg.left .bubble {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px 12px 12px 0;
+        padding: 10px 15px;
+        color: #fff;
+    }
+    .msg.right .bubble {
+        background: rgba(13, 110, 253, 0.3);
+        border-radius: 12px 12px 0 12px;
+        padding: 10px 15px;
+        color: #fff;
+    }
+    .msg.right {
+        justify-content: flex-end;
+        display: flex;
+        margin-bottom: 10px;
+    }
+    .msg.left {
+        justify-content: flex-start;
+        display: flex;
+        margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body class="auth-page">
+  <a href="#main" class="skip-link btn btn-sm btn-outline-light position-absolute top-0 start-0 m-2">Skip to main content</a>
+  <div id="app" v-cloak>
+      <!-- Page Loader -->
+      <div id="global-loader" class="page-loader" v-if="loading">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Initializing Interview...</div>
+      </div>
+
+      <!-- Interview Start Loader -->
+      <div class="page-loader interview-start-loader" v-if="isStarting">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Starting Interview Session...</div>
+      </div>
+
+      <nav class="navbar navbar-dark glass-nav">
+        <div class="container d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <button class="hamburger-btn d-xl-none me-2" onclick="window.handleMobileMenu()" title="Toggle navigation menu" aria-label="Toggle navigation menu">
+              <i class="bi bi-list"></i>
+            </button>
+            <a class="navbar-brand fw-bold fs-4 mb-0 me-0" href="/">
+              <span class="text-primary">I</span>CP
+            </a>
+            <div class="d-flex gap-1 d-none d-xl-flex">
+              <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/dashboard.html" title="Dashboard">
+                <span class="">Dashboard</span>
+              </a>
+              <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/find-jobs.html" title="Search Job">
+                <span class="">Search Job</span>
+              </a>
+              <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/history.html" title="View History">
+                <span class="">View History</span>
+              </a>
+              <a class="btn btn-primary btn-sm px-2" href="/static/pages/interview.html" title="Mock Interview">
+                  <span class="">Mock Interview</span>
+                </a>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <!-- Web Account Dropdown -->
+            <div class="dropdown d-none d-xl-inline-block" v-if="logged">
+              <button class="btn btn-outline-light btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle me-1"></i>
+                Account
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 glass-card mt-2">
+                <li class="px-3 py-2">
+                  <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
+                  <div class="text-white fw-semibold">{{ userName }}</div>
+                  <div class="text-secondary small">{{ userEmail }}</div>
+                </li>
+              </ul>
+            </div>
+            
+            <span class="text-secondary d-none d-xl-inline-block mx-1" v-if="logged">|</span>
+            
+            <button class="btn btn-outline-danger btn-sm px-2 d-none d-xl-inline-block" onclick="icp.logout()" v-if="logged" title="Logout" aria-label="Logout">
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Mobile Sidebar -->
+      <div class="sidebar-overlay" id="sidebarOverlay" onclick="window.handleMobileMenu()"></div>
+      <div class="mobile-sidebar" id="mobileSidebar">
+        <div class="sidebar-header border-bottom border-secondary border-opacity-25 pb-3">
+          <div class="d-flex flex-column">
+            <a class="navbar-brand fw-bold fs-4 mb-1" href="/">
+              <span class="text-primary">I</span>CP
+            </a>
+            <div class="user-info-mobile mt-2" v-if="logged">
+              <div class="text-white fw-bold small">{{ userName }}</div>
+              <div class="text-secondary smaller user-email-text">{{ userEmail }}</div>
+            </div>
+          </div>
+          <button class="btn btn-link text-white p-0" onclick="window.handleMobileMenu()" title="Close navigation menu">
+            <i class="bi bi-x-lg fs-4"></i>
+          </button>
+        </div>
+        <div class="sidebar-nav">
+          <a href="/static/pages/dashboard.html" class="sidebar-link" title="Go to Dashboard">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="/static/pages/find-jobs.html" class="sidebar-link" title="Search for Jobs">
+            <i class="bi bi-search"></i>
+            <span>Search Job</span>
+          </a>
+          <a href="/static/pages/history.html" class="sidebar-link" title="View Interview History">
+            <i class="bi bi-clock-history"></i>
+            <span>View History</span>
+          </a>
+          <a href="/static/pages/interview.html" class="sidebar-link active" title="Start Mock Interview">
+            <i class="bi bi-play-circle"></i>
+            <span>Mock Interview</span>
+          </a>
+          <hr class="border-secondary opacity-25 my-3">
+          <a href="javascript:void(0)" onclick="icp.logout()" class="sidebar-link text-danger" title="Logout from session">
+            <i class="bi bi-box-arrow-right"></i>
+            <span>Logout</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Session Timer Display -->
+      <div class="session-timer-badge" v-if="logged && sessionTime > 0 && sessionTime <= 60" v-cloak role="status" aria-live="polite" aria-atomic="true">
+        <i class="bi bi-clock-history" :class="sessionTime <= 30 ? 'timer-critical' : ''"></i>
+        <span>Session: <span>{{ formatTime(sessionTime) }}</span></span>
+        <span class="ms-2 small text-warning" v-show="sessionTime <= 60 && sessionTime > 58">Time is running out!</span>
+      </div>
+
+      <div class="container py-4" id="main" role="main">
+        <div class="card p-4">
+          <div class="row g-4 mb-4">
+            <div class="col-md-8">
+              <div class="p-3 rounded-3 bg-dark bg-opacity-20 border border-white border-opacity-10 h-100">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <i class="bi bi-sliders2-vertical text-primary"></i>
+                  <span class="small fw-bold text-uppercase tracking-wider text-secondary">Session Configuration</span>
+                </div>
+                <div class="d-flex flex-column gap-2">
+                  <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                    <div class="d-flex align-items-center gap-2 me-2">
+                      <label class="text-secondary small fw-bold">Questions:</label>
+                      <select class="form-select form-select-sm bg-dark text-light border-secondary question-limit-select" title="Choose the number of questions for this session" aria-label="Select number of questions" v-model="questionLimit" :disabled="sessionId">
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        <option value="20">20</option>
+                      </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 me-2">
+                      <label class="text-secondary small fw-bold">Difficulty:</label>
+                      <select class="form-select form-select-sm bg-dark text-light border-secondary difficulty-select" title="Choose the interview difficulty level" aria-label="Select interview difficulty" v-model="difficulty" :disabled="sessionId">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="d-flex flex-wrap align-items-center gap-3 gap-md-4">
+                    <div class="form-check form-switch custom-switch">
+                      <input class="form-check-input" type="checkbox" id="micToggle" v-model="mic" :disabled="sessionId">
+                      <label class="form-check-label text-secondary small" for="micToggle">
+                        <i class="bi bi-mic-fill me-1"></i> Use Microphone
+                      </label>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 device-picker" v-if="mic">
+                      <label class="text-secondary small">Mic:</label>
+                      <select class="form-select form-select-sm bg-dark text-light border-secondary" 
+                              v-model="selectedMicId" 
+                              @change="onAudioDeviceChange"
+                              aria-label="Select microphone device">
+                        <option v-for="(d, idx) in audioDevices" :key="d.deviceId" :value="d.deviceId">
+                          {{ d.label || ('Mic ' + (idx + 1)) }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <!-- Camera toggle -->
+                    <div class="form-check form-switch custom-switch">
+                      <input class="form-check-input" type="checkbox" id="cameraToggle" v-model="useCamera" :disabled="sessionId">
+                      <label class="form-check-label text-secondary small" for="cameraToggle">
+                        <i class="bi bi-camera-video-fill me-1"></i> Use Camera
+                      </label>
+                    </div>
+                    
+                    <div class="d-flex align-items-center gap-2 device-picker" v-if="useCamera">
+                      <label class="text-secondary small">Camera:</label>
+                      <select class="form-select form-select-sm bg-dark text-light border-secondary" 
+                              v-model="selectedCameraId" 
+                              @change="onCameraDeviceChange"
+                              aria-label="Select camera device">
+                        <option v-for="(d, idx) in videoDevices" :key="d.deviceId" :value="d.deviceId">
+                          {{ d.label || ('Camera ' + (idx + 1)) }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="form-check form-switch custom-switch">
+                        <input class="form-check-input" type="checkbox" id="speakerToggle" v-model="speaker" :disabled="sessionId">
+                        <label class="form-check-label text-secondary small" for="speakerToggle">
+                          <i class="bi bi-volume-up-fill me-1"></i> AI Speaker
+                        </label>
+                      </div>
+
+                      <!-- Voice selection -->
+                      <div v-if="speaker">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="text-secondary small voice-label">Voice:</span>
+                          <div class="btn-group btn-group-sm" role="group" aria-label="Select AI voice gender">
+                            <button type="button" class="btn btn-outline-primary py-0 px-2 voice-btn" 
+                                    :class="{ 'active': voiceGender === 'female' }"
+                                    :disabled="sessionId"
+                                    :aria-pressed="voiceGender === 'female' ? 'true' : 'false'"
+                                    @click="voiceGender = 'female'">Female</button>
+                            <button type="button" class="btn btn-outline-primary py-0 px-2 voice-btn" 
+                                    :class="{ 'active': voiceGender === 'male' }"
+                                    :disabled="sessionId"
+                                    :aria-pressed="voiceGender === 'male' ? 'true' : 'false'"
+                                    @click="voiceGender = 'male'">Male</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <div class="h-100 p-3 rounded-3 bg-dark bg-opacity-20 border border-white border-opacity-10">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <div class="dot" :class="sessionId ? 'bg-success' : (hasResume ? 'bg-primary' : 'bg-secondary')"></div>
+                  <span class="small fw-bold text-uppercase tracking-wider text-secondary">{{ sessionId ? 'Session Active' : (hasResume ? 'System Ready' : 'System Idle') }}</span>
+                </div>
+                <div class="small text-white-50">
+                  <i class="bi bi-info-circle me-1"></i> 
+                  <span v-if="!sessionId && hasResume">Click "Start" to begin your mock interview for <strong class="text-white">{{ jobTitle }}</strong>.</span>
+                  <span v-if="!sessionId && !hasResume">Please upload your resume first to begin.</span>
+                  <span v-if="sessionId">Speak or type clearly. The AI will analyze your response.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Section -->
+          <div class="row mb-4">
+            <div class="col-12 text-center">
+              <div class="p-3 rounded-4 bg-dark bg-opacity-40 border border-white border-opacity-10 shadow-sm">
+                <!-- Session Info -->
+                <div class="d-flex align-items-center justify-content-center gap-3 mb-3 small" v-if="!readinessScore">
+                  <span class="text-warning fw-bold">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <span>{{ interviewAttempts }}</span> of <span>{{ maxInterviewAttempts }}</span> sessions left today
+                  </span>
+                  <span class="text-white-50 opacity-50">|</span>
+                  <span class="text-white-50">Resets at 00:00 MY (GMT+8)</span>
+                </div>
+                
+                <!-- Readiness Score Section -->
+                <div v-if="readinessScore" class="mb-3 animate-fade-in">
+                  <div class="d-flex flex-column align-items-center">
+                    <div class="readiness-display mb-3">
+                      <div class="readiness-circle" :class="scoreColorClass">
+                        <span class="fs-1 fw-bold">{{ readinessScore }}</span>
+                        <span class="fs-6 opacity-50">/100</span>
+                      </div>
+                      <div class="readiness-label">READINESS SCORE</div>
+                    </div>
+                    <div class="p-4 rounded-4 feedback-box shadow-lg feedback-box-max w-100 max-w-600">
+                      <h6 class="text-primary small fw-bold text-uppercase mb-2 tracking-widest">Constructive Feedback</h6>
+                      <p class="small text-light mb-0 feedback-text">{{ feedbackExplanation }}</p>
+                    </div>
+                    <!-- AI Disclaimer -->
+                    <p class="text-secondary small mt-3 mb-0 ai-disclaimer">
+                      <i class="bi bi-info-circle me-1"></i>
+                      Readiness scores and feedback are generated by AI for simulation purposes only.
+                    </p>
+                  </div>
+                </div>
+                
+                <!-- Early End: N/A Score -->
+                <div v-if="!readinessScore && feedbackExplanation && !sessionId" class="mb-3 animate-fade-in">
+                  <div class="d-flex flex-column align-items-center">
+                    <div class="readiness-display mb-3">
+                      <div class="readiness-circle">
+                        <span class="fs-4 fw-bold">N/A</span>
+                      </div>
+                      <div class="readiness-label">READINESS SCORE</div>
+                    </div>
+                    <div class="p-4 rounded-4 feedback-box shadow-lg feedback-box-max w-100 max-w-600">
+                      <h6 class="text-primary small fw-bold text-uppercase mb-2 tracking-widest">Session Feedback</h6>
+                      <p class="small text-light mb-0 feedback-text">{{ feedbackExplanation }}</p>
+                    </div>
+                    <p class="text-secondary small mt-3 mb-0 ai-disclaimer">
+                      <i class="bi bi-info-circle me-1"></i>
+                      Session ended early. No score generated.
+                    </p>
+                  </div>
+                </div>
+                
+                <!-- Buttons -->
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+                  <button class="btn btn-primary px-4 py-2 fw-bold shadow-sm w-100 w-sm-auto" @click="startInterview" :disabled="!!sessionId || !hasResume">
+                    <i class="bi bi-play-fill me-1"></i> Start Interview
+                  </button>
+                  <button class="btn btn-outline-danger px-4 py-2 fw-bold shadow-sm w-100 w-sm-auto" @click="endInterview()" :disabled="!sessionId">
+                    <i class="bi bi-stop-fill me-1"></i> End Session
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resume Info Section (Middle) -->
+          <div class="mb-4" v-if="!sessionId">
+            <template v-if="hasResume">
+              <div class="p-3 rounded-3 bg-dark bg-opacity-40 border border-white border-opacity-10 shadow-sm">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <h6 class="mb-0 fw-bold text-white">
+                    <i class="bi bi-file-earmark-person text-primary me-2"></i>Target Role: <span class="text-info opacity-75">{{ jobTitle }}</span>
+                  </h6>
+                  <a href="/static/pages/dashboard.html" class="btn btn-sm btn-outline-light border-opacity-25 py-0 px-3">Update Resume</a>
+                </div>
+                <div class="row g-2">
+                  <div class="col-12">
+                    <template v-if="resumeFeedback && resumeFeedback.Keywords && resumeFeedback.Keywords.length">
+                      <div class="small text-white-50 mb-1 fw-bold text-uppercase tracking-wider keywords-label">Core Keywords Identified</div>
+                      <div class="p-2 rounded bg-black bg-opacity-30 border border-white border-opacity-10">
+                        <span class="small text-info">{{ resumeFeedback.Keywords.slice(0, 12).join(', ') }}</span>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <template v-if="!hasResume">
+              <div class="text-center p-5 rounded-4 border-2 border-dashed border-white border-opacity-10 bg-dark bg-opacity-10">
+                <i class="bi bi-file-earmark-arrow-up fs-1 text-secondary mb-3 d-block"></i>
+                <h5 class="fw-bold mb-2">Resume Required</h5>
+                <p class="text-secondary small mb-4">You need to upload and analyze your resume before starting an interview session. This helps the AI tailor the questions to your experience.</p>
+                <a href="/static/pages/dashboard.html" class="btn btn-primary px-4">
+                  <i class="bi bi-cloud-upload me-2"></i>Go to Dashboard
+                </a>
+              </div>
+            </template>
+          </div>
+
+          <div class="bg-dark rounded mb-3 interview-transcript-container overflow-hidden" v-show="transcript.length > 0" role="log" aria-live="polite" aria-relevant="additions text">
+            <!-- Sticky Chat Header -->
+            <div class="sticky-top bg-dark border-bottom border-white border-opacity-10 pb-2 mb-3 d-flex align-items-center justify-content-between sticky-header-container">
+              <div class="d-flex align-items-center gap-2 ps-2">
+                <div class="d-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle interviewer-avatar">
+                  <template v-if="thinking">
+                    <i class="bi bi-cpu fs-6 text-primary icon-thinking"></i>
+                  </template>
+                  <template v-else-if="speaking">
+                    <i class="bi bi-soundwave fs-6 text-primary icon-speaking"></i>
+                  </template>
+                  <template v-else>
+                    <i class="bi bi-robot fs-6 text-primary"></i>
+                  </template>
+                </div>
+                <div class="d-flex flex-column overflow-hidden">
+                  <span class="small fw-bold text-white interviewer-label">Interviewer</span>
+                  <span class="text-primary interviewer-status text-truncate">{{ thinking ? 'Thinking...' : (speaking ? 'Speaking...' : 'Ready') }}</span>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-primary rounded-pill px-3 py-1 question-badge" v-if="sessionId">{{ typeof currentQuestion === 'number' ? `Q: ${currentQuestion} / ${questionLimit}` : currentQuestion }}</span>
+                <div class="session-timer-mini d-flex align-items-center gap-1 text-warning small timer-mini" v-if="sessionId">
+                  <i class="bi bi-clock-fill"></i>
+                  <span>{{ formatTime(interviewTime) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat">
+              <div v-for="(t, index) in transcript" :key="index" :class="t.role==='ai' ? 'msg left' : 'msg right'">
+                <div class="bubble">{{ t.content }}</div>
+              </div>
+            </div>
+            
+            <!-- AI Disclaimer -->
+            <div class="p-2 text-center border-top border-white border-opacity-10 bg-black bg-opacity-20">
+              <p class="text-secondary small mb-0 ai-disclaimer">
+                <i class="bi bi-info-circle me-1"></i>
+                AI-driven interview simulation. Responses may vary in quality and accuracy.
+              </p>
+            </div>
+          </div>
+          
+          <form class="d-flex gap-2 align-items-end" @submit.prevent="submitAnswer">
+            <textarea 
+              class="form-control auto-expand-textarea" 
+              placeholder="Type your answer..." 
+              v-model="answer" 
+              :disabled="!sessionId || submitting" 
+              maxlength="800"
+              @input="$event.target.style.height = '45px'; $event.target.style.height = $event.target.scrollHeight + 'px'"
+              @keydown.enter.prevent="!$event.shiftKey && submitAnswer()"
+            ></textarea>
+            <button type="submit" class="btn btn-primary h-100 py-2 px-3" :disabled="!sessionId || submitting" title="Send your answer">
+              <i class="bi bi-send-fill"></i>
+            </button>
+            <button type="button" class="btn h-100 py-2 px-3" 
+                    :class="recording ? 'btn-danger recording-pulse' : 'btn-outline-secondary'"
+                    @click="toggleMic()"
+                    v-if="mic"
+                    :disabled="!sessionId"
+                    title="Toggle Microphone">
+              <i class="bi" :class="recording ? 'bi-mic-fill' : 'bi-mic-mute-fill'"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Camera Preview Container -->
+      <div v-if="useCamera" class="camera-preview-container" id="cameraContainer">
+        <div class="camera-header">
+          <span class="small fw-bold"><i class="bi bi-camera-video-fill me-1"></i> Live Preview</span>
+          <span id="faceStatus" class="badge bg-danger">Initializing...</span>
+        </div>
+        <video id="interviewVideo" autoplay muted></video>
+      </div>
+
+  </div>
+  <script src="/static/js/invalid_guard.js"></script>
+  <script src="/static/js/interview.js"></script>
+</body>
+</html>

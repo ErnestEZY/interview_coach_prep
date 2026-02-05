@@ -1,0 +1,22 @@
+services:
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile # Assuming you have a Dockerfile for FastAPI
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    restart: always
+
+  # Nginx Reverse Proxy & Frontend
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always

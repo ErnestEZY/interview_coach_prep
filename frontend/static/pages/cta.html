@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get Started</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <script src="/static/js/app.js"></script>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <nav class="navbar navbar-dark glass-nav">
+      <div class="container d-flex align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <a class="navbar-brand fw-bold fs-4 mb-0" href="/">
+            <span class="text-primary">I</span>CP
+          </a>
+            <div class="d-flex gap-2">
+              <template v-if="!logged">
+                <div class="d-flex gap-2">
+                  <a class="btn btn-outline-light btn-sm" href="/static/pages/login.html">Login</a>
+                  <a class="btn btn-outline-light btn-sm" href="/static/pages/register.html">Register</a>
+                </div>
+              </template>
+              <template v-if="logged">
+                <a class="btn btn-primary btn-sm px-3" href="/static/pages/dashboard.html">Go to Dashboard</a>
+              </template>
+            </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-5 mt-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center animate-fade-in">
+          <div class="card p-5 shadow-lg border-0 glass-card-dark">
+            <div class="mb-4">
+              <div class="bg-primary bg-opacity-10 p-4 rounded-circle d-inline-block mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="text-primary" viewBox="0 0 16 16">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                  <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+                </svg>
+              </div>
+              <h1 class="display-4 fw-bold mb-3">Ready to Elevate Your Career?</h1>
+              <p class="lead text-secondary mb-5">Join thousands of candidates who have improved their interview performance with our AI-powered feedback system. Your professional journey starts here.</p>
+            </div>
+            
+            <div class="row g-4 justify-content-center">
+              <template v-if="!logged">
+                <div class="row g-4 justify-content-center">
+                  <div class="col-md-5">
+                    <a href="/static/pages/register.html" class="btn btn-primary btn-lg w-100 py-3 rounded-pill shadow">
+                      Create Account
+                    </a>
+                  </div>
+                  <div class="col-md-5">
+                    <a href="/static/pages/login.html" class="btn btn-outline-light btn-lg w-100 py-3 rounded-pill">
+                      Sign In
+                    </a>
+                  </div>
+                </div>
+              </template>
+              <template v-if="logged">
+                <div class="col-md-8">
+                  <a href="/static/pages/dashboard.html" class="btn btn-primary btn-lg w-100 py-3 rounded-pill shadow">
+                    Continue to Dashboard
+                  </a>
+                </div>
+              </template>
+            </div>
+            
+            <div class="mt-5 pt-4 border-top border-secondary border-opacity-25">
+              <div class="row text-center g-3">
+                <div class="col-4">
+                  <h4 class="fw-bold mb-0">100%</h4>
+                  <p class="small text-secondary mb-0">AI Driven</p>
+                </div>
+                <div class="col-4">
+                  <h4 class="fw-bold mb-0">Real-time</h4>
+                  <p class="small text-secondary mb-0">Feedback</p>
+                </div>
+                <div class="col-4">
+                  <h4 class="fw-bold mb-0">Secure</h4>
+                  <p class="small text-secondary mb-0">Data</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="/static/js/cta.js"></script>
+</body>
+</html>

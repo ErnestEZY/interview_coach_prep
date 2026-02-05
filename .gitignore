@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+# lib/  <-- Removed this to allow Flutter source code
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+ENV/
+
+# Environment Variables
+.env
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Specific
+backend/data/rag_docs/
+backend/__pycache__/
+backend/routes/__pycache__/
+backend/services/__pycache__/
+backend/tests/__pycache__/
+scripts/__pycache__/
+backend/resets_limit.py
+backend/resets_quota.py
+reset_limits.py
+reset_quota.py
+resets_limit.py
+resets_quota.py
+create_admin_cli.py
+scripts/seed_sample_data.py
+scripts/download_models.py
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+src-tauri/bin/
+
+# Flutter
+mobile_app/.dart_tool/
+mobile_app/.flutter-plugins
+mobile_app/.flutter-plugins-dependencies
+mobile_app/.pub-cache/
+mobile_app/build/
+mobile_app/ios/Flutter/Generated.xcconfig
+mobile_app/ios/Flutter/flutter_export_environment.sh
+mobile_app/ios/Flutter/Flutter.podspec
+mobile_app/ios/.generated/
+mobile_app/android/app/src/main/res/values/strings.xml
+mobile_app/android/local.properties
+mobile_app/android/key.properties
+mobile_app/android/*.jks
+mobile_app/android/*.keystore
+
+# Desktop Binaries
+*.exe
+*.msi
+*.deb
+*.dmg
+*.app
+apks/

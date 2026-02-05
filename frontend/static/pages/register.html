@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Axios -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <style>
+    [v-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="auth-page">
+  <div id="app" v-cloak>
+    <nav class="navbar navbar-dark glass-nav">
+      <div class="container d-flex align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <a class="navbar-brand fw-bold fs-4 mb-0 me-0" href="/">
+            <span class="text-primary">I</span>CP
+          </a>
+          <a class="btn btn-outline-light btn-sm px-3" href="/static/pages/login.html">Login</a>
+        </div>
+      </div>
+    </nav>
+    <div class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-md-5">
+          <div class="auth-card p-4 p-md-5 animate-fade-in">
+            <h2 class="auth-header mb-4">Create Account</h2>
+            <form @submit.prevent="register">
+              <div class="mb-4">
+                <label class="form-label text-secondary small text-uppercase fw-bold">Full Name (Optional)</label>
+                <input v-model="form.name" type="text" class="form-control form-control-lg" placeholder="Your Name" title="Full Name" maxlength="30" @input="validateName">
+              </div>
+              <div class="mb-4">
+                <label class="form-label text-secondary small text-uppercase fw-bold">Email Address</label>
+                <input v-model="form.email" type="email" class="form-control form-control-lg" placeholder="name@example.com" title="Email address" required maxlength="80" @input="saveForm">
+              </div>
+              <div class="mb-4">
+                <label class="form-label text-secondary small text-uppercase fw-bold">Password</label>
+                <div class="input-group input-group-lg">
+                  <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="form-control" placeholder="Create a strong password" title="Password" required maxlength="12">
+                  <button class="btn password-toggle-btn" type="button" @click="showPassword = !showPassword" title="Toggle password visibility">
+                    <i class="bi" :class="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+                  </button>
+                </div>
+                
+                <!-- Password Strength Indicator -->
+                <div class="mt-2" v-if="form.password">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="small text-secondary">Password Strength: <span class="fw-bold" :class="passwordStrength.color">{{ passwordStrength.label }}</span></span>
+                  </div>
+                  <div class="progress password-strength-progress">
+                    <div class="progress-bar transition-all" role="progressbar" 
+                         :title="'Password Strength: ' + passwordStrength.label"
+                         :style="'width: ' + passwordStrength.width" :class="passwordStrength.class"></div>
+                  </div>
+                </div>
+
+                <!-- Password Criteria List -->
+                <div class="mt-3 p-3 rounded-3 password-criteria-list bg-light bg-opacity-10 border border-secondary border-opacity-25">
+                  <ul class="list-unstyled mb-0 small">
+                    <li class="d-flex align-items-center mb-1" :class="passwordCriteria.length ? 'text-success' : 'text-secondary'">
+                      <i class="bi me-2" :class="passwordCriteria.length ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                      At least 8 characters
+                    </li>
+                    <li class="d-flex align-items-center mb-1" :class="passwordCriteria.upper ? 'text-success' : 'text-secondary'">
+                      <i class="bi me-2" :class="passwordCriteria.upper ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                      Contains uppercase letter
+                    </li>
+                    <li class="d-flex align-items-center mb-1" :class="passwordCriteria.lower ? 'text-success' : 'text-secondary'">
+                      <i class="bi me-2" :class="passwordCriteria.lower ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                      Contains lowercase letter
+                    </li>
+                    <li class="d-flex align-items-center mb-1" :class="passwordCriteria.number ? 'text-success' : 'text-secondary'">
+                      <i class="bi me-2" :class="passwordCriteria.number ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                      Contains number
+                    </li>
+                    <li class="d-flex align-items-center" :class="passwordCriteria.special ? 'text-success' : 'text-secondary'">
+                      <i class="bi me-2" :class="passwordCriteria.special ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                      Contains special character
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label text-secondary small text-uppercase fw-bold">Confirm Password</label>
+                <div class="input-group input-group-lg">
+                  <input v-model="form.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="form-control" placeholder="Re-enter your password" title="Confirm Password" required maxlength="12">
+                  <button class="btn password-toggle-btn" type="button" @click="showConfirmPassword = !showConfirmPassword" title="Toggle password visibility">
+                    <i class="bi" :class="showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+                  </button>
+                </div>
+                <div class="mt-1" v-if="form.confirmPassword">
+                  <span class="small" :class="passwordsMatch ? 'text-success' : 'text-danger'">
+                    <i class="bi me-1" :class="passwordsMatch ? 'bi-check-circle-fill' : 'bi-x-circle-fill'"></i>
+                    {{ passwordsMatch ? 'Passwords match' : 'Passwords do not match' }}
+                  </span>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" :disabled="loading">
+                {{ loading ? 'Creating Account...' : 'Create Account' }}
+              </button>
+              <div class="mt-4 text-center">
+                <span class="text-secondary small">Already have an account?</span>
+                <a href="/static/pages/login.html" class="auth-footer-link text-primary text-decoration-none fw-bold ms-1">Login</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="/static/js/email_service.js"></script>
+  <script src="/static/js/register.js"></script>
+</body>
+</html>
