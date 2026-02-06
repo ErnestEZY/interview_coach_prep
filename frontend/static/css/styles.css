@@ -264,6 +264,10 @@ html {
   text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
 }
 
+.auth-success-icon {
+  font-size: 4rem;
+}
+
 .glass-nav {
   background: rgba(14, 22, 38, 0.7) !important;
   -webkit-backdrop-filter: blur(12px);

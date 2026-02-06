@@ -10,8 +10,7 @@ const app = createApp({
             showPassword: false,
             showConfirmPassword: false,
             submitting: false,
-            success: false,
-            countdown: 5
+            success: false
         };
     },
     computed: {
@@ -65,19 +64,21 @@ const app = createApp({
                 }).then(() => window.location = '/static/pages/login.html');
             }
         },
-        startCountdown() {
-            const timer = setInterval(() => {
-                this.countdown--;
-                if (this.countdown <= 0) {
-                    clearInterval(timer);
-                    // Close the window if possible, otherwise redirect
-                    if (window.opener || window.history.length === 1) {
-                        window.close();
-                    } else {
-                        window.location = '/static/pages/login.html';
-                    }
+        handleSuccess() {
+            this.success = true;
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Your password has been reset successfully. This page will now close.',
+                confirmButtonText: 'OK',
+                allowOutsideClick: false
+            }).then(() => {
+                if (window.opener || window.history.length === 1) {
+                    window.close();
+                } else {
+                    window.location = '/static/pages/login.html';
                 }
-            }, 1000);
+            });
         },
         async submit() {
             if (this.password !== this.confirmPassword) {
@@ -96,8 +97,7 @@ const app = createApp({
                     password: this.password
                 });
                 
-                this.success = true;
-                this.startCountdown();
+                this.handleSuccess();
             } catch (e) {
                 let msg = 'Failed to update password';
                 if (e.response && e.response.data && e.response.data.detail) {
