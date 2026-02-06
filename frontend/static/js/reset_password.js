@@ -8,7 +8,10 @@ const app = createApp({
             password: '',
             confirmPassword: '',
             showPassword: false,
-            submitting: false
+            showConfirmPassword: false,
+            submitting: false,
+            success: false,
+            countdown: 5
         };
     },
     computed: {
@@ -28,6 +31,9 @@ const app = createApp({
             if (metCount <= 2) return { label: 'Weak', color: 'text-danger', width: '33%', class: 'bg-danger' };
             if (metCount <= 4) return { label: 'Medium', color: 'text-warning', width: '66%', class: 'bg-warning' };
             return { label: 'Strong', color: 'text-success', width: '100%', class: 'bg-success' };
+        },
+        passwordsMatch() {
+            return this.password && this.confirmPassword && this.password === this.confirmPassword;
         }
     },
     mounted() {
@@ -59,6 +65,20 @@ const app = createApp({
                 }).then(() => window.location = '/static/pages/login.html');
             }
         },
+        startCountdown() {
+            const timer = setInterval(() => {
+                this.countdown--;
+                if (this.countdown <= 0) {
+                    clearInterval(timer);
+                    // Close the window if possible, otherwise redirect
+                    if (window.opener || window.history.length === 1) {
+                        window.close();
+                    } else {
+                        window.location = '/static/pages/login.html';
+                    }
+                }
+            }, 1000);
+        },
         async submit() {
             if (this.password !== this.confirmPassword) {
                 Swal.fire({ icon: 'error', title: 'Error', text: 'Passwords do not match' });
@@ -70,27 +90,14 @@ const app = createApp({
             }
             
             this.submitting = true;
-            Swal.fire({
-                title: 'Updating Password...',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-
             try {
-                // The API likely expects 'password' based on previous HTML form
                 await axios.post(window.icp.apiUrl('/api/auth/reset-password'), {
                     token: this.token,
                     password: this.password
                 });
                 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Password Updated!',
-                    text: 'Your password has been changed successfully. You can now login.',
-                    confirmButtonText: 'Login'
-                }).then(() => {
-                    window.location = '/static/pages/login.html';
-                });
+                this.success = true;
+                this.startCountdown();
             } catch (e) {
                 let msg = 'Failed to update password';
                 if (e.response && e.response.data && e.response.data.detail) {
