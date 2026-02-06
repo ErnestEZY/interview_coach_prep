@@ -3,7 +3,7 @@ from typing import List
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, Settings
 from llama_index.llms.mistralai import MistralAI
 from llama_index.embeddings.mistralai import MistralAIEmbedding
-from ..config import MISTRAL_API_KEY
+from ..core.config import MISTRAL_API_KEY
 
 class RAGEngine:
     """

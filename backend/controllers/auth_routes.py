@@ -2,9 +2,9 @@ from fastapi import APIRouter, HTTPException, status, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
-from ..db import users, pending_users, reset_tokens
-from ..models import UserIn, Token, ForgotPasswordRequest, ResetPasswordRequest
-from ..auth import (
+from ..core.db import users, pending_users, reset_tokens
+from ..models.schemas import UserIn, Token, ForgotPasswordRequest, ResetPasswordRequest
+from ..core.security import (
     hash_password, verify_password, create_access_token, get_current_user,
     create_reset_token, verify_reset_token
 )
@@ -13,7 +13,7 @@ from ..services.email_service import send_reset_password_email
 from ..services.audit import log_event, check_admin_ip, trigger_admin_alert
 from ..services.utils import get_malaysia_time
 
-from ..config import (
+from ..core.config import (
     EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
     ADMIN_EMAILJS_PUBLIC_KEY, ADMIN_EMAILJS_SERVICE_ID, ADMIN_EMAILJS_TEMPLATE_ID,
     ADMIN_ALERT_EMAILJS_PUBLIC_KEY, ADMIN_ALERT_EMAILJS_SERVICE_ID, ADMIN_ALERT_EMAILJS_TEMPLATE_ID,

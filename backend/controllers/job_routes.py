@@ -1,7 +1,7 @@
 import httpx
 from fastapi import APIRouter, Request, Query, HTTPException
 from typing import Optional, Dict, Any
-from ..config import CAREERJET_API_KEY
+from ..core.config import CAREERJET_API_KEY
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
 

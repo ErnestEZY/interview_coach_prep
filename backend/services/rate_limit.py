@@ -1,7 +1,7 @@
 from time import time
 from typing import Dict
 from fastapi import Request, HTTPException, status
-from ..config import RATE_LIMIT_PER_MINUTE
+from ..core.config import RATE_LIMIT_PER_MINUTE
 
 bucket: Dict[str, list[float]] = {}
 

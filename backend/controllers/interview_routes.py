@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Form
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
-from ..db import interviews, users, resumes
-from ..auth import get_current_user
-from ..config import SESSION_MAX_QUESTIONS, INTERVIEW_DEFAULT_QUESTIONS, DAILY_QUESTION_LIMIT
+from ..core.db import interviews, users, resumes
+from ..core.security import get_current_user
+from ..core.config import SESSION_MAX_QUESTIONS, INTERVIEW_DEFAULT_QUESTIONS, DAILY_QUESTION_LIMIT
 from ..services.interview_engine import interview_reply
 from ..services.rate_limit import rate_limit
 from ..services.utils import is_gibberish, get_malaysia_time

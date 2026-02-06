@@ -1,10 +1,10 @@
-from ..config import (
+from ..core.config import (
     EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID,
     ADMIN_ALERT_EMAILJS_PUBLIC_KEY, ADMIN_ALERT_EMAILJS_SERVICE_ID, ADMIN_ALERT_EMAILJS_TEMPLATE_ID,
     FORGOT_PASSWORD_EMAILJS_PUBLIC_KEY, FORGOT_PASSWORD_EMAILJS_SERVICE_ID, FORGOT_PASSWORD_EMAILJS_TEMPLATE_ID,
     FORGOT_PASSWORD_EMAILJS_ACCESS_TOKEN
 )
-from ..db import users
+from ..core.db import users
 import httpx
 
 async def send_reset_password_email(email: str, reset_link: str):

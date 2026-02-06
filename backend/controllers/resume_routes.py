@@ -3,9 +3,9 @@ from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 import os
 import base64
-from ..db import resumes, users, fs
-from ..models import ResumeFeedback, ManualProfileIn
-from ..auth import get_current_user
+from ..core.db import resumes, users, fs
+from ..models.schemas import ResumeFeedback, ManualProfileIn
+from ..core.security import get_current_user
 from ..services.resume_parser import extract_resume_text
 from ..services.ai_feedback import get_feedback
 from ..services.rate_limit import rate_limit

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Dict, Any, List
 from mistralai import Mistral
-from ..config import MISTRAL_API_KEY
+from ..core.config import MISTRAL_API_KEY
 
 SYSTEM_PROMPT = (
     "You are a professional interviewer. Use plain text only. No bold, no emojis. "

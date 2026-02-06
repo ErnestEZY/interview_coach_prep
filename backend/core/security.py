@@ -7,9 +7,9 @@ import jwt
 import hashlib
 import uuid
 import secrets
-from .config import JWT_SECRET, JWT_ALGORITHM, SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD, JWT_EXPIRATION_SECONDS
+from .config import JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_SECONDS
 from .db import users, reset_tokens
-from .services.utils import get_malaysia_time
+from ..services.utils import get_malaysia_time
 
 # Session Clearing Mechanism: Disabled for persistence across restarts.
 # To re-enable, uncomment the salt and use DYNAMIC_JWT_SECRET.

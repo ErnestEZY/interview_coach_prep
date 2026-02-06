@@ -2,7 +2,7 @@ import json
 import re
 from typing import List, Dict, Any
 from mistralai import Mistral
-from ..config import MISTRAL_API_KEY
+from ..core.config import MISTRAL_API_KEY
 
 from .rag_engine import rag_engine
 

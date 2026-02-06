@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from bson import ObjectId
-from ..db import users
+from ..core.db import users
 from .utils import get_malaysia_time
 
 async def check_daily_limit(user_id: str, limit_type: str, max_attempts: int):
