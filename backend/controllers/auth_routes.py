@@ -300,7 +300,7 @@ async def reset_password(payload: ResetPasswordRequest):
         {"$set": {"password_hash": new_password_hash}}
     )
     
-    # Optional: Delete the token after use so it can't be reused
+    # Delete the token after use to prevent reuse
     await reset_tokens.delete_one({"token": payload.token})
     
     return {"message": "Password updated successfully. You can now login with your new password."}

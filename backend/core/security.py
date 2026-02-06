@@ -56,11 +56,11 @@ def create_access_token(sub: str, role: str, expires_delta: Optional[timedelta] 
 async def create_reset_token(email: str) -> str:
     """
     Generates a short random reset token and stores it in the database.
-    Valid for 30 minutes.
+    Valid for 20 minutes as requested.
     """
     token = secrets.token_urlsafe(16) # Shorter than JWT
     now = get_malaysia_time()
-    expire = now + timedelta(minutes=30)
+    expire = now + timedelta(minutes=20)
     
     # Store in database
     await reset_tokens.update_one(
