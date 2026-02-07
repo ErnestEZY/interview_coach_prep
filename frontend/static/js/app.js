@@ -269,16 +269,30 @@ Object.assign(window.icp, {
       title: 'Terms & Conditions',
       html: `
         <div class="text-start small overflow-auto px-2" style="max-height: 400px; line-height: 1.6;">
+          
           <h6 class="fw-bold">1. Acceptance of Terms</h6>
-          <p>By using ICP (Interview Coach Prep), you agree to be bound by these terms and conditions. If you do not agree, please do not use the service.</p>
+          <p>By accessing or using ICP (Interview Coach Prep), you agree to be bound by these Terms and Conditions. These terms apply to all visitors, users, and others who access the service.</p>
+          
           <h6 class="fw-bold">2. Service Description</h6>
-          <p>ICP provides AI-driven interview coaching, resume analysis, and job search tools to help users prepare for professional interviews.</p>
-          <h6 class="fw-bold">3. User Responsibility</h6>
-          <p>You are responsible for maintaining the confidentiality of your account and for all activities that occur under your account.</p>
-          <h6 class="fw-bold">4. Content & Privacy</h6>
-          <p>Resumes and interview responses provided are processed by AI to give feedback. Your data is handled as described in our Privacy Policy.</p>
-          <h6 class="fw-bold">5. Limitations</h6>
-          <p>The feedback provided by the AI is for preparation purposes only and does not guarantee job placement or success.</p>
+          <p>ICP provides an AI-powered platform for interview preparation, including mock interviews, resume analysis, and career guidance. The service is provided "as is" and "as available".</p>
+          
+          <h6 class="fw-bold">3. User Accounts</h6>
+          <p>You must provide accurate and complete information when creating an account. You are solely responsible for the activity that occurs on your account and must keep your password secure.</p>
+          
+          <h6 class="fw-bold">4. User Conduct</h6>
+          <p>You agree not to use the service for any unlawful purpose or to conduct any activity that would violate the rights of others. This includes not attempting to reverse engineer the AI models or bypass any security features.</p>
+          
+          <h6 class="fw-bold">5. Intellectual Property</h6>
+          <p>The Service and its original content, features, and functionality are and will remain the exclusive property of ICP and its licensors. User-submitted content (like resumes) remains the property of the user, but you grant us a license to process it for the purpose of providing the service.</p>
+          
+          <h6 class="fw-bold">6. Limitation of Liability</h6>
+          <p>In no event shall ICP be liable for any indirect, incidental, special, or consequential damages resulting from your use of the service. AI feedback is for educational purposes only and does not guarantee job offers.</p>
+          
+          <h6 class="fw-bold">7. Termination</h6>
+          <p>We may terminate or suspend access to our Service immediately, without prior notice, for any reason whatsoever, including without limitation if you breach the Terms.</p>
+          
+          <h6 class="fw-bold">8. Changes</h6>
+          <p>We reserve the right to modify or replace these Terms at any time. We will try to provide at least 30 days' notice before any new terms take effect.</p>
         </div>
       `,
       confirmButtonText: 'Close',
@@ -290,16 +304,33 @@ Object.assign(window.icp, {
       title: 'Privacy Policy',
       html: `
         <div class="text-start small overflow-auto px-2" style="max-height: 400px; line-height: 1.6;">
+
           <h6 class="fw-bold">1. Information We Collect</h6>
-          <p>We collect your name, email address, and any professional documents (resumes) or interview responses you provide.</p>
-          <h6 class="fw-bold">2. How We Use Information</h6>
-          <p>We use your data to generate personalized AI feedback, track your progress, and improve our coaching algorithms.</p>
-          <h6 class="fw-bold">3. Data Security</h6>
-          <p>We implement industry-standard security measures to protect your personal information from unauthorized access.</p>
-          <h6 class="fw-bold">4. Third-Party Processing</h6>
-          <p>We use Gemini AI for analysis and EmailJS for email notifications. Your data is only shared with these services for the purpose of providing ICP features.</p>
-          <h6 class="fw-bold">5. Data Retention</h6>
-          <p>We retain your data as long as your account is active. You may request account deletion at any time.</p>
+          <p><strong>Personal Data:</strong> We collect your name and email address for account management and security.</p>
+          <p><strong>Professional Data:</strong> We collect resume files and interview responses that you voluntarily upload or provide to our AI engine.</p>
+          
+          <h6 class="fw-bold">2. How We Use Your Data</h6>
+          <p>We use the collected data to provide AI-driven feedback, personalize your experience, maintain account security, and improve our services through anonymized analysis.</p>
+          
+          <h6 class="fw-bold">3. Data Sharing & Third Parties</h6>
+          <p>We do not sell your personal data. We share necessary information with:</p>
+          <ul>
+            <li><strong>AI Services:</strong> To process your resumes and interview responses.</li>
+            <li><strong>Email Services:</strong> To send verification and reset links.</li>
+            <li><strong>Database Services:</strong> To securely store your profile and history.</li>
+          </ul>
+          
+          <h6 class="fw-bold">4. Data Security</h6>
+          <p>We implement technical and organizational security measures to protect your data, including encryption for passwords and secure API communication.</p>
+          
+          <h6 class="fw-bold">5. Your Rights</h6>
+          <p>You have the right to access, correct, or delete your personal data. You can manage your profile settings or contact us to request account deletion.</p>
+          
+          <h6 class="fw-bold">6. Cookies</h6>
+          <p>We use local storage and essential cookies to maintain your session and preferences. We do not use tracking cookies for third-party advertising.</p>
+          
+          <h6 class="fw-bold">7. Children's Privacy</h6>
+          <p>Our Service does not address anyone under the age of 15. We do not knowingly collect personal information from children under 15.</p>
         </div>
       `,
       confirmButtonText: 'Close',
