@@ -95,9 +95,15 @@ input::-webkit-credentials-auto-fill-button {
   height: 4px;
 }
 
+.legal-footer-text {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
 body { 
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
   min-height: 100vh;
+}
   color: #e8edf6; 
 }
 
