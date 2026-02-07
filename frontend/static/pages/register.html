@@ -43,11 +43,11 @@
                 <input v-model="form.name" type="text" class="form-control form-control-lg" placeholder="Your Name" title="Full Name" maxlength="30" @input="validateName">
               </div>
               <div class="mb-4">
-                <label class="form-label text-secondary small text-uppercase fw-bold">Email Address</label>
+                <label class="form-label text-secondary small text-uppercase fw-bold">Email Address <span class="text-danger">*</span></label>
                 <input v-model="form.email" type="email" class="form-control form-control-lg" placeholder="name@example.com" title="Email address" required maxlength="80" @input="saveForm">
               </div>
               <div class="mb-4">
-                <label class="form-label text-secondary small text-uppercase fw-bold">Password</label>
+                <label class="form-label text-secondary small text-uppercase fw-bold">Password <span class="text-danger">*</span></label>
                 <div class="input-group input-group-lg">
                   <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="form-control" placeholder="Create a strong password" title="Password" required maxlength="12">
                   <button class="btn password-toggle-btn" type="button" @click="showPassword = !showPassword" title="Toggle password visibility">
@@ -95,7 +95,7 @@
               </div>
 
               <div class="mb-4">
-                <label class="form-label text-secondary small text-uppercase fw-bold">Confirm Password</label>
+                <label class="form-label text-secondary small text-uppercase fw-bold">Confirm Password <span class="text-danger">*</span></label>
                 <div class="input-group input-group-lg">
                   <input v-model="form.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="form-control" placeholder="Re-enter your password" title="Confirm Password" required maxlength="12">
                   <button class="btn password-toggle-btn" type="button" @click="showConfirmPassword = !showConfirmPassword" title="Toggle password visibility">

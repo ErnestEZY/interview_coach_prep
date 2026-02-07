@@ -39,11 +39,11 @@
             <h2 class="auth-header mb-4">Welcome Back</h2>
             <form @submit.prevent="login">
               <div class="mb-4">
-                <label class="form-label text-secondary small text-uppercase fw-bold">Email Address</label>
+                <label class="form-label text-secondary small text-uppercase fw-bold">Email Address <span class="text-danger">*</span></label>
                 <input v-model="username" type="email" name="email" autocomplete="email" class="form-control form-control-lg" required placeholder="name@example.com" maxlength="80">
               </div>
               <div class="mb-4">
-                <label class="form-label text-secondary small text-uppercase fw-bold">Password</label>
+                <label class="form-label text-secondary small text-uppercase fw-bold">Password <span class="text-danger">*</span></label>
                 <div class="input-group input-group-lg">
                   <input v-model="password" name="password" autocomplete="current-password" :type="showPassword ? 'text' : 'password'" class="form-control" required placeholder="Enter your password" maxlength="12">
                   <button class="btn password-toggle-btn" type="button" @click="showPassword = !showPassword" title="Toggle password visibility">
