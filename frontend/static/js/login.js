@@ -23,6 +23,8 @@ const app = createApp({
     },
     watch: {},
     methods: {
+        showTerms() { window.icp.showTerms(); },
+        showPrivacy() { window.icp.showPrivacy(); },
         async login() {
             if (this.loading) return;
             this.loading = true;

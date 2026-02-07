@@ -7,7 +7,8 @@ const app = createApp({
                 name: localStorage.getItem('reg_name') || '',
                 email: localStorage.getItem('reg_email') || '',
                 password: '',
-                confirmPassword: ''
+                confirmPassword: '',
+                agreed: false
             },
             showPassword: false,
             showConfirmPassword: false,
@@ -38,6 +39,8 @@ const app = createApp({
         }
     },
     methods: {
+        showTerms() { window.icp.showTerms(); },
+        showPrivacy() { window.icp.showPrivacy(); },
         saveForm() {
             localStorage.setItem('reg_name', this.form.name);
             localStorage.setItem('reg_email', this.form.email);
@@ -48,6 +51,11 @@ const app = createApp({
         },
         async register() {
             if (this.loading) return;
+
+            if (!this.form.agreed) {
+                Swal.fire({ icon: 'warning', title: 'Agreement Required', text: 'Please agree to the Terms & Conditions and Privacy Policy to continue.' });
+                return;
+            }
             
             // Validation
             if (this.form.name && !/^[A-Za-z\s]*$/.test(this.form.name)) {

@@ -263,7 +263,49 @@ Object.assign(window.icp, {
   state,
   decodeToken,
   apiUrl,
-  logout
+  logout,
+  showTerms: () => {
+    Swal.fire({
+      title: 'Terms & Conditions',
+      html: `
+        <div class="text-start small overflow-auto px-2" style="max-height: 400px; line-height: 1.6;">
+          <h6 class="fw-bold">1. Acceptance of Terms</h6>
+          <p>By using ICP (Interview Coach Prep), you agree to be bound by these terms and conditions. If you do not agree, please do not use the service.</p>
+          <h6 class="fw-bold">2. Service Description</h6>
+          <p>ICP provides AI-driven interview coaching, resume analysis, and job search tools to help users prepare for professional interviews.</p>
+          <h6 class="fw-bold">3. User Responsibility</h6>
+          <p>You are responsible for maintaining the confidentiality of your account and for all activities that occur under your account.</p>
+          <h6 class="fw-bold">4. Content & Privacy</h6>
+          <p>Resumes and interview responses provided are processed by AI to give feedback. Your data is handled as described in our Privacy Policy.</p>
+          <h6 class="fw-bold">5. Limitations</h6>
+          <p>The feedback provided by the AI is for preparation purposes only and does not guarantee job placement or success.</p>
+        </div>
+      `,
+      confirmButtonText: 'Close',
+      confirmButtonColor: '#fc0038'
+    });
+  },
+  showPrivacy: () => {
+    Swal.fire({
+      title: 'Privacy Policy',
+      html: `
+        <div class="text-start small overflow-auto px-2" style="max-height: 400px; line-height: 1.6;">
+          <h6 class="fw-bold">1. Information We Collect</h6>
+          <p>We collect your name, email address, and any professional documents (resumes) or interview responses you provide.</p>
+          <h6 class="fw-bold">2. How We Use Information</h6>
+          <p>We use your data to generate personalized AI feedback, track your progress, and improve our coaching algorithms.</p>
+          <h6 class="fw-bold">3. Data Security</h6>
+          <p>We implement industry-standard security measures to protect your personal information from unauthorized access.</p>
+          <h6 class="fw-bold">4. Third-Party Processing</h6>
+          <p>We use Gemini AI for analysis and EmailJS for email notifications. Your data is only shared with these services for the purpose of providing ICP features.</p>
+          <h6 class="fw-bold">5. Data Retention</h6>
+          <p>We retain your data as long as your account is active. You may request account deletion at any time.</p>
+        </div>
+      `,
+      confirmButtonText: 'Close',
+      confirmButtonColor: '#fc0038'
+    });
+  }
 });
 
 // Global Startup Check: Clear sessions if server has restarted

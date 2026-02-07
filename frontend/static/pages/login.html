@@ -57,6 +57,16 @@
               <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm" :disabled="loading">
                 {{ loading ? 'Signing In...' : 'Sign In' }}
               </button>
+
+              <!-- Legal Links -->
+              <div class="mt-4 text-center">
+                <p class="text-secondary small mb-0">
+                  By continuing, you agree to ICP's 
+                  <a href="#" class="text-primary text-decoration-none fw-bold" @click.prevent="showTerms">Terms & Conditions</a>,<br>
+                  Read our <a href="#" class="text-primary text-decoration-none fw-bold" @click.prevent="showPrivacy">Privacy Policy</a>.
+                </p>
+              </div>
+
               <div class="mt-4 text-center">
                 <span class="text-secondary small">Don't have an account?</span>
                 <a href="/static/pages/register.html" class="auth-footer-link text-primary text-decoration-none fw-bold ms-1">Create Account</a>
