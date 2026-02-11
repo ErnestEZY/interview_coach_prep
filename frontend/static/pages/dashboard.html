@@ -251,13 +251,13 @@
               </a>
             <button class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2 px-4 py-2 rounded-3 shadow-sm" 
                     @click="submitApplication()" v-if="!isSubmitted">
-              <i class="bi bi-send-check"></i>
-              <span class="fw-bold">Submit Application</span>
+              <i class="bi bi-cloud-arrow-up"></i>
+              <span class="fw-bold">Save Profile for Review</span>
             </button>
             <div class="btn btn-success btn-sm d-inline-flex align-items-center gap-2 px-4 py-2 rounded-3 shadow-sm disabled" 
                  v-if="isSubmitted">
               <i class="bi bi-check-circle-fill"></i>
-              <span class="fw-bold">Submitted</span>
+              <span class="fw-bold">Profile Saved</span>
             </div>
          </div>
       </div>

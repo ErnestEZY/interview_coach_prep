@@ -252,11 +252,11 @@ const app = createApp({
       const jt = this.targetJobTitle.trim();
       
       const { value: confirmed } = await Swal.fire({
-        title: 'Submit Application?',
-        text: 'By submitting, you consent to sharing your profile with our partner recruiters. This will help us find better opportunities for you.',
+        title: 'Save Profile for Review?',
+        text: 'Your resume will be securely stored in our system to provide accurate analysis and improve future mock interview questions.',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Yes, Submit',
+        confirmButtonText: 'Yes, Save It',
         cancelButtonText: 'Not Now',
         background: '#1e293b',
         color: '#f8fafc',
@@ -270,13 +270,13 @@ const app = createApp({
       const file = fileInput.files[0];
       
       if (!file) {
-        Swal.fire('Error', 'Please re-upload your resume file to submit.', 'error');
+        Swal.fire('Error', 'Please re-upload your resume file to save.', 'error');
         return;
       }
 
       Swal.fire({
-        title: 'Submitting...',
-        text: 'Saving your profile with consent.',
+        title: 'Saving Profile...',
+        text: 'Your data is being securely stored.',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading() }
       });
@@ -295,15 +295,15 @@ const app = createApp({
         localStorage.setItem('resume_submitted', 'true');
         
         Swal.fire({
-          title: 'Submitted!',
-          text: 'Your application has been successfully submitted.',
+          title: 'Profile Saved!',
+          text: 'Your resume has been successfully saved for review.',
           icon: 'success',
           timer: 2000,
           showConfirmButton: false
         });
       } catch (e) {
         console.error('Submission error:', e);
-        Swal.fire('Error', e.response?.data?.detail || 'Failed to submit application', 'error');
+        Swal.fire('Error', e.response?.data?.detail || 'Failed to save profile', 'error');
       }
     },
 
