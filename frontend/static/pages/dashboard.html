@@ -220,20 +220,7 @@
           </div>
         </div>
 
-        <div class="form-check mb-4 custom-checkbox d-flex align-items-center gap-2">
-          <input class="form-check-input cursor-pointer" type="checkbox" name="consent" value="true" id="consent" v-model="consent">
-          <label class="form-check-label text-secondary small cursor-pointer mb-0" for="consent">
-            I consent to store my resume for review. (Optional)
-          </label>
-          <div class="info-popover-wrapper">
-            <button type="button" class="info-btn btn btn-link p-0" @click="toggleInfoTooltip" aria-label="Info">
-              <i class="bi bi-info-circle"></i>
-            </button>
-            <div v-show="showInfoTooltip" class="info-tooltip-classic">
-              By checking this, your resume is securely stored in our system to provide accurate analysis and improve future mock interview questions.
-            </div>
-          </div>
-        </div>
+
 
         <div class="d-grid">
           <button type="submit" class="btn btn-primary fw-bold py-3 rounded-3 shadow-sm transition-all hover:scale-[1.02]">
@@ -262,6 +249,16 @@
                 <i class="bi bi-search"></i>
                 <span class="fw-bold">Search Job for this Role</span>
               </a>
+            <button class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2 px-4 py-2 rounded-3 shadow-sm" 
+                    @click="submitApplication()" v-if="!isSubmitted">
+              <i class="bi bi-send-check"></i>
+              <span class="fw-bold">Submit Application</span>
+            </button>
+            <div class="btn btn-success btn-sm d-inline-flex align-items-center gap-2 px-4 py-2 rounded-3 shadow-sm disabled" 
+                 v-if="isSubmitted">
+              <i class="bi bi-check-circle-fill"></i>
+              <span class="fw-bold">Submitted</span>
+            </div>
          </div>
       </div>
 

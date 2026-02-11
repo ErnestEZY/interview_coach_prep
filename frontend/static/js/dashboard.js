@@ -27,7 +27,8 @@ const app = createApp({
         achievement: ''
       },
       consent: false,
-      showInfoTooltip: false
+      showInfoTooltip: false,
+      isSubmitted: false
     };
   },
   mounted() {
@@ -168,6 +169,7 @@ const app = createApp({
           this.hasAnalyzed = true;
         }
         this.persistedFileName = localStorage.getItem('resume_filename') || '';
+        this.isSubmitted = localStorage.getItem('resume_submitted') === 'true';
         
         // If no local feedback but logged in, fetch from server
         if (!autoloadDisabled && !this.feedback && this.logged) {
@@ -246,6 +248,65 @@ const app = createApp({
       this.showInfoTooltip = !this.showInfoTooltip;
     },
 
+    async submitApplication() {
+      const jt = this.targetJobTitle.trim();
+      
+      const { value: confirmed } = await Swal.fire({
+        title: 'Submit Application?',
+        text: 'By submitting, you consent to sharing your profile with our partner recruiters. This will help us find better opportunities for you.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Submit',
+        cancelButtonText: 'Not Now',
+        background: '#1e293b',
+        color: '#f8fafc',
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#475569'
+      });
+
+      if (!confirmed) return;
+
+      const fileInput = this.$refs.fileInput;
+      const file = fileInput.files[0];
+      
+      if (!file) {
+        Swal.fire('Error', 'Please re-upload your resume file to submit.', 'error');
+        return;
+      }
+
+      Swal.fire({
+        title: 'Submitting...',
+        text: 'Saving your profile with consent.',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading() }
+      });
+
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('job_title', jt);
+      fd.append('consent', 'true');
+
+      try {
+        await axios.post('/api/resume/upload', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        this.isSubmitted = true;
+        localStorage.setItem('resume_submitted', 'true');
+        
+        Swal.fire({
+          title: 'Submitted!',
+          text: 'Your application has been successfully submitted.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (e) {
+        console.error('Submission error:', e);
+        Swal.fire('Error', e.response?.data?.detail || 'Failed to submit application', 'error');
+      }
+    },
+
     autoExpand(event) {
       const element = event.target;
       element.style.height = 'auto';
@@ -294,6 +355,8 @@ const app = createApp({
       fd.append('consent', this.consent);
 
       try {
+        this.isSubmitted = false;
+        localStorage.removeItem('resume_submitted');
         const r = await axios.post('/api/resume/upload', fd, {
           headers: {
             'Content-Type': 'multipart/form-data'
