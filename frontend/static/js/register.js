@@ -104,7 +104,7 @@ const app = createApp({
                               <i class='bi ${criteria.number ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>Contains number
                             </li>
                             <li class='${criteria.special ? 'text-success' : 'text-danger'}'>
-                              <i class='bi ${criteria.special ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>Contains special character
+                              <i class='bi ${criteria.special ? 'bi-check-circle-fill' : 'bi-x-circle-fill'} me-2'></i>Contains special character (!, @, #, $, %, ^, *, &)
                             </li>
                           </ul>
                         </div>
