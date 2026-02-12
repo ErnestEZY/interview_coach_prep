@@ -161,7 +161,7 @@
       <form class="animate-fade-in" @submit.prevent="uploadResume()">
         <div class="mb-4">
           <label for="jobTitle" class="form-label fw-bold small text-secondary">Target Job Title <span class="text-danger">*</span></label>
-          <input type="text" id="jobTitle" name="job_title" class="form-control py-2 rounded-3" placeholder="e.g. Software Engineer, Marketing Manager..." required
+          <input type="text" id="jobTitle" name="job_title" class="form-control py-2 rounded-3" placeholder="e.g. Junior Developer, Management Trainee, Intern..." required
                  maxlength="128"
                  v-model="targetJobTitle"
                @input="saveJobTitle($event.target.value)"

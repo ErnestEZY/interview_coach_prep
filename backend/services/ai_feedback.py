@@ -8,7 +8,12 @@ from .rag_engine import rag_engine
 
 def build_resume_prompt(text: str, context: str = "") -> str:
     prompt = (
-        "You are a professional resume reviewer. Analyze the following resume and provide structured feedback in strictly valid JSON format. "
+        "You are an expert career coach specializing in helping candidates launch or advance their careers, with a primary focus on fresh graduates. "
+        "Analyze the following resume and provide structured feedback in strictly valid JSON format. "
+        "Your evaluation should be inclusive of all job seekers but prioritized for the graduate journey by:\n"
+        "1. Highlighting academic projects, clubs, and volunteer work as professional strengths for those with limited experience.\n"
+        "2. Identifying transferable skills from any work experience (even if unrelated to the target job), showing how these skills apply to the new role.\n"
+        "3. Providing actionable advice for both entry-level and experienced candidates, emphasizing how to bridge gaps in professional history.\n\n"
         "Do not include any markdown formatting (like ```json). Return ONLY the JSON object.\n\n"
     )
     
