@@ -48,6 +48,91 @@ const app = createApp({
         };
     },
     methods: {
+        showProgressChart() {
+            // Filter logic:
+            // 1. Only include items that have a valid numeric readiness_score (not null, not undefined)
+            // 2. This automatically excludes "N/A" (null) scores and "Paused/In Progress" sessions (null)
+            // 3. Sort by created_at ascending so the line flows correctly over time
+            const data = this.allItems
+                .filter(it => typeof it.readiness_score === 'number')
+                .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+            if (data.length < 2) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Not Enough Data',
+                    text: 'Complete at least 2 interviews with a score to view your progress trend.',
+                    confirmButtonColor: '#0d6efd'
+                });
+                return;
+            }
+
+            const labels = data.map(it => {
+                const date = new Date(it.created_at);
+                return `${date.getDate()}/${date.getMonth() + 1}`;
+            });
+            const scores = data.map(it => it.readiness_score);
+
+            Swal.fire({
+                title: 'Interview Readiness Progress',
+                html: '<canvas id="progressChart" style="width:100%; height:300px;"></canvas>',
+                width: 800,
+                showCloseButton: true,
+                showConfirmButton: false,
+                didOpen: () => {
+                    const ctx = document.getElementById('progressChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Readiness Score',
+                                data: scores,
+                                borderColor: '#0d6efd',
+                                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                                tension: 0.3,
+                                fill: true,
+                                pointRadius: 5,
+                                pointHoverRadius: 7,
+                                spanGaps: true // Just in case, though filter handles it
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 100,
+                                    grid: {
+                                        color: 'rgba(255, 255, 255, 0.1)'
+                                    },
+                                    ticks: { color: '#adb5bd' }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: '#adb5bd' }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    callbacks: {
+                                        title: (tooltipItems) => {
+                                            const index = tooltipItems[0].dataIndex;
+                                            const item = data[index];
+                                            return this.toMalaysiaTime(item.created_at);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        },
         async setUserFromToken() {
             const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
             if (!token) return;
