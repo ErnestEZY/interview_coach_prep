@@ -1,11 +1,10 @@
 services:
-  # Single Backend Service (FastAPI serving everything)
+  # 1. Backend Service (FastAPI)
   - type: web
-    name: fyp-system
-    env: python
+    name: fyp-backend
+    env: docker
+    dockerfilePath: ./Dockerfile  # We need to create this simple Dockerfile for backend
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-10000}
     envVars:
       - key: MONGO_URI
         sync: false
@@ -27,3 +26,16 @@ services:
         sync: false
       - key: CAREERJET_API_KEY
         sync: false
+
+  # 2. Frontend Service (Nginx Reverse Proxy)
+  - type: web
+    name: fyp-frontend
+    env: docker
+    dockerfilePath: ./Dockerfile.nginx
+    plan: free
+    envVars:
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: fyp-backend
+          property: hostport

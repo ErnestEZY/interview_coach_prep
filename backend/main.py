@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.responses import HTMLResponse
 from .controllers.auth_routes import router as auth_router
 from .controllers.resume_routes import router as resume_router
@@ -15,10 +16,28 @@ from .services.utils import get_malaysia_time
 from .core.db import interviews, pending_users, client
 import os
 
-limiter = Limiter(key_func=get_remote_address)
+# Helper to get the real client IP behind Nginx/Proxy
+def get_real_ip(request: Request):
+    # Check for standard proxy headers (X-Forwarded-For)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        # The first IP in the list is the original client
+        return forwarded.split(",")[0].strip()
+    
+    # Check for X-Real-IP (another common proxy header)
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip
+        
+    # Fallback to direct connection IP (for local dev without Nginx)
+    # This ensures it works even if you run `uvicorn` directly
+    return request.client.host if request.client else "127.0.0.1"
+
+limiter = Limiter(key_func=get_real_ip)
 app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

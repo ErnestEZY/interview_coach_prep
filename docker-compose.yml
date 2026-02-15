@@ -17,6 +17,8 @@ services:
       dockerfile: Dockerfile.nginx
     ports:
       - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html # Hot-reload frontend files
     depends_on:
       - backend
     restart: always
