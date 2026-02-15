@@ -61,8 +61,16 @@ const app = createApp({
                 Swal.fire({
                     icon: 'info',
                     title: 'Not Enough Data',
-                    text: 'Complete at least 2 interviews with a score to view your progress trend.',
-                    confirmButtonColor: '#0d6efd'
+                    html: `
+                        <p class="text-secondary mb-4">Complete at least <strong>2 full interview sessions</strong> to unlock your progress analysis chart.</p>
+                        <div class="d-grid gap-2 col-8 mx-auto">
+                            <a href="/static/pages/interview.html" class="btn btn-primary">
+                                <i class="bi bi-play-circle me-2"></i>Start Mock Interview
+                            </a>
+                        </div>
+                    `,
+                    showConfirmButton: false,
+                    showCloseButton: true
                 });
                 return;
             }
@@ -73,9 +81,40 @@ const app = createApp({
             });
             const scores = data.map(it => it.readiness_score);
 
+            // Calculate Trend (Latest Score vs Previous Score)
+            const latestScore = scores[scores.length - 1];
+            const previousScore = scores[scores.length - 2];
+            const diff = latestScore - previousScore;
+            
+            let trendHtml = '';
+            if (diff > 0) {
+                trendHtml = `<div class="mt-3 text-center text-muted" style="font-size: 1rem;">
+                    <i class="bi bi-graph-up-arrow me-2 text-success"></i>You improved by <span class="text-success fw-bold">+${diff}</span> points since your last session!
+                </div>`;
+            } else if (diff < 0) {
+                trendHtml = `<div class="mt-3 text-center text-muted" style="font-size: 1rem;">
+                    <i class="bi bi-graph-down-arrow me-2 text-danger"></i>Score dropped by <span class="text-danger fw-bold">${diff}</span> points. Keep practicing!
+                </div>`;
+            } else {
+                trendHtml = `<div class="mt-3 text-center text-muted" style="font-size: 1rem;">
+                    <i class="bi bi-dash-lg me-2 text-secondary"></i>Your score remained steady at <span class="text-dark fw-bold">${latestScore}</span>.
+                </div>`;
+            }
+
+            // Dynamic Point Colors based on score
+            const pointColors = scores.map(s => {
+                if (s >= 75) return '#198754'; // Success Green
+                if (s >= 50) return '#ffc107'; // Warning Yellow
+                return '#dc3545'; // Danger Red
+            });
+
             Swal.fire({
                 title: 'Interview Readiness Progress',
-                html: '<canvas id="progressChart" style="width:100%; height:300px;"></canvas>',
+                // Wrap canvas in a relative container with fixed height to prevent Chart.js from expanding indefinitely
+                html: `<div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="progressChart"></canvas>
+                       </div>
+                       ${trendHtml}`,
                 width: 800,
                 showCloseButton: true,
                 showConfirmButton: false,
@@ -92,9 +131,11 @@ const app = createApp({
                                 backgroundColor: 'rgba(13, 110, 253, 0.1)',
                                 tension: 0.3,
                                 fill: true,
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                                spanGaps: true // Just in case, though filter handles it
+                                pointRadius: 6,
+                                pointHoverRadius: 8,
+                                pointBackgroundColor: pointColors,
+                                pointBorderColor: '#fff',
+                                spanGaps: true
                             }]
                         },
                         options: {
@@ -105,13 +146,13 @@ const app = createApp({
                                     beginAtZero: true,
                                     max: 100,
                                     grid: {
-                                        color: 'rgba(255, 255, 255, 0.1)'
+                                        color: 'rgba(0, 0, 0, 0.05)' // Light grey for white bg
                                     },
-                                    ticks: { color: '#adb5bd' }
+                                    ticks: { color: '#6c757d' } // Darker grey for white bg
                                 },
                                 x: {
                                     grid: { display: false },
-                                    ticks: { color: '#adb5bd' }
+                                    ticks: { color: '#6c757d' } // Darker grey for white bg
                                 }
                             },
                             plugins: {
@@ -124,11 +165,65 @@ const app = createApp({
                                             const index = tooltipItems[0].dataIndex;
                                             const item = data[index];
                                             return this.toMalaysiaTime(item.created_at);
+                                        },
+                                        label: (context) => {
+                                            let label = context.dataset.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            if (context.parsed.y !== null) {
+                                                label += context.parsed.y;
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                },
+                                annotation: {
+                                    annotations: {
+                                        line1: {
+                                            type: 'line',
+                                            yMin: 70,
+                                            yMax: 70,
+                                            borderColor: 'rgba(25, 135, 84, 0.5)', // Transparent Green
+                                            borderWidth: 2,
+                                            borderDash: [5, 5],
+                                            label: {
+                                                content: 'Target Goal (70)',
+                                                enabled: true,
+                                                position: 'end',
+                                                backgroundColor: 'rgba(25, 135, 84, 0.8)',
+                                                color: 'white',
+                                                font: { size: 10 }
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
+                        },
+                        plugins: [{
+                            id: 'customAnnotation',
+                            beforeDraw: (chart) => {
+                                const { ctx, chartArea: { top, right, bottom, left, width, height }, scales: { y } } = chart;
+                                const yVal = y.getPixelForValue(70);
+                                
+                                if (yVal >= top && yVal <= bottom) {
+                                    ctx.save();
+                                    ctx.beginPath();
+                                    ctx.strokeStyle = 'rgba(25, 135, 84, 0.6)'; // Dashed Green Line
+                                    ctx.lineWidth = 2;
+                                    ctx.setLineDash([5, 5]);
+                                    ctx.moveTo(left, yVal);
+                                    ctx.lineTo(right, yVal);
+                                    ctx.stroke();
+                                    
+                                    // Label
+                                    ctx.fillStyle = 'rgba(25, 135, 84, 1)';
+                                    ctx.font = '10px sans-serif';
+                                    ctx.fillText('Target Goal (70)', right - 80, yVal - 5);
+                                    ctx.restore();
+                                }
+                            }
+                        }]
                     });
                 }
             });
