@@ -111,11 +111,11 @@ const app = createApp({
             Swal.fire({
                 title: 'Interview Readiness Progress',
                 // Wrap canvas in a relative container with fixed height to prevent Chart.js from expanding indefinitely
-                html: `<div style="position: relative; height: 300px; width: 100%;">
+                html: `<div style="position: relative; height: 350px; width: 100%;">
                         <canvas id="progressChart"></canvas>
                        </div>
                        ${trendHtml}`,
-                width: 800,
+                width: '600px', // Custom width for slightly smaller modal
                 showCloseButton: true,
                 showConfirmButton: false,
                 didOpen: () => {
