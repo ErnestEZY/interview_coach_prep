@@ -1,9 +1,9 @@
 services:
-  # 1. Backend Service (FastAPI)
+  # Single Unified Service (Nginx + FastAPI)
   - type: web
-    name: fyp-backend
+    name: interview_coach_prep
     env: docker
-    dockerfilePath: ./Dockerfile  # We need to create this simple Dockerfile for backend
+    dockerfilePath: ./Dockerfile
     plan: free
     envVars:
       - key: MONGO_URI
@@ -26,16 +26,3 @@ services:
         sync: false
       - key: CAREERJET_API_KEY
         sync: false
-
-  # 2. Frontend Service (Nginx Reverse Proxy)
-  - type: web
-    name: fyp-frontend
-    env: docker
-    dockerfilePath: ./Dockerfile.nginx
-    plan: free
-    envVars:
-      - key: BACKEND_URL
-        fromService:
-          type: web
-          name: fyp-backend
-          property: hostport
