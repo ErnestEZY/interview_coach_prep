@@ -133,8 +133,17 @@ if (window.axios) {
   }, function (error) {
     if (error.response && error.response.status === 401) {
       state.clearToken();
-      if (window.location.pathname !== '/' && !window.location.pathname.includes('login.html') && !window.location.pathname.includes('register.html') && !window.location.pathname.includes('cta.html')) {
-        const is_admin_page = window.location.pathname.includes('admin');
+      const currentPath = window.location.pathname;
+      const isPublicPage = 
+        currentPath === '/' || 
+        currentPath.includes('login.html') || 
+        currentPath.includes('register.html') || 
+        currentPath.includes('cta.html') || 
+        currentPath.includes('reset_password.html') || 
+        currentPath.includes('forgot_password.html');
+
+      if (!isPublicPage) {
+        const is_admin_page = currentPath.includes('admin');
         window.location.href = is_admin_page ? '/static/pages/admin.html' : '/static/pages/login.html';
       }
     }
