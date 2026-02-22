@@ -265,11 +265,14 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
         base_url = "https://interview-coach-prep.onrender.com"
     else:
         # Local development fallback
-        scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
-        host = request.headers.get("Host", request.url.netloc)
+        # Use request.base_url to get the full scheme://host
+        # But we need to handle forwarded headers correctly
+        scheme = request.headers.get("X-Forwarded-Proto", "http")
+        host = request.headers.get("Host", "localhost:8000")
         base_url = f"{scheme}://{host}"
     
     # Construct the reset link
+    # Note: We now serve reset_password.html directly from the static directory
     reset_link = f"{base_url}/static/pages/reset_password.html?token={token}"
     
     # Send email
