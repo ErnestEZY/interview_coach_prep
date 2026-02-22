@@ -261,7 +261,11 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     # Determine base URL dynamically or use production override
     # If running on Render (production), we prefer the explicit production URL
     # to ensure cross-device links (e.g. laptop request -> mobile click) work correctly.
-    if os.getenv("RENDER") or os.getenv("production"):
+    if os.getenv("RENDER_EXTERNAL_URL"):
+        # Render provides this environment variable automatically for Web Services
+        base_url = os.getenv("RENDER_EXTERNAL_URL")
+    elif os.getenv("RENDER") or os.getenv("production"):
+        # Fallback if RENDER_EXTERNAL_URL is missing but we know we are in prod
         base_url = "https://interview-coach-prep.onrender.com"
     else:
         # Local development fallback
