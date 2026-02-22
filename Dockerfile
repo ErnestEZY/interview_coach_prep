@@ -4,8 +4,8 @@ FROM python:3.9-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including Nginx
-RUN apt-get update && apt-get install -y nginx && \
+# Install system dependencies including Nginx and curl
+RUN apt-get update && apt-get install -y nginx curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
