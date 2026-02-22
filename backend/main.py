@@ -41,8 +41,17 @@ app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    # In production, we should list the exact frontend domains
+    # But for now, we use a wildcard but enable credentials carefully
+    allow_origins=[
+        "http://localhost",
+        "http://localhost:8000",
+        "https://interview-coach-prep.onrender.com",
+        "https://fyp-frontend.onrender.com",
+        # Allow any other Render subdomain for flexibility
+        "https://*.onrender.com"
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
