@@ -8,11 +8,49 @@ services:
     envVars:
       - key: PORT
         value: 8000
-      - key: MONGODB_URI
+      - key: MONGO_URI
         sync: false
-      - key: SECRET_KEY
+      - key: DB_NAME
+        value: interview_coach
+      - key: JWT_SECRET
         sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: JWT_EXPIRATION_SECONDS
+        value: 7200
       - key: MISTRAL_API_KEY
+        sync: false
+      - key: RATE_LIMIT_PER_MINUTE
+        value: 60
+      - key: EMAILJS_PUBLIC_KEY
+        sync: false
+      - key: EMAILJS_SERVICE_ID
+        sync: false
+      - key: EMAILJS_TEMPLATE_ID
+        sync: false
+      - key: ADMIN_EMAILJS_PUBLIC_KEY
+        sync: false
+      - key: ADMIN_EMAILJS_SERVICE_ID
+        sync: false
+      - key: ADMIN_EMAILJS_TEMPLATE_ID
+        sync: false
+      - key: ADMIN_ALERT_EMAILJS_PUBLIC_KEY
+        sync: false
+      - key: ADMIN_ALERT_EMAILJS_SERVICE_ID
+        sync: false
+      - key: ADMIN_ALERT_EMAILJS_TEMPLATE_ID
+        sync: false
+      - key: FORGOT_PASSWORD_EMAILJS_PUBLIC_KEY
+        sync: false
+      - key: FORGOT_PASSWORD_EMAILJS_SERVICE_ID
+        sync: false
+      - key: FORGOT_PASSWORD_EMAILJS_TEMPLATE_ID
+        sync: false
+      - key: FORGOT_PASSWORD_EMAILJS_ACCESS_TOKEN
+        sync: false
+      - key: CAREERJET_API_KEY
+        sync: false
+      - key: CAREERJET_WIDGET_ID
         sync: false
 
   # Frontend Service (Nginx Proxy)
