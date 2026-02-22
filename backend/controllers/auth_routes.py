@@ -257,9 +257,13 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     # Generate reset token
     token = await create_reset_token(email)
     
-    # Production URL for reset link
-    base_reset_url = "https://interview-coach-prep.onrender.com/static/pages/reset_password.html"
-    reset_link = f"{base_reset_url}?token={token}"
+    # Determine base URL dynamically from request headers (works for localhost & prod)
+    # If using Nginx/Render, X-Forwarded-Proto usually handles scheme (http/https)
+    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+    host = request.headers.get("Host", request.url.netloc)
+    
+    # Construct the reset link
+    reset_link = f"{scheme}://{host}/static/pages/reset_password.html?token={token}"
     
     # Send email
     success = await send_reset_password_email(email, reset_link)
