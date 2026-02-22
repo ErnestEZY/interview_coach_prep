@@ -1,28 +1,29 @@
 services:
-  # Single Unified Service (Nginx + FastAPI)
+  # Backend Service (Python/FastAPI)
   - type: web
-    name: interview_coach_prep
+    name: fyp-backend
     env: docker
     dockerfilePath: ./Dockerfile
     plan: free
     envVars:
-      - key: MONGO_URI
+      - key: PORT
+        value: 8000
+      - key: MONGODB_URI
         sync: false
-      - key: MISTRAL_API_KEY
+      - key: SECRET_KEY
         sync: false
-      - key: JWT_SECRET
-        generateValue: true
-      - key: DB_NAME
-        value: interview_coach
-      - key: JWT_ALGORITHM
-        value: HS256
-      - key: JWT_EXPIRATION_SECONDS
-        value: 2400
-      - key: EMAILJS_PUBLIC_KEY
+      - key: OPENAI_API_KEY
         sync: false
-      - key: EMAILJS_SERVICE_ID
-        sync: false
-      - key: EMAILJS_TEMPLATE_ID
-        sync: false
-      - key: CAREERJET_API_KEY
-        sync: false
+
+  # Frontend Service (Nginx Proxy)
+  - type: web
+    name: fyp-frontend
+    env: docker
+    dockerfilePath: ./Dockerfile.nginx
+    plan: free
+    envVars:
+      - key: BACKEND_URL
+        fromService:
+          type: web
+          name: fyp-backend
+          property: host
