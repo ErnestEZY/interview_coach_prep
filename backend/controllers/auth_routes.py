@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Request
+import os
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timezone, timedelta
 from bson import ObjectId
@@ -257,13 +258,19 @@ async def forgot_password(payload: ForgotPasswordRequest, request: Request):
     # Generate reset token
     token = await create_reset_token(email)
     
-    # Determine base URL dynamically from request headers (works for localhost & prod)
-    # If using Nginx/Render, X-Forwarded-Proto usually handles scheme (http/https)
-    scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
-    host = request.headers.get("Host", request.url.netloc)
+    # Determine base URL dynamically or use production override
+    # If running on Render (production), we prefer the explicit production URL
+    # to ensure cross-device links (e.g. laptop request -> mobile click) work correctly.
+    if os.getenv("RENDER") or os.getenv("production"):
+        base_url = "https://interview-coach-prep.onrender.com"
+    else:
+        # Local development fallback
+        scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
+        host = request.headers.get("Host", request.url.netloc)
+        base_url = f"{scheme}://{host}"
     
     # Construct the reset link
-    reset_link = f"{scheme}://{host}/static/pages/reset_password.html?token={token}"
+    reset_link = f"{base_url}/static/pages/reset_password.html?token={token}"
     
     # Send email
     success = await send_reset_password_email(email, reset_link)
