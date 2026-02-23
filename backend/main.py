@@ -13,7 +13,7 @@ from .controllers.admin_routes import router as admin_router
 from .controllers.job_routes import router as job_router
 from .services.rag_engine import rag_engine
 from .services.utils import get_malaysia_time
-from .core.db import interviews, pending_users, client
+from .core.db import interviews, pending_users, reset_tokens, client
 import os
 
 # Helper to get the real client IP behind Nginx/Proxy
@@ -78,6 +78,12 @@ async def startup():
         await pending_users.create_index("created_at", expireAfterSeconds=900)
     except Exception as e:
         print(f"Error creating TTL index for pending_users: {e}")
+
+    # Create TTL index for reset_tokens (expires at the specific time in expires_at)
+    try:
+        await reset_tokens.create_index("expires_at", expireAfterSeconds=0)
+    except Exception as e:
+        print(f"Error creating TTL index for reset_tokens: {e}")
 
     # Initialize RAG Engine during startup
     rag_engine.initialize()
