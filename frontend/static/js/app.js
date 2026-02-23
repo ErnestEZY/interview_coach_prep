@@ -365,7 +365,8 @@ Object.assign(window.icp, {
               !window.location.pathname.includes('login.html') && 
               !window.location.pathname.includes('register.html') &&
               !window.location.pathname.includes('reset_password.html') &&
-              !window.location.pathname.includes('forgot_password.html')) {
+              !window.location.pathname.includes('forgot_password.html') &&
+              !window.location.pathname.includes('cta.html')) {
             window.location.href = "/";
           }
         } else {
