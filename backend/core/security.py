@@ -60,7 +60,7 @@ async def create_reset_token(email: str) -> str:
     """
     token = secrets.token_urlsafe(16) # Shorter than JWT
     now = get_malaysia_time()
-    expire = now + timedelta(minutes=20)
+    expire = now + timedelta(minutes=60)
     
     # Store in database
     await reset_tokens.update_one(
