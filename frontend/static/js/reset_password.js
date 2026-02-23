@@ -1,9 +1,5 @@
 const { createApp } = Vue;
 
-console.log('reset_password.js loaded');
-console.log('Vue available:', !!Vue);
-console.log('window.icp available:', !!window.icp);
-
 try {
     const app = createApp({
         data() {

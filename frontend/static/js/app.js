@@ -374,12 +374,11 @@ Object.assign(window.icp, {
             const isSafe = currentPath === '/' || safePaths.some(p => currentPath.includes(p));
             
             if (!isSafe) {
-              console.log('Redirecting to home from protected page:', currentPath);
-              window.location.href = "/";
-            }
-          } catch (e) {
-            console.error('Redirect logic error:', e);
-          }
+               window.location.href = "/";
+             }
+           } catch (e) {
+             // Silent fail for redirect logic
+           }
         } else {
           localStorage.setItem('startup_id', j.startup_id);
         }
