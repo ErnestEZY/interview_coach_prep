@@ -361,16 +361,15 @@ Object.assign(window.icp, {
           localStorage.setItem('startup_id', j.startup_id);
           window.dispatchEvent(new CustomEvent("auth:changed"));
           // Force redirect to home if they were on a protected page
-          /* 
           if (window.location.pathname !== '/' && 
               !window.location.pathname.includes('login.html') && 
               !window.location.pathname.includes('register.html') &&
               !window.location.pathname.includes('reset_password.html') &&
               !window.location.pathname.includes('forgot_password.html') &&
               !window.location.pathname.includes('cta.html')) {
+            console.log('Redirecting to home from protected page:', window.location.pathname);
             window.location.href = "/";
           }
-          */
         } else {
           localStorage.setItem('startup_id', j.startup_id);
         }
