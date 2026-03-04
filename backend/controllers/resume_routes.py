@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 from bson import ObjectId
 import os
 import base64
+import httpx
 from ..core.db import resumes, users, fs
 from ..models.schemas import ResumeFeedback, ManualProfileIn
 from ..core.security import get_current_user
@@ -158,8 +159,47 @@ async def manual_upload_profile(
     
     # We DO NOT store this in the database as per user request
     # We also DO NOT update user document's has_analyzed status permanently
-    
+    # This is purely for the frontend to display and for the session to use.
     return {"feedback": feedback, "job_title": final_job_title}
+
+@router.post("/builder/proxy")
+async def builder_proxy(
+    api_key: str = Form(...),
+    endpoint: str = Form("resume"),
+    current=Depends(get_current_user),
+    _: None = Depends(rate_limit),
+):
+    """
+    Proxy requests to Reactive Resume API to bypass browser CORS issues.
+    This allows the frontend to talk to the builder service securely.
+    """
+    # Try api sub-domain if the main one rejects non-HTML requests
+    base_api = "https://api.rxresu.me"
+    target_url = f"{base_api}/{endpoint.lstrip('/')}"
+    
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "x-api-key": api_key,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": "ICP-Backend-Proxy/1.0"
+    }
+    
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        try:
+            # First try the API subdomain
+            response = await client.get(target_url, headers=headers, timeout=30.0)
+            
+            # If that fails with 404, fallback to the main domain /api
+            if response.status_code == 404:
+                fallback_url = f"https://rxresu.me/api/{endpoint.lstrip('/')}"
+                response = await client.get(fallback_url, headers=headers, timeout=30.0)
+
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=f"Reactive Resume API Error: {e.response.text}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Proxy Error: {str(e)}")
 
 @router.get("/my")
 async def my_resumes(current=Depends(get_current_user)):

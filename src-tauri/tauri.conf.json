@@ -1,7 +1,7 @@
 {
   "productName": "Interview Coach Prep",
   "version": "0.1.0",
-  "identifier": "com.icp.app",
+  "identifier": "com.icp.dev",
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",

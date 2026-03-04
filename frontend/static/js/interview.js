@@ -600,9 +600,11 @@ const app = createApp({
                             this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
                         })
                         .catch(() => {
-                            this.transcript.push({ role: 'ai', content: 'Session ended early. No score generated.' });
+                            const endMsg = 'Session ended early. No score generated.';
+                            this.transcript.push({ role: 'ai', content: endMsg });
                             this.readinessScore = null;
-                            this.feedbackExplanation = 'Session ended early. No score generated.';
+                            this.feedbackExplanation = endMsg;
+                            if (this.speaker) this.speak(endMsg);
                             this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
                         })
                         .finally(() => {
@@ -860,41 +862,35 @@ const app = createApp({
             }
         },
 
-        speak(text) {
+        async speak(text) {
             if (!this.speaker || !text) return;
-            
-            // Cancel any current speech
+
+            // Ensure the browser's voice list is loaded before speaking.
+            await this.ensureVoicesReady();
+
             window.speechSynthesis.cancel();
-            
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
-            
-            // Use stable preselected voices
-            const voices = window.speechSynthesis.getVoices() || [];
-            const resolveById = (id) => voices.find(v => v.voiceURI === id || v.name === id);
-            
-            // Re-init voices if needed to ensure we have the latest selection
-            if (!this.selectedFemaleVoiceId || !this.selectedMaleVoiceId) {
-                this.initVoices();
+
+            const voices = window.speechSynthesis.getVoices();
+            const targetId = (this.voiceGender === 'male') ? this.selectedMaleVoiceId : this.selectedFemaleVoiceId;
+            const voice = voices.find(v => v.voiceURI === targetId || v.name === targetId);
+
+            if (voice) {
+                utterance.voice = voice;
+            } else {
+                const fallbackVoice = this.selectPreferredVoice(voices, this.voiceGender);
+                if (fallbackVoice) utterance.voice = fallbackVoice;
             }
 
-            const targetId = (this.voiceGender === 'male') ? this.selectedMaleVoiceId : this.selectedFemaleVoiceId;
-            let v = targetId ? resolveById(targetId) : null;
-            
-            if (v) {
-                utterance.voice = v;
-            } else {
-                // Last resort fallback based on gender if voice ID lookup fails
-                const preferred = this.selectPreferredVoice(voices, this.voiceGender);
-                if (preferred) utterance.voice = preferred;
-                utterance.pitch = this.voiceGender === 'male' ? 0.8 : 1.2;
-            }
-            
             this.speaking = true;
             utterance.onend = () => {
                 this.speaking = false;
             };
-            
+            utterance.onerror = () => {
+                this.speaking = false;
+            };
+
             window.speechSynthesis.speak(utterance);
         },
         

@@ -368,6 +368,7 @@ Object.assign(window.icp, {
               'register.html', 
               'reset_password.html', 
               'forgot_password.html', 
+              'resume_builder.html',
               'cta.html'
             ];
             
@@ -400,4 +401,33 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", hideLoader);
 } else {
   hideLoader();
+}
+
+// Offline/Online Detection
+const showOfflineToast = () => {
+  const toast = document.createElement('div');
+  toast.id = 'offline-toast';
+  toast.className = 'offline-toast';
+  toast.innerText = 'No internet connection. Please check your network.';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('visible'), 10);
+};
+
+const hideOfflineToast = () => {
+  const toast = document.getElementById('offline-toast');
+  if (toast) {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300);
+  }
+};
+
+window.addEventListener('offline', showOfflineToast);
+window.addEventListener('online', () => {
+  hideOfflineToast();
+  // You might want to reload or re-fetch data here
+});
+
+// Initial check
+if (!navigator.onLine) {
+  showOfflineToast();
 }

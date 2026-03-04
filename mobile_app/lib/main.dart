@@ -10,6 +10,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:convert';
+import 'offline_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isMobile =
         Theme.of(context).platform == TargetPlatform.android ||
-        Theme.of(context).platform == TargetPlatform.iOS;
+            Theme.of(context).platform == TargetPlatform.iOS;
 
     return MaterialApp(
       title: 'Interview Coach Prep',
@@ -100,6 +101,7 @@ class WebViewPage extends StatefulWidget {
 class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController _controller;
   bool _isLoading = true;
+  bool _isOffline = false;
   final FlutterTts _flutterTts = FlutterTts();
 
   Future<void> _requestPermissions() async {
@@ -179,6 +181,17 @@ Page resource error:
   errorType: ${error.errorType}
   isForMainFrame: ${error.isForMainFrame}
           ''');
+            // On Android, a network error is often of type "hostLookup"
+            // On iOS, it could be different. We'll check for common network-related errors.
+            if ((error.isForMainFrame ?? false) &&
+                (error.errorType == WebResourceErrorType.hostLookup ||
+                    error.errorType == WebResourceErrorType.connect ||
+                    error.errorType == WebResourceErrorType.timeout)) {
+              setState(() {
+                _isOffline = true;
+                _isLoading = false; // Stop loading indicator
+              });
+            }
           },
           onNavigationRequest: (NavigationRequest request) {
             return NavigationDecision.navigate;
@@ -249,13 +262,13 @@ Page resource error:
                     selectedVoice = enVoices.firstWhere(
                       (v) =>
                           v['name'].toString().toLowerCase().contains(
-                            'female',
-                          ) ||
+                                'female',
+                              ) ||
                           v['name'].toString().toLowerCase().contains('sfg') ||
                           v['name'].toString().toLowerCase().contains('zira') ||
                           v['name'].toString().toLowerCase().contains(
-                            'samantha',
-                          ),
+                                'samantha',
+                              ),
                       orElse: () => null,
                     );
                   }
@@ -353,8 +366,21 @@ Page resource error:
         body: SafeArea(
           child: Stack(
             children: [
+              // We keep the WebView in the widget tree to retain its state.
+              // It will be covered by the OfflinePage when offline.
               WebViewWidget(controller: _controller),
-              if (_isLoading) const Center(child: CircularProgressIndicator()),
+              if (_isLoading && !_isOffline)
+                const Center(child: CircularProgressIndicator()),
+              if (_isOffline)
+                OfflinePage(
+                  onRetry: () {
+                    setState(() {
+                      _isOffline = false;
+                      _isLoading = true;
+                    });
+                    _controller.reload();
+                  },
+                ),
             ],
           ),
         ),
