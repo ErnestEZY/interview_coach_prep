@@ -71,14 +71,25 @@ const app = createApp({
                 }
 
             } catch (error) {
+                console.error('Login Error details:', error);
                 let msg = 'Invalid credentials';
                 let showVerifyLink = false;
                 
-                if (error.response && error.response.data) {
-                    msg = error.response.data.detail || msg;
+                if (error.response) {
+                    // Server responded with a status code outside the 2xx range
+                    msg = (error.response.data && error.response.data.detail) || msg;
                     if (msg.toLowerCase().includes('verify your email')) {
                         showVerifyLink = true;
                     }
+                } else if (error.request) {
+                    // The request was made but no response was received (CORS/Network error)
+                    msg = 'Network error: Cannot reach the server. Please check your internet connection or if the backend is down.';
+                    if (window.icp.state.isTauri) {
+                      msg += ' (Tauri CORS check failed?)';
+                    }
+                } else {
+                    // Something happened in setting up the request that triggered an Error
+                    msg = error.message;
                 }
 
                 if (showVerifyLink) {

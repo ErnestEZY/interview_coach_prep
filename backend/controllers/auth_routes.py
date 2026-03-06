@@ -152,6 +152,11 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found")
     
     if not verify_password(form_data.password, user["password_hash"]):
+        # Debug login failure
+        print(f"[AUTH DEBUG] Login failure for {username}")
+        print(f"  - Password provided: {form_data.password[:3]}...")
+        print(f"  - Hash in DB: {user['password_hash'][:20]}...")
+        
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
     
     # Check if user is verified

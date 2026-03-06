@@ -21,9 +21,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMobile =
-        Theme.of(context).platform == TargetPlatform.android ||
-            Theme.of(context).platform == TargetPlatform.iOS;
+    final bool isMobile = defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
 
     return MaterialApp(
       title: 'Interview Coach Prep',
@@ -100,6 +99,7 @@ class WebViewPage extends StatefulWidget {
 
 class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController _controller;
+  final String _appUrl = 'https://interview-coach-prep.onrender.com/';
   bool _isLoading = true;
   bool _isOffline = false;
   final FlutterTts _flutterTts = FlutterTts();
@@ -313,7 +313,7 @@ Page resource error:
           }
         },
       )
-      ..loadRequest(Uri.parse('https://interview-coach-prep.onrender.com/'));
+      ..loadRequest(Uri.parse(_appUrl));
 
     // #docregion platform_features
     if (controller.platform is AndroidWebViewController) {
@@ -351,24 +351,10 @@ Page resource error:
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) async {
+      onPopInvoked: (bool didPop) async {
         if (didPop) return;
-
         if (await _controller.canGoBack()) {
           await _controller.goBack();
-        } else {
-          // If the WebView cannot go back, we allow the app to pop/exit
-          if (context.mounted) {
-            // We set canPop to true temporarily or manually pop
-            // Since we are in a PopScope with canPop: false, we need to handle the exit
-            final NavigatorState navigator = Navigator.of(context);
-            if (navigator.canPop()) {
-              navigator.pop();
-            } else {
-              // If there's no more routes to pop, it's the home screen,
-              // we can close the app or just do nothing (standard behavior)
-            }
-          }
         }
       },
       child: Scaffold(
@@ -390,7 +376,7 @@ Page resource error:
                       _isOffline = false;
                       _isLoading = true;
                     });
-                    _controller.reload();
+                    _controller.loadRequest(Uri.parse(_appUrl));
                   },
                 ),
             ],

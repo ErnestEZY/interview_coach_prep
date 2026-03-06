@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 from mistralai import Mistral
 from ..core.config import MISTRAL_API_KEY
+from .cache_manager import memoize
 
 SYSTEM_PROMPT = (
     "You are a professional interviewer. Use plain text only. No bold, no emojis. "
@@ -49,6 +50,7 @@ SYSTEM_PROMPT = (
     "[FINISH]"
 )
 
+@memoize(expire=1800) # Cache for 30 minutes
 def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_feedback: Dict[str, Any] = None, questions_limit: int = 10, difficulty: str = "Beginner", current_asked_count: int = 0, force_end: bool = False) -> str:
     if not MISTRAL_API_KEY:
         if not history:

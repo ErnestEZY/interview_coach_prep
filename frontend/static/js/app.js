@@ -41,22 +41,12 @@ const state = {
     const override = localStorage.getItem('ICP_API_URL');
     if (override) return override;
 
-    const prodUrl = 'https://interview-coach-prep.onrender.com';
-    
-    // In Tauri dev mode (running on localhost), we might want local backend.
-    // However, to ensure "it works like production", we'll default to production
-    // unless the user has specifically enabled "Local Mode" or a local backend is detected
-    // and they are in a dev environment.
-    
-    const isDev = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    // If we're in dev mode AND the user has set a flag to use local, or we want to be helpful:
-    if (isDev && isLocalHost && localStorage.getItem('ICP_LOCAL_MODE') === 'true') {
-      return 'http://127.0.0.1:5000';
+    // Check if user has explicitly enabled "Local Mode" via debug helper
+    if (localStorage.getItem('ICP_LOCAL_MODE') === 'true') {
+      return 'http://127.0.0.1:8000'; // Default FastAPI port
     }
-    
-    // Default to production so it "just works" with real data
+
+    const prodUrl = 'https://interview-coach-prep.onrender.com';
     return prodUrl;
   },
   
@@ -112,7 +102,8 @@ if (state.token === "undefined" || state.token === "null") {
 if (window.axios) {
   // Request Interceptor
   axios.interceptors.request.use(function (config) {
-    if (state.token) {
+    // Only add token if it exists and we're NOT hitting the login endpoint
+    if (state.token && !config.url.includes('/api/auth/login')) {
       config.headers['Authorization'] = 'Bearer ' + state.token;
     }
     
@@ -189,7 +180,7 @@ function apiUrl(path) {
 window.icp_debug = {
   useLocal: () => {
     localStorage.setItem('ICP_LOCAL_MODE', 'true');
-    console.log("Local mode enabled. Reloading...");
+    console.log("Local mode enabled. API: http://127.0.0.1:8000. Reloading...");
     location.reload();
   },
   useProd: () => {
@@ -438,12 +429,59 @@ const showOfflineOverlay = () => {
   const retryBtn = document.getElementById('offline-retry-btn');
   if (retryBtn) {
     retryBtn.addEventListener('click', () => {
-      if (navigator.onLine) {
-        hideOfflineOverlay();
-        window.location.reload();
-      }
+      // Show loading state on button
+      retryBtn.disabled = true;
+      retryBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Retrying...';
+      
+      // Attempt reload regardless of navigator.onLine (more reliable)
+      window.location.reload();
     });
   }
+};
+
+const setupTauriNavigation = () => {
+  if (!state.isTauri) return;
+  if (document.getElementById('tauri-nav-bar')) return;
+  
+  const navBar = document.createElement('div');
+  navBar.id = 'tauri-nav-bar';
+  navBar.className = 'tauri-nav-bar';
+  navBar.innerHTML = `
+    <div class="tauri-nav-controls">
+      <button id="tauri-back-btn" class="tauri-nav-btn" title="Back">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+        </svg>
+      </button>
+      <button id="tauri-forward-btn" class="tauri-nav-btn" title="Forward">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+        </svg>
+      </button>
+      <button id="tauri-reload-btn" class="tauri-nav-btn" title="Reload">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+          <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658a.25.25 0 0 1-.41-.192z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="tauri-nav-title">${document.title}</div>
+  `;
+  
+  // Prepend to body so it stays at the top
+  document.body.prepend(navBar);
+  
+  // Event listeners
+  document.getElementById('tauri-back-btn').addEventListener('click', () => window.history.back());
+  document.getElementById('tauri-forward-btn').addEventListener('click', () => window.history.forward());
+  document.getElementById('tauri-reload-btn').addEventListener('click', () => window.location.reload());
+  
+  // Update title dynamically
+  const observer = new MutationObserver(() => {
+    const titleEl = document.querySelector('.tauri-nav-title');
+    if (titleEl) titleEl.innerText = document.title;
+  });
+  observer.observe(document.querySelector('title'), { childList: true });
 };
 
 const hideOfflineOverlay = () => {
@@ -462,4 +500,11 @@ window.addEventListener('online', () => {
 if (!navigator.onLine) {
   showOfflineToast();
   showOfflineOverlay();
+}
+
+// Ensure Tauri navigation is setup after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupTauriNavigation);
+} else {
+  setupTauriNavigation();
 }

@@ -23,18 +23,29 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         password_bytes = plain_password.encode('utf-8')
         hashed_bytes = hashed_password.encode('utf-8')
         
-        # Try direct verification first (for existing hashes)
+        # Try direct verification first (for standard bcrypt hashes)
         try:
             if bcrypt.checkpw(password_bytes, hashed_bytes):
                 return True
-        except ValueError:
-            # This might happen if we try to check a hash that was created with pre-hashing
+        except Exception:
             pass
             
-        # Try verification with SHA256 pre-hash
-        pre_hashed = hashlib.sha256(password_bytes).hexdigest().encode('utf-8')
-        return bcrypt.checkpw(pre_hashed, hashed_bytes)
-    except Exception:
+        # Try verification with SHA256 pre-hash (our current standard)
+        try:
+            pre_hashed = hashlib.sha256(password_bytes).hexdigest().encode('utf-8')
+            if bcrypt.checkpw(pre_hashed, hashed_bytes):
+                return True
+        except Exception:
+            pass
+
+        # Fallback for plain text (ONLY for debugging/initial setup if needed)
+        # In production, this should NEVER match.
+        if plain_password == hashed_password:
+            return True
+
+        return False
+    except Exception as e:
+        print(f"[SECURITY ERROR] verify_password failed: {e}")
         return False
 
 def hash_password(password: str) -> str:

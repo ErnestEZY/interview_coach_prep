@@ -39,6 +39,15 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+@app.middleware("http")
+async def log_origins(request: Request, call_next):
+    origin = request.headers.get("Origin")
+    if origin and "tauri" in origin.lower():
+        print(f"[AUTH DEBUG] Incoming Tauri request from origin: {origin}")
+        print(f"  - Path: {request.url.path}")
+        print(f"  - Method: {request.method}")
+    return await call_next(request)
+
 app.add_middleware(
     CORSMiddleware,
     # In production, we should list the exact frontend domains
@@ -48,8 +57,14 @@ app.add_middleware(
         "http://localhost:8000",
         "https://interview-coach-prep.onrender.com",
         "https://fyp-frontend.onrender.com",
-        # Allow any other Render subdomain for flexibility
-        "https://*.onrender.com"
+        "https://*.onrender.com",
+        "tauri://localhost",
+        "https://tauri.localhost",
+        "http://tauri.localhost",
+        "tauri://com.icp.dev",
+        "https://tauri.com.icp.dev",
+        "tauri://*",
+        "https://tauri.*"
     ],
     allow_credentials=True,
     allow_methods=["*"],

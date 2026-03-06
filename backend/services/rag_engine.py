@@ -6,6 +6,7 @@ from llama_index.llms.mistralai import MistralAI
 from llama_index.embeddings.mistralai import MistralAIEmbedding
 from mistralai import Mistral
 from ..core.config import MISTRAL_API_KEY
+from .cache_manager import memoize
 
 class RAGEngine:
     """
@@ -80,6 +81,7 @@ class RAGEngine:
         if not self._initialized:
             self.initialize()
 
+    @memoize(expire=3600) # Cache RAG retrieval for 1 hour
     def retrieve(self, query: str, top_k: int = 3) -> List[str]:
         """
         Retrieves relevant chunks using Hybrid-style search:
