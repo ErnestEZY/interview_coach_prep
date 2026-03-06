@@ -421,13 +421,45 @@ const hideOfflineToast = () => {
   }
 };
 
+const showOfflineOverlay = () => {
+  if (document.getElementById('offline-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'offline-overlay';
+  overlay.className = 'offline-overlay';
+  overlay.innerHTML = `
+    <div class="offline-card">
+      <div class="offline-icon">📶✖</div>
+      <div class="offline-title">You are offline</div>
+      <div class="offline-desc">Please check your internet connection and try again.</div>
+      <button id="offline-retry-btn" class="btn btn-primary btn-sm mt-2">Retry</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const retryBtn = document.getElementById('offline-retry-btn');
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => {
+      if (navigator.onLine) {
+        hideOfflineOverlay();
+        window.location.reload();
+      }
+    });
+  }
+};
+
+const hideOfflineOverlay = () => {
+  const el = document.getElementById('offline-overlay');
+  if (el) el.remove();
+};
+
 window.addEventListener('offline', showOfflineToast);
 window.addEventListener('online', () => {
   hideOfflineToast();
+  hideOfflineOverlay();
   // You might want to reload or re-fetch data here
 });
 
 // Initial check
 if (!navigator.onLine) {
   showOfflineToast();
+  showOfflineOverlay();
 }

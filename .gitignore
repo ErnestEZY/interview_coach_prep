@@ -67,6 +67,12 @@ mobile_app/.flutter-plugins
 mobile_app/.flutter-plugins-dependencies
 mobile_app/.pub-cache/
 mobile_app/build/
+mobile_app/.gradle/
+mobile_app/.gradle_temp/
+mobile_app/.gradle_release/
+mobile_app/.gradle_debug/
+mobile_app/.gradle_final/
+mobile_app/android/.gradle/
 mobile_app/ios/Flutter/Generated.xcconfig
 mobile_app/ios/Flutter/flutter_export_environment.sh
 mobile_app/ios/Flutter/Flutter.podspec

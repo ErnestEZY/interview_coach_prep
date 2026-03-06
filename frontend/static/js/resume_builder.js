@@ -17,6 +17,9 @@ try {
                     { name: 'Gov-Standard', className: 'theme-gov' },
                 ],
                 currentTheme: { name: 'Classic', className: 'theme-classic' },
+                actionVerbs: [
+                    'Developed', 'Implemented', 'Designed', 'Optimized', 'Led', 'Managed', 'Created', 'Improved', 'Increased', 'Reduced', 'Analyzed', 'Engineered', 'Launched', 'Collaborated'
+                ],
                 resume: {
                     name: 'FULL NAME',
                     title: 'Professional Title',
@@ -33,15 +36,27 @@ try {
                             company: 'Tech Innovators Corp',
                             position: 'Software Engineering Intern',
                             date: 'June 2024 - August 2024',
-                            description: '• Assisted in developing reactive frontend components using Vue.js 3.\n• Optimized database queries in MongoDB, reducing latency by 15%.\n• Collaborated with senior developers to implement CI/CD pipelines.'
+                            bullets: [
+                                'Engineered and launched a key feature for a web application, resulting in a 15% increase in user engagement.',
+                                'Reduced server response time by 25% through strategic query optimization and caching.',
+                                'Collaborated with a cross-functional team of 5 to design and deploy a new microservice.'
+                            ]
                         }
                     ],
                     projects: [
-                        { name: 'Interview Coach Prep (ICP)', tech: 'FastAPI, Vue.js, MongoDB, LlamaIndex', description: 'AI-driven platform helping fresh graduates optimize resumes and practice interviews.' }
+                        {
+                            name: 'E-commerce Recommendation Engine',
+                            tech: 'Python, TensorFlow, Scikit-learn, Flask',
+                            bullets: [
+                                'Increased average order value by 15% by developing a collaborative filtering model that suggested relevant products to users.',
+                                'Improved user retention by 10% by implementing a real-time, personalized product recommendation API.'
+                            ]
+                        }
                     ],
-                    skills_tech: 'Python, JavaScript, TypeScript',
-                    skills_tools: 'Docker, AWS, Git',
-                    skills_soft: 'Leadership, Communication',
+                    skills_tech: ['Python', 'JavaScript', 'TypeScript'],
+                    skills_tools: ['Docker', 'AWS', 'Git'],
+                    skills_soft: ['Leadership', 'Communication'],
+                    skills_other: ['Agile Methodologies'],
                     certifications: [{ name: 'AWS Certified Cloud Practitioner (2024)' }],
                     languages: [{ name: 'English (Fluent)' }, { name: 'Malay (Native)' }],
                     extra_info: [
@@ -131,17 +146,40 @@ try {
             },
             addItem(type) {
                 if (type === 'education') this.resume.education.push({ school: '', degree: '', date: '', gpa: '', location: '' });
-                if (type === 'experience') this.resume.experience.push({ company: '', position: '', date: '', description: '' });
-                if (type === 'projects') this.resume.projects.push({ name: '', tech: '', description: '' });
+                if (type === 'experience') this.resume.experience.push({ company: '', position: '', date: '', bullets: [''] });
+                if (type === 'projects') this.resume.projects.push({ name: '', tech: '', bullets: [''] });
                 if (type === 'certifications') this.resume.certifications.push({ name: '' });
                 if (type === 'languages') this.resume.languages.push({ name: '' });
-                if (type === 'extra_info') this.resume.extra_info.push({ content: '' });
+                if (type === 'extra_info') {
+                    if (!Array.isArray(this.resume.extra_info)) this.resume.extra_info = [];
+                    this.resume.extra_info.push({ content: '' });
+                }
+                if (type === 'skills_tech') this.resume.skills_tech.push('');
+                if (type === 'skills_tools') this.resume.skills_tools.push('');
+                if (type === 'skills_soft') this.resume.skills_soft.push('');
+                if (type === 'skills_other') this.resume.skills_other.push('');
             },
             removeItem(type, index) {
                 this.resume[type].splice(index, 1);
             },
-            setTheme(theme) {
-                this.currentTheme = theme;
+            addBullet(type, index) {
+                if (!this.resume[type][index].bullets) {
+                    this.resume[type][index].bullets = [];
+                }
+                this.resume[type][index].bullets.push('');
+            },
+            removeBullet(type, itemIndex, bulletIndex) {
+                this.resume[type][itemIndex].bullets.splice(bulletIndex, 1);
+            },
+            addVerbToLastBullet(type, itemIndex, verb) {
+                const bullets = this.resume[type][itemIndex].bullets;
+                if (bullets.length > 0) {
+                    const lastBullet = bullets[bullets.length - 1];
+                    bullets[bullets.length - 1] = lastBullet ? `${verb} ${lastBullet}` : verb;
+                } else {
+                    this.addBullet(type, itemIndex);
+                    this.resume[type][itemIndex].bullets[0] = verb;
+                }
             },
             downloadPDF() {
                 const element = document.getElementById('resume-template');
@@ -178,6 +216,36 @@ try {
                 const mins = Math.floor(seconds / 60);
                 const secs = seconds % 60;
                 return `${mins}:${secs.toString().padStart(2, '0')}`;
+            },
+            setTheme(theme) {
+                this.currentTheme = theme;
+            },
+            addBullet(type, index) {
+                if (!this.resume[type][index].bullets) {
+                    this.resume[type][index].bullets = [];
+                }
+                this.resume[type][index].bullets.push('');
+            },
+            removeBullet(type, itemIndex, bulletIndex) {
+                this.resume[type][itemIndex].bullets.splice(bulletIndex, 1);
+            },
+            addVerbToLastBullet(type, itemIndex, verb) {
+                const bullets = this.resume[type][itemIndex].bullets;
+                if (bullets.length > 0) {
+                    const lastBullet = bullets[bullets.length - 1];
+                    bullets[bullets.length - 1] = lastBullet ? `${verb} ${lastBullet}` : verb;
+                } else {
+                    this.addBullet(type, itemIndex);
+                    this.resume[type][itemIndex].bullets[0] = verb;
+                }
+            },
+            getGuidance(bullet) {
+                if (!bullet || bullet.trim().length === 0) return '';
+                if (bullet.trim().length < 10) return 'Expand on this point for more impact.';
+                const startsWithVerb = this.actionVerbs.some(verb => bullet.trim().toLowerCase().startsWith(verb.toLowerCase()));
+                if (!startsWithVerb) return 'Start with a strong action verb (e.g., Developed, Managed).';
+                if (!/\d/.test(bullet)) return 'Quantify your achievement with numbers or data if possible.';
+                return '';
             }
         }
     });
@@ -187,4 +255,3 @@ try {
 } catch (error) {
     console.error("Critical Error during Vue initialization:", error);
 }
-

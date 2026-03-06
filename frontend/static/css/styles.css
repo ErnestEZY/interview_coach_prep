@@ -1053,6 +1053,46 @@ html {
     }
 }
 
+.icon-speaking, .icon-thinking {
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+}
+
+.icon-thinking {
+    animation-name: thinking-pulse;
+}
+
+@keyframes thinking-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.icon-speaking {
+    animation-name: speaking-pulse;
+}
+
+@keyframes speaking-pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+.robot-container i {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.robot-container .bi-robot {
+    animation: blink 4s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+    52% { opacity: 0.2; }
+    54% { opacity: 1; }
+}
+
 /* --- Kendall Theme --- */
 .theme-kendall .resume-name {
     font-family: 'Garamond', serif;
@@ -1261,6 +1301,39 @@ html {
 
 .offline-toast.visible {
   bottom: 20px; /* Slide in */
+}
+.offline-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+}
+.offline-card {
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 20px 24px;
+  text-align: center;
+  color: #fff;
+  width: min(420px, 92%);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.offline-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+.offline-title {
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.offline-desc {
+  font-size: 14px;
+  color: #b5b5b5;
+  margin-bottom: 10px;
 }
 .resume-title { font-size: 11pt; color: #555; font-weight: 500; margin-bottom: 8px; overflow-wrap: break-word; word-break: break-word; }
 .resume-contact { font-size: 9pt; color: #666; display: flex; gap: 12px; flex-wrap: wrap; }

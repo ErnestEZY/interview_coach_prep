@@ -183,14 +183,24 @@ Page resource error:
           ''');
             // On Android, a network error is often of type "hostLookup"
             // On iOS, it could be different. We'll check for common network-related errors.
-            if ((error.isForMainFrame ?? false) &&
-                (error.errorType == WebResourceErrorType.hostLookup ||
-                    error.errorType == WebResourceErrorType.connect ||
-                    error.errorType == WebResourceErrorType.timeout)) {
+            final bool isMain = error.isForMainFrame ?? false;
+            final type = error.errorType;
+            final String desc = error.description.toLowerCase();
+            final bool looksOffline = type == WebResourceErrorType.hostLookup ||
+                type == WebResourceErrorType.connect ||
+                type == WebResourceErrorType.timeout ||
+                type == WebResourceErrorType.io ||
+                type == WebResourceErrorType.unknown ||
+                desc.contains('internet disconnected') ||
+                desc.contains('net::err_internet_disconnected');
+            if (isMain && looksOffline) {
               setState(() {
                 _isOffline = true;
                 _isLoading = false; // Stop loading indicator
               });
+              // Hide Android's default error page by navigating to a blank page.
+              // Keep controller state so user can retry and reload.
+              _controller.loadRequest(Uri.parse('about:blank'));
             }
           },
           onNavigationRequest: (NavigationRequest request) {
@@ -366,9 +376,11 @@ Page resource error:
         body: SafeArea(
           child: Stack(
             children: [
-              // We keep the WebView in the widget tree to retain its state.
-              // It will be covered by the OfflinePage when offline.
-              WebViewWidget(controller: _controller),
+              // Keep WebView but hide when offline to avoid showing Android error UI.
+              Offstage(
+                offstage: _isOffline,
+                child: WebViewWidget(controller: _controller),
+              ),
               if (_isLoading && !_isOffline)
                 const Center(child: CircularProgressIndicator()),
               if (_isOffline)

@@ -249,11 +249,12 @@ async def end(session_id: str, current=Depends(get_current_user)):
         asked_count = s.get("asked_count", 0)
         
         history = [{"role": t["role"], "content": t["text"]} for t in s.get("transcript", [])]
-        # Inform the AI that the user ended the session early and ask it to explain why no score is generated
-        history.append({
-            "role": "user", 
-            "content": "[SYSTEM MESSAGE]: The user has ended the interview session early. Please explain to the user that the session is now closed. Explicitly state that because the interview was not completed, a Readiness Score cannot be generated (it will be shown as N/A). Provide some brief, encouraging words about their progress so far. Be professional and polite."
-        })
+        responded = any((t.get("role") == "user") and (t.get("text", "").strip()) for t in s.get("transcript", []))
+        if responded:
+            sys_msg = "The user has ended the interview session early. Please explain that the session is now closed. Explicitly state that because the interview was not completed, a Readiness Score cannot be generated (it will be shown as N/A). Provide brief, encouraging words about their progress so far. Be professional and polite."
+        else:
+            sys_msg = "The user ended the interview immediately without answering any question. Please explain that the session is now closed and that because no answers were provided, the Readiness Score is N/A. Give a short, constructive reminder encouraging them to try answering at least the first question next time and to restart when ready. Be professional, concise, and supportive."
+        history.append({"role": "user", "content": f"[SYSTEM MESSAGE]: {sys_msg}"})
         
         # Call AI to get the explanation message
         ai_msg = interview_reply(

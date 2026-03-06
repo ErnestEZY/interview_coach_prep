@@ -40,6 +40,7 @@ const app = createApp({
             recording: false,
             thinking: false,
             speaking: false,
+            thinking: false,
             recognition: null,
             
             // Resume/Job Context
@@ -212,6 +213,14 @@ const app = createApp({
             // webkitSpeechRecognition uses system default, but we track choice for UI consistency
         },
         async init() {
+            // --- One-time cache clearing for voice fix ---
+            if (!localStorage.getItem('voice_fix_applied_v2')) {
+                localStorage.removeItem('interview_voice_female_id');
+                localStorage.removeItem('interview_voice_male_id');
+                localStorage.setItem('voice_fix_applied_v2', 'true');
+            }
+            // --- End one-time fix ---
+
             try {
                 this.loading = true;
                 if (this.logged) {
@@ -454,40 +463,25 @@ const app = createApp({
                 const isInvalid = window.InvalidGuard ? window.InvalidGuard.isInvalid(userAnswer) : this.isLikelyGibberish(userAnswer);
                 
                 if (isInvalid) {
-                    if (window.InvalidGuard) {
-                        window.InvalidGuard.increment();
-                        const attempts = window.InvalidGuard.getAttempts();
-                        if (attempts >= 3) {
-                            await window.InvalidGuard.endSession(this);
-                            // Clear state to ensure no further processing
-                            this.submitting = false;
-                            this.thinking = false;
-                            this.sessionId = null;
-                            return;
-                        }
-                    } else {
-                        this.invalidLocalAttempts++;
-                        if (this.invalidLocalAttempts >= 3) {
-                            try {
-                                const sid = this.sessionId;
-                                if (this.interviewTimerId) clearInterval(this.interviewTimerId);
-                                await axios.post(window.icp.apiUrl(`/api/interview/${sid}/end`));
-                            } catch (_) {}
-                            const endMsg = "Session ended due to repeated invalid responses. Readiness Score: N/A.";
-                            this.transcript.push({ role: 'ai', content: endMsg });
-                            this.readinessScore = null;
-                            this.feedbackExplanation = "We received multiple responses that looked like random characters or non-words. The session is now closed. Readiness Score is N/A.";
-                            if (this.speaker) this.speak(this.feedbackExplanation);
-                            this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
-                            this.sessionId = null;
-                            this.currentQuestion = 0;
-                            try { localStorage.removeItem('interview_session_id'); } catch (_) {}
-                            this.stopCamera();
-                            return;
-                        }
+                    this.invalidLocalAttempts++;
+                    if (this.invalidLocalAttempts >= 3) {
+                        try {
+                            const sid = this.sessionId;
+                            if (this.interviewTimerId) clearInterval(this.interviewTimerId);
+                            if (sid) await axios.post(window.icp.apiUrl(`/api/interview/${sid}/end`));
+                        } catch (_) {}
+                        const endMsg = "Session ended due to repeated invalid responses. Readiness Score: N/A.";
+                        this.transcript.push({ role: 'ai', content: endMsg });
+                        this.readinessScore = null;
+                        this.feedbackExplanation = "We received multiple responses that looked like random characters or non-words. The session is now closed. Readiness Score is N/A.";
+                        if (this.speaker) this.speak(this.feedbackExplanation);
+                        this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
+                        this.resetUIState(); // Centralized reset
+                        this.submitting = false;
+                        this.thinking = false;
+                        return;
                     }
                     
-                    // Re-ask prompt without copying the previous question verbatim
                     const msg = "I didn’t quite catch that. Please answer in clear words. Try responding to the previous question in your own words.";
                     this.transcript.push({ role: 'ai', content: msg });
                     if (this.speaker) this.speak(msg);
@@ -508,18 +502,12 @@ const app = createApp({
                 if (window.InvalidGuard) window.InvalidGuard.reset(); else this.invalidLocalAttempts = 0;
                 
                 if (ended) {
-                    if (this.interviewTimerId) clearInterval(this.interviewTimerId);
-                    this.sessionId = null;
-                    try { 
-                        localStorage.removeItem('interview_session_id'); 
-                        localStorage.removeItem('interview_remaining_time');
-                    } catch (_) {}
-                    // Extract score
+                    this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
                     const match = /Interview Readiness Score:\s*(\d+)\/100/i.exec(msg);
                     this.readinessScore = match ? parseInt(match[1]) : null;
                     this.feedbackExplanation = msg.replace(/Interview Readiness Score:\s*\d+\/100/i, '').trim();
                     if (this.speaker) this.speak(this.feedbackExplanation);
-                    this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
+                    this.resetUIState(); // Centralized reset
                 } else {
                     const asked = typeof response.data.asked_count !== 'undefined' ? parseInt(response.data.asked_count) : null;
                     if (!isNaN(asked) && asked > 0) {
@@ -608,13 +596,7 @@ const app = createApp({
                             this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
                         })
                         .finally(() => {
-                            this.sessionId = null;
-                            this.currentQuestion = 0;
-                            try { 
-                                localStorage.removeItem('interview_session_id'); 
-                                localStorage.removeItem('interview_remaining_time');
-                            } catch (_) {}
-                            this.stopCamera();
+                            this.resetUIState(); // Centralized reset
                         });
                 }
             });
@@ -883,15 +865,21 @@ const app = createApp({
                 if (fallbackVoice) utterance.voice = fallbackVoice;
             }
 
-            this.speaking = true;
+            this.thinking = true;
+            const preThinkDelayMs = 250;
+            utterance.onstart = () => {
+                this.thinking = false;
+                this.speaking = true;
+            };
             utterance.onend = () => {
                 this.speaking = false;
             };
             utterance.onerror = () => {
                 this.speaking = false;
             };
-
-            window.speechSynthesis.speak(utterance);
+            setTimeout(() => {
+                window.speechSynthesis.speak(utterance);
+            }, preThinkDelayMs);
         },
         
         async ensureVoicesReady() {
@@ -940,30 +928,60 @@ const app = createApp({
                 localStorage.setItem('interview_voice_female_id', fem || '');
                 localStorage.setItem('interview_voice_male_id', male || '');
             } catch (_) {}
+
+            // --- Temporary Debug Logging ---
+            console.log("--- VOICE DEBUG START ---");
+            const allVoices = window.speechSynthesis.getVoices() || [];
+            console.log("Please expand the array below to see all available voices on your system:");
+            console.log(allVoices);
+
+            const englishVoices = allVoices.filter(v => v.lang.startsWith('en'));
+            console.log("Please expand the array below to see all available ENGLISH voices:");
+            console.log(englishVoices);
+
+            console.log("Selected Female Voice ID:", this.selectedFemaleVoiceId);
+            console.log("Selected Male Voice ID:", this.selectedMaleVoiceId);
+
+            const resolvedFemale = allVoices.find(v => v.voiceURI === this.selectedFemaleVoiceId || v.name === this.selectedFemaleVoiceId);
+            const resolvedMale = allVoices.find(v => v.voiceURI === this.selectedMaleVoiceId || v.name === this.selectedMaleVoiceId);
+
+            console.log("Resolved Female Voice Object:", resolvedFemale);
+            console.log("Resolved Male Voice Object:", resolvedMale);
+            console.log("--- VOICE DEBUG END ---");
         },
         
         selectPreferredVoice(voices, gender) {
             if (!voices || voices.length === 0) return null;
-            
-            // Try to find a high-quality Google or Microsoft voice for the specific gender
-            const patterns = gender === 'male' 
-                ? [/male/i, /david/i, /mark/i, /guy/i, /andrew/i, /brian/i] 
-                : [/female/i, /zira/i, /jessa/i, /samantha/i, /victoria/i, /hazel/i];
-            
-            // Priority 1: Google/Microsoft high quality matches
-            for (const p of patterns) {
-                const match = voices.find(v => (v.name.match(p) || v.voiceURI.match(p)) && (v.name.includes('Google') || v.name.includes('Microsoft')));
-                if (match) return match;
+
+            const isMale = gender === 'male';
+            const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+            if (englishVoices.length === 0) return null;
+
+            // --- Male Voice Selection Logic ---
+            if (isMale) {
+                // 1. Prioritize specific, high-quality male voices by name
+                const david = englishVoices.find(v => v.name.includes('David'));
+                if (david) return david;
+                const mark = englishVoices.find(v => v.name.includes('Mark'));
+                if (mark) return mark;
+
+                // 2. Fallback to any voice with "Male" in the name
+                const anyMale = englishVoices.find(v => /male/i.test(v.name));
+                if (anyMale) return anyMale;
+
+                // 3. As a last resort, find any voice that is NOT explicitly female
+                const nonFemale = englishVoices.find(v => !/female/i.test(v.name));
+                if (nonFemale) return nonFemale;
             }
-            
-            // Priority 2: Any match
-            for (const p of patterns) {
-                const match = voices.find(v => v.name.match(p) || v.voiceURI.match(p));
-                if (match) return match;
-            }
-            
-            // Priority 3: English fallback
-            return voices.find(v => v.lang.startsWith('en')) || voices[0];
+
+            // --- Female Voice Selection Logic (and fallback for Male) ---
+            const zira = englishVoices.find(v => v.name.includes('Zira'));
+            if (zira) return zira;
+            const femaleVoice = englishVoices.find(v => /female/i.test(v.name));
+            if (femaleVoice) return femaleVoice;
+
+            // --- Final Fallback ---
+            return englishVoices[0];
         },
         
         async restoreSessionIfAny() {
@@ -1029,6 +1047,30 @@ const app = createApp({
                     this.showInactivityConfirm();
                 }
             }, 4 * 60 * 1000);
+        },
+
+        resetUIState() {
+            this.sessionId = null;
+            this.currentQuestion = 0;
+            this.answer = "";
+            this.interviewTime = 1200; // Reset to default
+            this.isPaused = false;
+
+            if (this.interviewTimerId) {
+                clearInterval(this.interviewTimerId);
+                this.interviewTimerId = null;
+            }
+            if (this.inactivityTimer) {
+                clearTimeout(this.inactivityTimer);
+                this.inactivityTimer = null;
+            }
+
+            try {
+                localStorage.removeItem('interview_session_id');
+                localStorage.removeItem('interview_remaining_time');
+            } catch (_) {}
+
+            this.stopCamera();
         }
     }
 });

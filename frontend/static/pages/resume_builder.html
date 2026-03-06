@@ -112,6 +112,9 @@
                 <div class="tab-content" id="pills-tabContent">
                     <!-- Basics Tab -->
                     <div class="tab-pane fade show active" id="tab-basics" role="tabpanel" aria-labelledby="pills-basics-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Your Profile</h6>
+                        </div>
                         <div class="card mb-3 bg-dark border-secondary">
                             <div class="card-body p-3">
                                 <div class="row g-3">
@@ -206,8 +209,27 @@
                                         <input :id="'exp-date-'+index" v-model="exp.date" type="text" class="form-control" title="Enter employment period" placeholder="e.g., Jan 2022 - Present" maxlength="50">
                                     </div>
                                     <div class="col-12">
-                                        <label :for="'exp-desc-'+index" class="form-label">Description</label>
-                                        <textarea :id="'exp-desc-'+index" v-model="exp.description" class="form-control" rows="4" title="Describe your responsibilities and achievements" placeholder="Job Responsibilities & Key Achievements" maxlength="250"></textarea>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0">Key Achievements / Bullets</label>
+                                            <button @click="addBullet('experience', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                        </div>
+                                        <div v-for="(bullet, bIndex) in exp.bullets" :key="bIndex" class="mb-2">
+                                            <div class="input-group">
+                                                <textarea v-model="exp.bullets[bIndex]" class="form-control form-control-sm" rows="2" placeholder="Start with an action verb..."></textarea>
+                                                <button @click="removeBullet('experience', index, bIndex)" class="btn btn-outline-danger btn-sm" title="Remove bullet"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                            <div v-if="getGuidance(bullet)" class="form-text text-muted small ps-1">{{ getGuidance(bullet) }}</div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <label class="form-label small">Action Verb Suggestions:</label>
+                                            <div class="action-verbs-list">
+                                                <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('experience', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
+                                            </div>
+                                            <div class="border-top border-secondary border-opacity-25 mt-2"></div>
+                                            <div class="form-text text-info small ps-1 mt-1 fst-italic">
+                                                Tip: Consider describing your impact using action verbs and measurable results (e.g., Google’s XYZ format).
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -233,8 +255,27 @@
                                         <input :id="'proj-tech-'+index" v-model="proj.tech" type="text" class="form-control" title="Enter technologies used" placeholder="e.g., Vue.js, Python, MongoDB" maxlength="100">
                                     </div>
                                     <div class="col-12">
-                                        <label :for="'proj-desc-'+index" class="form-label">Description</label>
-                                        <textarea :id="'proj-desc-'+index" v-model="proj.description" class="form-control" rows="3" title="Briefly describe the project" placeholder="Project Description" maxlength="250"></textarea>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0">Description / Bullets</label>
+                                            <button @click="addBullet('projects', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                        </div>
+                                        <div v-for="(bullet, bIndex) in proj.bullets" :key="bIndex" class="mb-1">
+                                             <div class="input-group">
+                                                 <textarea v-model="proj.bullets[bIndex]" class="form-control form-control-sm" rows="2" placeholder="Describe the project or a key achievement..."></textarea>
+                                                 <button @click="removeBullet('projects', index, bIndex)" class="btn btn-outline-danger btn-sm" title="Remove bullet"><i class="bi bi-trash"></i></button>
+                                             </div>
+                                             <div v-if="getGuidance(bullet)" class="form-text text-muted small ps-1">{{ getGuidance(bullet) }}</div>
+                                         </div>
+                                         <div class="mt-1">
+                                             <label class="form-label small">Action Verb Suggestions:</label>
+                                             <div class="action-verbs-list">
+                                                 <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('projects', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
+                                             </div>
+                                             <div class="border-top border-secondary border-opacity-25 mt-2"></div>
+                                             <div class="form-text text-info small ps-1 mt-1 fst-italic">
+                                                 Tip: Consider describing your impact using action verbs and measurable results (e.g., Google’s XYZ format).
+                                             </div>
+                                         </div>
                                     </div>
                                 </div>
                             </div>
@@ -243,18 +284,44 @@
 
                     <!-- Skills Tab -->
                     <div class="tab-pane fade" id="tab-skills" role="tabpanel" aria-labelledby="pills-skills-tab">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label for="skills-tech" class="form-label">Languages/Frameworks</label>
-                                <input id="skills-tech" v-model="resume.skills_tech" type="text" class="form-control" title="Enter programming languages and frameworks" placeholder="e.g., Python, JavaScript, React" maxlength="100">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Languages & Frameworks</h6>
+                                <button @click="addItem('skills_tech')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
                             </div>
-                            <div class="col-12">
-                                <label for="skills-tools" class="form-label">Tools/Platforms</label>
-                                <input id="skills-tools" v-model="resume.skills_tools" type="text" class="form-control" title="Enter tools and platforms" placeholder="e.g., Docker, Git, AWS" maxlength="100">
+                            <div v-for="(skill, index) in resume.skills_tech" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_tech[index]" type="text" class="form-control" placeholder="e.g., Python, JavaScript, React">
+                                <button @click="removeItem('skills_tech', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
                             </div>
-                            <div class="col-12">
-                                <label for="skills-soft" class="form-label">Soft Skills</label>
-                                <input id="skills-soft" v-model="resume.skills_soft" type="text" class="form-control" title="Enter interpersonal and soft skills" placeholder="e.g., Leadership, Communication" maxlength="100">
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Tools & Platforms</h6>
+                                <button @click="addItem('skills_tools')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_tools" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_tools[index]" type="text" class="form-control" placeholder="e.g., Docker, Git, AWS">
+                                <button @click="removeItem('skills_tools', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Soft Skills</h6>
+                                <button @click="addItem('skills_soft')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_soft" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_soft[index]" type="text" class="form-control" placeholder="e.g., Leadership, Communication">
+                                <button @click="removeItem('skills_soft', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Other Related Skills</h6>
+                                <button @click="addItem('skills_other')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_other" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_other[index]" type="text" class="form-control" placeholder="e.g., Agile Methodologies">
+                                <button @click="removeItem('skills_other', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
                     </div>
@@ -350,7 +417,9 @@
                                     <span class="small">{{ exp.date }}</span>
                                 </div>
                                 <div class="item-sub">{{ exp.position }}</div>
-                                <div class="item-desc">{{ exp.description }}</div>
+                                <div class="item-desc">
+                                    <div v-for="bullet in exp.bullets">• {{ bullet }}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -364,26 +433,32 @@
                                     <span>{{ proj.name }}</span>
                                     <span v-if="proj.tech" class="small fw-normal">{{ proj.tech }}</span>
                                 </div>
-                                <div class="item-desc">{{ proj.description }}</div>
+                                <ul class="item-desc list-unstyled ps-0" v-if="proj.bullets && proj.bullets.length > 0">
+                                    <li v-for="bullet in proj.bullets">• {{ bullet }}</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
 
                     <!-- Skills -->
-                    <div v-if="resume.skills_tech || resume.skills_tools || resume.skills_soft">
+                    <div v-if="resume.skills_tech.length || resume.skills_tools.length || resume.skills_soft.length || resume.skills_other.length">
                         <div class="section-title">Skills & Expertise</div>
                         <div class="skills-grid">
-                            <div v-if="resume.skills_tech">
+                            <div v-if="resume.skills_tech.length">
                                 <div class="skill-group-title">Languages & Frameworks</div>
-                                <div class="skills-list">{{ resume.skills_tech }}</div>
+                                <div class="skills-list">{{ resume.skills_tech.join(', ') }}</div>
                             </div>
-                            <div v-if="resume.skills_tools">
+                            <div v-if="resume.skills_tools.length">
                                 <div class="skill-group-title">Tools & Platforms</div>
-                                <div class="skills-list">{{ resume.skills_tools }}</div>
+                                <div class="skills-list">{{ resume.skills_tools.join(', ') }}</div>
                             </div>
-                            <div v-if="resume.skills_soft">
+                            <div v-if="resume.skills_soft.length">
                                 <div class="skill-group-title">Soft Skills</div>
-                                <div class="skills-list">{{ resume.skills_soft }}</div>
+                                <div class="skills-list">{{ resume.skills_soft.join(', ') }}</div>
+                            </div>
+                            <div v-if="resume.skills_other.length">
+                                <div class="skill-group-title">Other Skills</div>
+                                <div class="skills-list">{{ resume.skills_other.join(', ') }}</div>
                             </div>
                         </div>
                     </div>
@@ -465,6 +540,6 @@
   </div>
   </div>
 
-  <script src="/static/js/resume_builder.js"></script>
+  <script src="/static/js/resume_builder.js?v=1.3"></script>
 </body>
 </html>

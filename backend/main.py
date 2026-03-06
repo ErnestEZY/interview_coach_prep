@@ -101,18 +101,21 @@ async def startup_id():
 async def favicon():
     return Response(status_code=204)
 
-# Catch-all to serve index.html for any unknown routes (SPA support)
+# Catch-all to serve the appropriate HTML file for any unknown routes
 @app.get("/{full_path:path}", response_class=HTMLResponse)
 async def catch_all(request: Request, full_path: str):
-    if not full_path:
-        with open("frontend/index.html", "r", encoding="utf-8") as f:
+    # Construct the full path to the requested file
+    file_path = os.path.join("frontend", full_path)
+
+    # If the requested path points to an existing file, serve it
+    if os.path.isfile(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
             return HTMLResponse(f.read())
-    
-    if full_path.startswith("api/"):
-        return Response(status_code=404)
-        
-    try:
-        with open("frontend/index.html", "r", encoding="utf-8") as f:
+
+    # Otherwise, serve the main index.html for SPA routing
+    index_path = os.path.join("frontend", "index.html")
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
             return HTMLResponse(f.read())
-    except FileNotFoundError:
-        return HTMLResponse("index.html not found", status_code=404)
+
+    return HTMLResponse("Not Found", status_code=404)
