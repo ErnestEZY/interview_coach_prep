@@ -122,6 +122,15 @@ if (window.axios) {
   axios.interceptors.response.use(function (response) {
     return response;
   }, function (error) {
+    // Check for network errors (no response)
+    if (!error.response) {
+      console.warn("Network error or server unreachable:", error);
+      if (!navigator.onLine) {
+        showOfflineToast();
+        showOfflineOverlay();
+      }
+    }
+    
     if (error.response && error.response.status === 401) {
       state.clearToken();
       const currentPath = window.location.pathname;
@@ -489,11 +498,15 @@ const hideOfflineOverlay = () => {
   if (el) el.remove();
 };
 
-window.addEventListener('offline', showOfflineToast);
+window.addEventListener('offline', () => {
+  showOfflineToast();
+  showOfflineOverlay();
+});
 window.addEventListener('online', () => {
   hideOfflineToast();
   hideOfflineOverlay();
-  // You might want to reload or re-fetch data here
+  // Attempt to reload if they were on a blank page or just to refresh
+  window.location.reload();
 });
 
 // Initial check
