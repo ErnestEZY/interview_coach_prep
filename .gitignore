@@ -41,6 +41,7 @@ Thumbs.db
 
 # Project Specific
 backend/data/rag_docs/
+backend/cache_data/
 backend/__pycache__/
 backend/routes/__pycache__/
 backend/services/__pycache__/
@@ -48,6 +49,7 @@ backend/tests/__pycache__/
 scripts/__pycache__/
 backend/resets_limit.py
 backend/resets_quota.py
+reset_lockout.py
 reset_limits.py
 reset_quota.py
 resets_limit.py
