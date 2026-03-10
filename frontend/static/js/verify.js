@@ -40,7 +40,7 @@ const app = createApp({
                 if (e.response && e.response.data && e.response.data.detail) {
                     msg = e.response.data.detail;
                 }
-                Swal.fire({ icon: 'error', title: 'Error', text: msg });
+                Swal.fire({ icon: 'error', title: 'Error', html: msg.replace(/\n/g, '<br>') });
             } finally {
                 this.submitting = false;
             }

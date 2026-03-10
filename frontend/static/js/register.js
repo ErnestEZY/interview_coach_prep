@@ -179,7 +179,7 @@ const app = createApp({
                 if (error.response && error.response.data) {
                     msg = error.response.data.detail || msg;
                 }
-                Swal.fire({ icon: 'error', title: 'Registration Failed', text: msg });
+                Swal.fire({ icon: 'error', title: 'Registration Failed', html: msg.replace(/\n/g, '<br>') });
             } finally {
                 this.loading = false;
             }

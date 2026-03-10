@@ -37,10 +37,23 @@ const app = createApp({
                 formData.append('password', this.password);
 
                 const response = await axios.post(window.icp.apiUrl('/api/auth/admin_login'), formData, {
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    validateStatus: (status) => status < 500 // Don't reject for 4xx errors
                 });
 
                 const res = response.data;
+                
+                // If the response is not 200, it's a validation error or lockout
+                if (response.status !== 200) {
+                    let msg = res.detail || 'Invalid admin credentials';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Login Failed',
+                        html: typeof msg === 'string' ? msg.replace(/\n/g, '<br>') : JSON.stringify(msg)
+                    });
+                    return;
+                }
+
                 window.icp.state.setToken(res.access_token);
 
                 // Trigger security alert if anomaly detected
@@ -66,11 +79,15 @@ const app = createApp({
                 let msg = 'Invalid admin credentials';
                 if (error.response && error.response.data) {
                     msg = error.response.data.detail || msg;
+                } else if (error.request) {
+                    msg = 'Network error: Cannot reach the server.';
+                } else {
+                    msg = error.message;
                 }
                 Swal.fire({
                     icon: 'error',
                     title: 'Login Failed',
-                    text: msg
+                    html: typeof msg === 'string' ? msg.replace(/\n/g, '<br>') : JSON.stringify(msg)
                 });
             } finally {
                 this.loading = false;

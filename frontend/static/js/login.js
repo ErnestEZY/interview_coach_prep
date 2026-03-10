@@ -42,10 +42,40 @@ const app = createApp({
                 formData.append('password', this.password);
 
                 const response = await axios.post(window.icp.apiUrl('/api/auth/login'), formData, {
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    validateStatus: (status) => status < 500
                 });
 
                 const res = response.data;
+
+                if (response.status !== 200) {
+                    let msg = res.detail || 'Invalid credentials';
+                    let showVerifyLink = typeof msg === 'string' && msg.toLowerCase().includes('verify your email');
+
+                    if (showVerifyLink) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Email Not Verified',
+                            html: msg.replace(/\n/g, '<br>'),
+                            showCancelButton: true,
+                            confirmButtonText: 'Verify Now',
+                            cancelButtonText: 'Close',
+                            confirmButtonColor: '#0d6efd'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location = '/static/pages/verify.html?email=' + encodeURIComponent(this.username);
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Login Failed',
+                            html: typeof msg === 'string' ? msg.replace(/\n/g, '<br>') : JSON.stringify(msg)
+                        });
+                    }
+                    return;
+                }
+
                 window.icp.state.setToken(res.access_token);
 
                 // Check role
@@ -73,46 +103,23 @@ const app = createApp({
             } catch (error) {
                 console.error('Login Error details:', error);
                 let msg = 'Invalid credentials';
-                let showVerifyLink = false;
                 
                 if (error.response) {
-                    // Server responded with a status code outside the 2xx range
                     msg = (error.response.data && error.response.data.detail) || msg;
-                    if (msg.toLowerCase().includes('verify your email')) {
-                        showVerifyLink = true;
-                    }
                 } else if (error.request) {
-                    // The request was made but no response was received (CORS/Network error)
                     msg = 'Network error: Cannot reach the server. Please check your internet connection or if the backend is down.';
                     if (window.icp.state.isTauri) {
                       msg += ' (Tauri CORS check failed?)';
                     }
                 } else {
-                    // Something happened in setting up the request that triggered an Error
                     msg = error.message;
                 }
 
-                if (showVerifyLink) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Email Not Verified',
-                        text: msg,
-                        showCancelButton: true,
-                        confirmButtonText: 'Verify Now',
-                        cancelButtonText: 'Close',
-                        confirmButtonColor: '#0d6efd'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            window.location = '/static/pages/verify.html?email=' + encodeURIComponent(this.username);
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Login Failed',
-                        text: msg
-                    });
-                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Login Failed',
+                    html: typeof msg === 'string' ? msg.replace(/\n/g, '<br>') : JSON.stringify(msg)
+                });
             } finally {
                 this.loading = false;
             }

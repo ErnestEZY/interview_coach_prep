@@ -150,14 +150,67 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     user = await users.find_one({"email": username})
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found")
+
+    # --- BEGIN LOCKOUT MECHANISM ---
+    now = get_malaysia_time()
+    lockout_time = user.get("lockout_until")
     
-    if not verify_password(form_data.password, user["password_hash"]):
-        # Debug login failure
-        print(f"[AUTH DEBUG] Login failure for {username}")
-        print(f"  - Password provided: {form_data.password[:3]}...")
-        print(f"  - Hash in DB: {user['password_hash'][:20]}...")
+    # Ensure lockout_time is timezone-aware for comparison
+    if lockout_time:
+        if lockout_time.tzinfo is None:
+            lockout_time = lockout_time.replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8)))
         
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+        if now < lockout_time:
+            remaining_seconds = int((lockout_time - now).total_seconds())
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Account locked due to too many failed login attempts. Please try again in {remaining_seconds // 60} minutes and {remaining_seconds % 60} seconds."
+            )
+
+    if not verify_password(form_data.password, user["password_hash"]):
+        # Increment failed attempts
+        current_attempts = user.get("failed_login_attempts", 0) + 1
+        
+        if current_attempts >= 5:
+            # Lock account for 10 minutes
+            lockout_until = now + timedelta(minutes=10)
+            await users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"lockout_until": lockout_until, "failed_login_attempts": 0}}
+            )
+            await log_event(str(user["_id"]), username, "login_lockout", ip_address, "failure", {"reason": "max_attempts_reached"})
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Your account has been locked for 10 minutes due to too many failed login attempts."
+            )
+        else:
+            await users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"failed_login_attempts": current_attempts}}
+            )
+            
+            # Warn user at 3 and 4 attempts
+            if current_attempts == 4:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect password.\nYou have 1 attempt remaining before your account is locked for 10 minutes."
+                )
+            if current_attempts == 3:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect password.\nYou have 2 attempts remaining before your account is locked for 10 minutes."
+                )
+            
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+
+    # --- END LOCKOUT MECHANISM ---
+
+    # On successful login, reset failed attempts and lockout
+    await users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"failed_login_attempts": 0, "lockout_until": None}}
+    )
+
     
     # Check if user is verified
     if not user.get("is_verified", False):
@@ -186,13 +239,66 @@ async def admin_login(request: Request, form_data: OAuth2PasswordRequestForm = D
     if not user:
         await log_event(None, username, "admin_login", ip_address, "failure", {"reason": "user_not_found"})
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not found")
-    
+
+    # --- BEGIN ADMIN LOCKOUT MECHANISM ---
+    now = get_malaysia_time()
+    lockout_time = user.get("lockout_until")
+
+    if lockout_time:
+        if lockout_time.tzinfo is None:
+            lockout_time = lockout_time.replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=8)))
+        
+        if now < lockout_time:
+            remaining_seconds = int((lockout_time - now).total_seconds())
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Admin account locked. Please try again in {remaining_seconds // 60} minutes and {remaining_seconds % 60} seconds."
+            )
+
     # IP Monitoring and Restrictions
     ip_status = await check_admin_ip(username, ip_address)
     
     if not verify_password(form_data.password, user["password_hash"]):
-        await log_event(str(user["_id"]), username, "admin_login", ip_address, "failure", {"reason": "wrong_password"})
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+        current_attempts = user.get("failed_login_attempts", 0) + 1
+        
+        if current_attempts >= 5:
+            lockout_until = now + timedelta(minutes=10)
+            await users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"lockout_until": lockout_until, "failed_login_attempts": 0}}
+            )
+            await log_event(str(user["_id"]), username, "admin_login_lockout", ip_address, "failure", {"reason": "max_attempts_reached"})
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Admin account has been locked for 10 minutes due to too many failed login attempts."
+            )
+        else:
+            await users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"failed_login_attempts": current_attempts}}
+            )
+            
+            if current_attempts == 4:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect Password\nRemaining 1 attempt..."
+                )
+            if current_attempts == 3:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Incorrect Password\nRemaining 2 attempts..."
+                )
+            
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+
+    # --- END ADMIN LOCKOUT MECHANISM ---
+
+    # On successful login, reset failed attempts and lockout
+    await users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"failed_login_attempts": 0, "lockout_until": None}}
+    )
+
     
     if user.get("role") not in ("admin", "super_admin"):
         await log_event(str(user["_id"]), username, "admin_login", ip_address, "failure", {"reason": "not_admin"})
