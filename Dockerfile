@@ -34,8 +34,8 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Copy static files to Nginx default directory
 COPY frontend /usr/share/nginx/html
 
-# Expose port 80 (Nginx)
-EXPOSE 80
+# Expose port 10000 (Render default)
+EXPOSE 10000
 
 # Make the start script executable
 RUN chmod +x start.sh
