@@ -2,8 +2,11 @@ from datetime import datetime
 from typing import Dict, Any, List
 try:
     from mistralai import Mistral
-except ImportError:
-    from mistralai.client import Mistral
+except (ImportError, AttributeError):
+    try:
+        from mistralai.client import Mistral
+    except ImportError:
+        from mistralai import MistralClient as Mistral
 from ..core.config import MISTRAL_API_KEY
 from .cache_manager import memoize
 

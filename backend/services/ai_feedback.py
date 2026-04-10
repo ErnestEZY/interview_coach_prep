@@ -3,8 +3,11 @@ import re
 from typing import List, Dict, Any
 try:
     from mistralai import Mistral
-except ImportError:
-    from mistralai.client import Mistral
+except (ImportError, AttributeError):
+    try:
+        from mistralai.client import Mistral
+    except ImportError:
+        from mistralai import MistralClient as Mistral
 from ..core.config import MISTRAL_API_KEY
 
 from .rag_engine import rag_engine

@@ -6,8 +6,11 @@ from llama_index.llms.mistralai import MistralAI
 from llama_index.embeddings.mistralai import MistralAIEmbedding
 try:
     from mistralai import Mistral
-except ImportError:
-    from mistralai.client import Mistral
+except (ImportError, AttributeError):
+    try:
+        from mistralai.client import Mistral
+    except ImportError:
+        from mistralai.client import MistralClient as Mistral
 from ..core.config import MISTRAL_API_KEY
 from .cache_manager import cache
 
