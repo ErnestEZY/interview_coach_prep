@@ -81,7 +81,7 @@ def parse_json_response(resp: str) -> Dict[str, Any]:
             "DetectedJobTitle": ""
         }
 
-def get_feedback(text: str) -> Dict[str, Any]:
+async def get_feedback(text: str) -> Dict[str, Any]:
     if not MISTRAL_API_KEY:
         return {
             "IsResume": True,
@@ -95,14 +95,15 @@ def get_feedback(text: str) -> Dict[str, Any]:
         }
     
     # RAG Step: Retrieve relevant context based on resume content
-    # We take the first 800 characters for retrieval to speed up context lookup
-    relevant_chunks = rag_engine.retrieve(text[:800], top_k=3)
+    # We take the first 600 characters for retrieval to speed up context lookup (Reduced from 800)
+    relevant_chunks = rag_engine.retrieve(text[:600], top_k=2) # Reduced top_k from 3 to 2
     context = "\n---\n".join(relevant_chunks)
     
     client = Mistral(api_key=MISTRAL_API_KEY)
     
-    completion = client.chat.complete(
-        model="mistral-small-latest", # Switch to faster, highly efficient model
+    # Use async completion for maximum speed
+    completion = await client.chat.complete_async(
+        model="mistral-small-latest", # Speed King model
         messages=[{"role": "user", "content": build_resume_prompt(text, context)}],
         temperature=0.2,
         response_format={"type": "json_object"}

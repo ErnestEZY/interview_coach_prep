@@ -50,7 +50,7 @@ async def upload_resume(
         raise HTTPException(status_code=400, detail=str(e))
     os.remove(tmp_path)
     try:
-        feedback = get_feedback(text)
+        feedback = await get_feedback(text)
     except Exception as e:
         if "429" in str(e) or "rate_limit" in str(e).lower():
             raise HTTPException(status_code=429, detail="Mistral AI rate limit exceeded. Please wait a moment.")
