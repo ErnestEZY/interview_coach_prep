@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resume Builder - ICP</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+  <script>
+    if (!localStorage.getItem("token") || localStorage.getItem("token") === "undefined" || localStorage.getItem("token") === "null") {
+      window.location.href = '/static/pages/login.html';
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <script src="/static/js/app.js"></script>
+</head>
+<body class="auth-page">
+  <div id="app" v-cloak>
+
+  <!-- Page Loader -->
+  <div id="global-loader" class="page-loader" v-if="isLoading" role="status" aria-live="polite" aria-atomic="true">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">Preparing Resume Builder...</div>
+  </div>
+
+  <nav class="navbar navbar-dark glass-nav">
+    <div class="container d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <button class="hamburger-btn d-xl-none me-2" onclick="window.handleMobileMenu()" title="Toggle navigation menu">
+          <i class="bi bi-list"></i>
+        </button>
+        <a class="navbar-brand fw-bold fs-4 mb-0 me-0" href="/">
+          <span class="text-primary">I</span>CP
+        </a>
+        <div class="d-flex gap-1 d-none d-xl-flex">
+          <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/dashboard.html" title="Go to Dashboard">Dashboard</a>
+          <a class="btn btn-primary btn-sm px-2" href="/static/pages/resume_builder.html" title="Create your professional resume">Resume Builder</a>
+          <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/find-jobs.html" title="Search for job opportunities">Search Job</a>
+          <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/history.html" title="View your past sessions">View History</a>
+          <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/interview.html" title="Start a mock interview">Mock Interview</a>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <!-- Web Account Dropdown -->
+        <div class="dropdown d-none d-xl-inline-block" v-if="logged">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle me-1"></i>
+            Account
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 glass-card mt-2 dropdown-menu-wide">
+            <li class="px-3 py-2 dropdown-item-profile">
+              <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
+              <div class="text-white fw-semibold text-break">{{ userName }}</div>
+                <div class="text-secondary small text-break">{{ userEmail }}</div>
+              </li>
+              <li><hr class="dropdown-divider bg-light opacity-25"></li>
+              <li><a class="dropdown-item text-danger small" href="#" @click.prevent="logout">Logout</a></li>
+            </ul>
+          </div>
+          
+          <span class="text-secondary d-none d-xl-inline-block mx-1" v-if="logged">|</span>
+          
+          <button class="btn btn-outline-danger btn-sm px-2 d-none d-xl-inline-block" @click="logout()" v-if="logged" title="Logout">
+            <span>Logout</span>
+          </button>
+        </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-3 px-md-5 py-4">
+    <div class="text-center mb-4 px-2">
+        <h2 class="text-white fw-bold mb-0">Profile Crafter</h2>
+        <p class="text-white-50 small mb-0">Build your resume with ATS-friendly themes.</p>
+    </div>
+
+    <div class="row g-4 justify-content-evenly">
+        <!-- Form Column -->
+        <div class="col-xl-5">
+            <div class="text-center mb-3">
+                <h5 class="text-white fw-bold mb-0 text-decoration-underline">Resume Information</h5>
+            </div>
+            <div class="builder-card">
+                <ul class="nav nav-pills gap-1 justify-content-center" id="pills-tab" role="tablist">
+                    <li class="nav-item" role="presentation"><button class="nav-link active" id="pills-basics-tab" data-bs-toggle="pill" data-bs-target="#tab-basics" type="button" role="tab" aria-controls="tab-basics" aria-selected="true" title="Basic Personal Information">Basics</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-edu-tab" data-bs-toggle="pill" data-bs-target="#tab-edu" type="button" role="tab" aria-controls="tab-edu" aria-selected="false" title="Educational Background">Education</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-exp-tab" data-bs-toggle="pill" data-bs-target="#tab-exp" type="button" role="tab" aria-controls="tab-exp" aria-selected="false" title="Work Experience">Experience</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-projects-tab" data-bs-toggle="pill" data-bs-target="#tab-projects" type="button" role="tab" aria-controls="tab-projects" aria-selected="false" title="Key Projects and Portfolio">Projects</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-skills-tab" data-bs-toggle="pill" data-bs-target="#tab-skills" type="button" role="tab" aria-controls="tab-skills" aria-selected="false" title="Technical and Soft Skills">Skills</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-others-tab" data-bs-toggle="pill" data-bs-target="#tab-others" type="button" role="tab" aria-controls="tab-others" aria-selected="false" title="Certifications and Languages">Others</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-extra-tab" data-bs-toggle="pill" data-bs-target="#tab-extra" type="button" role="tab" aria-controls="tab-extra" aria-selected="false" title="Additional Information">Extra</button></li>
+                </ul>
+
+                <div class="tab-content" id="pills-tabContent">
+                    <!-- Basics Tab -->
+                    <div class="tab-pane fade show active" id="tab-basics" role="tabpanel" aria-labelledby="pills-basics-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Your Profile</h6>
+                        </div>
+                        <div class="card mb-3 bg-dark border-secondary">
+                            <div class="card-body p-3">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label for="resume-name" class="form-label">Full Name</label>
+                                        <input id="resume-name" v-model="resume.name" type="text" class="form-control" title="Enter your full name" placeholder="Full Name" maxlength="50">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="resume-title" class="form-label">Title</label>
+                                        <input id="resume-title" v-model="resume.title" type="text" class="form-control" title="Enter your professional title" placeholder="e.g., Software Engineer" maxlength="70">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="resume-email" class="form-label">Email</label>
+                                        <input id="resume-email" v-model="resume.email" type="email" class="form-control" title="Enter your contact email" placeholder="Email Address" maxlength="50">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="resume-phone" class="form-label">Phone</label>
+                                        <input id="resume-phone" v-model="resume.phone" type="text" class="form-control" title="Enter your phone number" placeholder="Phone Number" maxlength="20">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="resume-location" class="form-label">Location</label>
+                                        <input id="resume-location" v-model="resume.location" type="text" class="form-control" title="Enter your location (City, Country)" placeholder="City, Country" maxlength="100">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="resume-website" class="form-label">Website</label>
+                                        <input id="resume-website" v-model="resume.website" type="text" class="form-control" title="Enter your portfolio or LinkedIn URL" placeholder="URL" maxlength="70">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="resume-summary" class="form-label">Summary</label>
+                                        <textarea id="resume-summary" v-model="resume.summary" class="form-control" rows="4" title="Write a short professional summary" placeholder="Briefly describe your professional background" maxlength="250"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Education Tab -->
+                    <div class="tab-pane fade" id="tab-edu" role="tabpanel" aria-labelledby="pills-edu-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Education History</h6>
+                            <button @click="addItem('education')" class="btn btn-xs btn-outline-primary" title="Add new education entry">+ Add</button>
+                        </div>
+                        <div v-for="(edu, index) in resume.education" :key="index" class="card mb-3 bg-dark border-secondary">
+                            <div class="card-body p-3 position-relative">
+                                <button @click="removeItem('education', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this education entry"></button>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label :for="'edu-school-'+index" class="form-label">Institution</label>
+                                        <input :id="'edu-school-'+index" v-model="edu.school" type="text" class="form-control" title="Enter school or university name" placeholder="Institution Name" maxlength="60">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'edu-degree-'+index" class="form-label">Degree</label>
+                                        <input :id="'edu-degree-'+index" v-model="edu.degree" type="text" class="form-control" title="Enter degree or certification" placeholder="Degree / Course" maxlength="100">
+                                    </div>
+                                    <div class="col-6">
+                                        <label :for="'edu-location-'+index" class="form-label">Location</label>
+                                        <input :id="'edu-location-'+index" v-model="edu.location" type="text" class="form-control" title="Enter school location" placeholder="e.g., City, Country" maxlength="30">
+                                    </div>
+                                    <div class="col-6">
+                                        <label :for="'edu-date-'+index" class="form-label">Dates</label>
+                                        <input :id="'edu-date-'+index" v-model="edu.date" type="text" class="form-control" title="Enter period of study" placeholder="e.g., 2020 - 2024" maxlength="20">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'edu-gpa-'+index" class="form-label">Grade</label>
+                                        <input :id="'edu-gpa-'+index" v-model="edu.gpa" type="text" class="form-control" title="Enter GPA or Grade" placeholder="Grade / GPA" maxlength="20">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0">Key Achievements / Bullets</label>
+                                            <button @click="addBullet('education', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                        </div>
+                                        <div v-for="(bullet, bIndex) in edu.bullets" :key="bIndex" class="bullet-input-wrapper">
+                                            <div class="input-group input-group-sm">
+                                                <textarea v-model="edu.bullets[bIndex]" class="form-control" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your education" maxlength="250"></textarea>
+                                                <button @click="removeBullet('education', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                            <div v-if="getGuidance(edu.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(edu.bullets[bIndex]) }}</div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <label class="form-label small">Action Verb Suggestions:</label>
+                                            <div class="action-verbs-list mb-2">
+                                                <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('education', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Experience Tab -->
+                    <div class="tab-pane fade" id="tab-exp" role="tabpanel" aria-labelledby="pills-exp-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Work Experience</h6>
+                            <button @click="addItem('experience')" class="btn btn-xs btn-outline-primary" title="Add new work experience entry">+ Add</button>
+                        </div>
+                        <div v-for="(exp, index) in resume.experience" :key="index" class="card mb-3 bg-dark border-secondary">
+                            <div class="card-body p-3 position-relative">
+                                <button @click="removeItem('experience', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this work experience entry"></button>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label :for="'exp-company-'+index" class="form-label">Company</label>
+                                        <input :id="'exp-company-'+index" v-model="exp.company" type="text" class="form-control" title="Enter company name" placeholder="Company Name" maxlength="70">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'exp-position-'+index" class="form-label">Position</label>
+                                        <input :id="'exp-position-'+index" v-model="exp.position" type="text" class="form-control" title="Enter your job title" placeholder="Job Title" maxlength="80">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'exp-date-'+index" class="form-label">Dates</label>
+                                        <input :id="'exp-date-'+index" v-model="exp.date" type="text" class="form-control" title="Enter employment period" placeholder="e.g., Jan 2022 - Present" maxlength="50">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0">Key Achievements / Bullets</label>
+                                            <button @click="addBullet('experience', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                        </div>
+                                        <div v-for="(bullet, bIndex) in exp.bullets" :key="bIndex" class="bullet-input-wrapper">
+                                            <div class="input-group input-group-sm">
+                                                <textarea v-model="exp.bullets[bIndex]" class="form-control" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your work experience" maxlength="250"></textarea>
+                                                <button @click="removeBullet('experience', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                            <div v-if="getGuidance(exp.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(exp.bullets[bIndex]) }}</div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <label class="form-label small">Action Verb Suggestions:</label>
+                                            <div class="action-verbs-list mb-2">
+                                                <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('experience', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
+                                            </div>
+                                            <hr class="my-2 opacity-25">
+                                            <div class="form-text smaller" style="color: #0dcaf0; opacity: 0.9;">
+                                                <i class="bi bi-lightbulb-fill me-1"></i> Tip: Use the <strong>Google XYZ formula</strong>: Accomplished [X] as measured by [Y], by doing [Z].
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Projects Tab -->
+                    <div class="tab-pane fade" id="tab-projects" role="tabpanel" aria-labelledby="pills-projects-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Key Projects</h6>
+                            <button @click="addItem('projects')" class="btn btn-xs btn-outline-primary" title="Add new project entry">+ Add</button>
+                        </div>
+                        <div v-for="(proj, index) in resume.projects" :key="index" class="card mb-3 bg-dark border-secondary">
+                            <div class="card-body p-3 position-relative">
+                                <button @click="removeItem('projects', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this project entry"></button>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label :for="'proj-name-'+index" class="form-label">Project Name</label>
+                                        <input :id="'proj-name-'+index" v-model="proj.name" type="text" class="form-control" title="Enter project name" placeholder="Project Name" maxlength="100">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'proj-tech-'+index" class="form-label">Tech Stack</label>
+                                        <input :id="'proj-tech-'+index" v-model="proj.tech" type="text" class="form-control" title="Enter technologies used" placeholder="e.g., Vue.js, Python, MongoDB" maxlength="100">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0">Description / Bullets</label>
+                                            <button @click="addBullet('projects', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                        </div>
+                                        <div v-for="(bullet, bIndex) in proj.bullets" :key="bIndex" class="bullet-input-wrapper">
+                                            <div class="input-group input-group-sm">
+                                                <textarea v-model="proj.bullets[bIndex]" class="form-control" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your project" maxlength="250"></textarea>
+                                                <button @click="removeBullet('projects', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                            <div v-if="getGuidance(proj.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(proj.bullets[bIndex]) }}</div>
+                                        </div>
+                                        <div class="mt-2">
+                                             <label class="form-label small">Action Verb Suggestions:</label>
+                                             <div class="action-verbs-list mb-2">
+                                                  <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('projects', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
+                                              </div>
+                                              <hr class="my-2 opacity-25">
+                                              <div class="form-text smaller" style="color: #0dcaf0; opacity: 0.9;">
+                                                  <i class="bi bi-lightbulb-fill me-1"></i> Tip: Use the <strong>Google XYZ formula</strong>: Accomplished [X] as measured by [Y], by doing [Z].
+                                              </div>
+                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skills Tab -->
+                    <div class="tab-pane fade" id="tab-skills" role="tabpanel" aria-labelledby="pills-skills-tab">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Languages & Frameworks</h6>
+                                <button @click="addItem('skills_tech')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_tech" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_tech[index]" type="text" class="form-control" placeholder="e.g., Python, JavaScript, React">
+                                <button @click="removeItem('skills_tech', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Tools & Platforms</h6>
+                                <button @click="addItem('skills_tools')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_tools" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_tools[index]" type="text" class="form-control" placeholder="e.g., Docker, Git, AWS">
+                                <button @click="removeItem('skills_tools', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Soft Skills</h6>
+                                <button @click="addItem('skills_soft')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_soft" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_soft[index]" type="text" class="form-control" placeholder="e.g., Leadership, Communication">
+                                <button @click="removeItem('skills_soft', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Other Related Skills</h6>
+                                <button @click="addItem('skills_other')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_other" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_other[index]" type="text" class="form-control" placeholder="e.g., Agile Methodologies">
+                                <button @click="removeItem('skills_other', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Others Tab -->
+                    <div class="tab-pane fade" id="tab-others" role="tabpanel" aria-labelledby="pills-others-tab">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Certifications</h6>
+                                <button @click="addItem('certifications')" class="btn btn-xs btn-outline-primary" title="Add new certification">+ Add</button>
+                            </div>
+                            <div v-for="(cert, index) in resume.certifications" :key="index" class="input-group mb-2">
+                                <input v-model="cert.name" type="text" class="form-control" title="Enter certification name" placeholder="Certification Name" maxlength="100">
+                                <button @click="removeItem('certifications', index)" class="btn btn-outline-danger" title="Remove certification"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Languages</h6>
+                                <button @click="addItem('languages')" class="btn btn-xs btn-outline-primary" title="Add new language">+ Add</button>
+                            </div>
+                            <div v-for="(lang, index) in resume.languages" :key="index" class="input-group mb-2">
+                                <input v-model="lang.name" type="text" class="form-control" title="Enter language and proficiency" placeholder="e.g., English (Fluent)" maxlength="60">
+                                <button @click="removeItem('languages', index)" class="btn btn-outline-danger" title="Remove language"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extra Tab -->
+                    <div class="tab-pane fade" id="tab-extra" role="tabpanel" aria-labelledby="pills-extra-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Additional Information</h6>
+                            <button @click="addItem('extra_info')" class="btn btn-xs btn-outline-primary" title="Add new entry">+ Add</button>
+                        </div>
+                        <div v-for="(info, index) in resume.extra_info" :key="index" class="input-group mb-2">
+                            <input v-model="info.content" type="text" class="form-control" title="Enter additional information" placeholder="e.g., Available for relocation" maxlength="150">
+                            <button @click="removeItem('extra_info', index)" class="btn btn-outline-danger" title="Remove entry"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Column -->
+        <div class="col-xl-6 sticky-xl-top" style="top: 2rem; height: fit-content;">
+            <div class="text-center mb-3 px-2">
+                <h5 class="text-white fw-bold mb-3 text-decoration-underline">Resume Preview</h5>
+            </div>
+            <div class="resume-preview-container">
+                <!-- Internal Actions Bar -->
+                <div class="resume-preview-actions">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="themeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-palette-fill me-1"></i> Theme: {{ currentTheme.name }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="themeDropdown">
+                            <li v-for="theme in themes"><a class="dropdown-item" href="#" @click.prevent="setTheme(theme)">{{ theme.name }}</a></li>
+                        </ul>
+                    </div>
+                    <button @click="downloadPDF" class="btn btn-primary btn-sm shadow-sm">
+                        <i class="bi bi-file-earmark-pdf-fill me-2"></i> Download PDF
+                    </button>
+                </div>
+                
+                <div class="resume-preview-wrapper">
+                    <div class="resume-preview-viewport">
+                        <div id="resume-template" :class="currentTheme.className" :style="{ transform: 'translateY(' + ((currentPage - 1) * -297) + 'mm)' }">
+                            <!-- Header -->
+                            <div class="resume-header text-center">
+                                <div class="resume-name" :style="{ fontSize: nameFontSize }">{{ resume.name || 'FULL NAME' }}</div>
+                                <div class="resume-title">{{ resume.title || 'Professional Title' }}</div>
+                                <div class="resume-contact justify-content-center">
+                                    <span v-if="resume.email"><i class="bi bi-envelope"></i> {{ resume.email }}</span>
+                                    <span v-if="resume.phone"><i class="bi bi-telephone"></i> {{ resume.phone }}</span>
+                                    <span v-if="resume.location"><i class="bi bi-geo-alt"></i> {{ resume.location }}</span>
+                                    <span v-if="resume.website"><i class="bi bi-globe"></i> {{ resume.website }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Summary -->
+                            <div v-if="resume.summary">
+                                <div class="section-title">Summary</div>
+                                <div class="item-desc">{{ resume.summary }}</div>
+                            </div>
+
+                            <!-- Education -->
+                            <div v-if="resume.education.some(e => e.school || e.degree)">
+                                <div class="section-title">Education</div>
+                                <div v-for="(edu, index) in resume.education" :key="'preview-edu-'+index">
+                                    <div class="resume-item" v-if="edu.school || edu.degree">
+                                        <div class="item-header">
+                                            <span>{{ edu.school }}<span v-if="edu.location" class="fw-normal text-muted small ms-2">| {{ edu.location }}</span></span>
+                                            <span class="small">{{ edu.date }}</span>
+                                        </div>
+                                        <div class="item-header">
+                                            <span class="item-sub fw-normal">{{ edu.degree }}</span>
+                                            <span v-if="edu.gpa" class="small fw-normal">GPA: {{ edu.gpa }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Experience -->
+                            <div v-if="resume.experience.some(e => e.company || e.position)">
+                                <div class="section-title">Experience</div>
+                                <div v-for="(exp, index) in resume.experience" :key="'preview-exp-'+index">
+                                    <div class="resume-item" v-if="exp.company || exp.position">
+                                        <div class="item-header">
+                                            <span>{{ exp.company }}</span>
+                                            <span class="small">{{ exp.date }}</span>
+                                        </div>
+                                        <div class="item-sub">{{ exp.position }}</div>
+                                        <div class="item-desc">
+                                            <div v-for="bullet in exp.bullets">• {{ bullet }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Projects -->
+                            <div v-if="resume.projects.some(p => p.name)">
+                                <div class="section-title">Key Projects</div>
+                                <div v-for="(proj, index) in resume.projects" :key="'preview-proj-'+index">
+                                    <div class="resume-item" v-if="proj.name">
+                                        <div class="item-header">
+                                            <span>{{ proj.name }}</span>
+                                            <span v-if="proj.tech" class="small fw-normal">{{ proj.tech }}</span>
+                                        </div>
+                                        <ul class="item-desc list-unstyled ps-0" v-if="proj.bullets && proj.bullets.length > 0">
+                                            <li v-for="bullet in proj.bullets">• {{ bullet }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Skills -->
+                            <div v-if="resume.skills_tech.length || resume.skills_tools.length || resume.skills_soft.length || resume.skills_other.length">
+                                <div class="section-title">Skills & Expertise</div>
+                                <div class="skills-grid">
+                                    <div v-if="resume.skills_tech.length">
+                                        <div class="skill-group-title">Languages & Frameworks</div>
+                                        <div class="skills-list">{{ resume.skills_tech.join(', ') }}</div>
+                                    </div>
+                                    <div v-if="resume.skills_tools.length">
+                                        <div class="skill-group-title">Tools & Platforms</div>
+                                        <div class="skills-list">{{ resume.skills_tools.join(', ') }}</div>
+                                    </div>
+                                    <div v-if="resume.skills_soft.length">
+                                        <div class="skill-group-title">Soft Skills</div>
+                                        <div class="skills-list">{{ resume.skills_soft.join(', ') }}</div>
+                                    </div>
+                                    <div v-if="resume.skills_other.length">
+                                        <div class="skill-group-title">Other Skills</div>
+                                        <div class="skills-list">{{ resume.skills_other.join(', ') }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Others -->
+                            <div class="row mt-1" v-if="resume.certifications.some(c => c.name) || resume.languages.some(l => l.name)">
+                                <div class="col-6" v-if="resume.certifications.some(c => c.name)">
+                                    <div class="section-title">Certifications</div>
+                                    <div v-for="(cert, index) in resume.certifications" :key="'preview-cert-'+index">
+                                        <div class="item-desc cert-lang-item" v-if="cert.name">• {{ cert.name }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6" v-if="resume.languages.some(l => l.name)">
+                                    <div class="section-title">Languages</div>
+                                    <div v-for="(lang, index) in resume.languages" :key="'preview-lang-'+index">
+                                        <div class="item-desc cert-lang-item" v-if="lang.name">• {{ lang.name }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Extra -->
+                            <div v-if="resume.extra_info.some(i => i.content)">
+                                <div class="section-title">Additional Information</div>
+                                <div v-for="(info, index) in resume.extra_info" :key="'preview-extra-'+index">
+                                    <div class="item-desc" v-if="info.content">• {{ info.content }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page Selector & Navigation -->
+                <div class="resume-pagination" v-if="totalPages > 1">
+                    <button class="page-nav-btn" @click="prevPage" :disabled="currentPage === 1">
+                        <i class="bi bi-chevron-left"></i> Previous
+                    </button>
+                    
+                    <span class="page-counter">Page {{ currentPage }} / {{ totalPages }}</span>
+                    
+                    <button class="page-nav-btn" @click="nextPage" :disabled="currentPage === totalPages">
+                        Next <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Mobile Sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="window.handleMobileMenu()"></div>
+  <div class="mobile-sidebar" id="mobileSidebar">
+    <div class="sidebar-header border-bottom border-secondary border-opacity-25 pb-3">
+      <div class="d-flex flex-column">
+        <a class="navbar-brand fw-bold fs-4 mb-1" href="/">
+          <span class="text-primary">I</span>CP
+        </a>
+        <div class="user-info-mobile mt-2" v-if="logged">
+          <div class="text-white fw-bold small">{{ userName }}</div>
+          <div class="text-secondary smaller user-email-text">{{ userEmail }}</div>
+        </div>
+      </div>
+      <button class="btn btn-link text-white p-0" onclick="window.handleMobileMenu()" title="Close navigation menu">
+        <i class="bi bi-x-lg fs-4"></i>
+      </button>
+    </div>
+    <div class="sidebar-nav">
+      <a href="/static/pages/dashboard.html" class="sidebar-link" title="Go to Dashboard">
+        <i class="bi bi-speedometer2"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="/static/pages/resume_builder.html" class="sidebar-link active" title="Resume Builder">
+        <i class="bi bi-file-earmark-person"></i>
+        <span>Resume Builder</span>
+      </a>
+      <a href="/static/pages/find-jobs.html" class="sidebar-link" title="Search for Jobs">
+        <i class="bi bi-search"></i>
+        <span>Search Job</span>
+      </a>
+      <a href="/static/pages/history.html" class="sidebar-link" title="View Interview History">
+        <i class="bi bi-clock-history"></i>
+        <span>View History</span>
+      </a>
+      <a href="/static/pages/interview.html" class="sidebar-link" title="Start Mock Interview">
+        <i class="bi bi-play-circle"></i>
+        <span>Mock Interview</span>
+      </a>
+    </div>
+    <div class="mt-auto pt-4 border-top border-secondary border-opacity-25">
+      <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" @click="logout()">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </button>
+    </div>
+  </div>
+  </div>
+
+  <script src="/static/js/resume_builder.js?v=1.3"></script>
+</body>
+</html>

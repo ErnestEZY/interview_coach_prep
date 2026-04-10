@@ -1,0 +1,2499 @@
+old css:
+/* --- Global Loading Screen --- */
+.page-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+/* Remove default browser password toggle icon (Edge/WebView2) */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+}
+
+/* For Chrome/Safari if they add it in future */
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
+
+.page-loader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.page-loader.fade-in {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Interview Start Loader with Blur Effect */
+.interview-start-loader {
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.7) !important; /* Semi-transparent version of #0f172a */
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.loader-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(37, 99, 235, 0.1);
+  border-left-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loader-text {
+  color: #94a3b8;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.pointer-events-none {
+  pointer-events: none;
+}
+/* --- End Global Loading Screen --- */
+
+/* Auth Page Components */
+.password-criteria-list {
+  background: rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.password-criteria-list li {
+  font-weight: 700 !important; /* Bold text */
+}
+
+.password-strength-progress {
+  height: 4px;
+}
+
+.legal-footer-text {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+body { 
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
+  min-height: 100vh;
+  color: #e8edf6; 
+}
+
+/* --- Careerjet Widget Dark Mode --- */
+.cj-widget-dark-wrapper {
+  background: #ffffff; /* Default background */
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+/* 
+   Hack to make white-background iframes look dark. 
+   Invert colors (white becomes black), then rotate hue 180deg to keep blue/green/red colors sane.
+*/
+.cj-widget-dark-wrapper iframe,
+.cj-widget-dark-wrapper .cj-search-box,
+.cj-widget-dark-wrapper .cj-job-box {
+  filter: invert(0.9) hue-rotate(180deg) brightness(1.1) contrast(0.9) !important;
+  background: transparent !important;
+}
+
+/* Add a subtle glow around the widget in the dark UI */
+.cj-widget-dark-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.17);
+}
+/* Apply dark filter to injected Careerjet iframe and elements within our wrapper */
+.cj-search-box-wrapper iframe,
+#search-box-container iframe {
+  filter: invert(0.9) hue-rotate(180deg) brightness(1.05) contrast(0.95) !important;
+  background: transparent !important;
+}
+.cj-search-box-wrapper .cj-search-box {
+  filter: invert(0.9) hue-rotate(180deg) brightness(1.05) contrast(0.95) !important;
+}
+/* --- Custom Scrollbars --- */
+:root {
+  --sb-thumb-color: rgba(37, 99, 235, 0.35);
+  --sb-track-color: transparent;
+  --sb-size: 8px;
+}
+
+/* Standard Implementation (Firefox, Chrome 121+, Safari 18.2+) */
+html, body, * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb-color) var(--sb-track-color);
+}
+
+/* Legacy Webkit Implementation (Older Chrome, Safari, Edge) */
+@supports not (scrollbar-width: thin) {
+  *::-webkit-scrollbar {
+    width: var(--sb-size);
+    height: var(--sb-size);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--sb-track-color);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--sb-thumb-color);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+}
+
+/* Chrome/Safari/Edge hover state */
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(37, 99, 235, 0.55);
+}
+
+/* Prevents layout shift when scrollbars appear */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* AI Disclaimer Styling */
+.ai-disclaimer {
+  font-size: 0.7rem !important;
+  opacity: 0.55 !important;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+/* --- End Scrollbar --- */
+
+.navbar { 
+  background: rgba(14, 22, 38, 0.8) !important; 
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,0.05); 
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Authentication Pages Styles */
+.auth-page {
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.15), transparent 50%),
+              radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.1), transparent 50%),
+              linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+  min-height: 100vh;
+}
+
+.auth-card {
+  background: rgba(30, 41, 59, 0.75) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+  border-radius: 24px !important;
+  overflow: hidden;
+  position: relative;
+}
+
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+}
+
+.auth-header {
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(to right, #fff, #cbd5e1);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.password-toggle-btn {
+  border-left: none !important;
+  background: #24334d !important;
+  color: #e2e8f0 !important;
+  border-color: #3d4d66 !important;
+}
+
+.password-toggle-btn:hover {
+  color: #fff !important;
+  background: #2d3e5a !important;
+}
+
+.eye-slash-icon {
+  color: #cbd5e1;
+}
+
+.auth-footer-link {
+  transition: all 0.3s ease;
+}
+
+.auth-footer-link:hover {
+  color: #60a5fa !important;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+}
+
+.auth-success-icon {
+  font-size: 4rem;
+}
+
+.glass-nav {
+  background: rgba(14, 22, 38, 0.7) !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card { 
+  background: rgba(32, 48, 71, 0.6); 
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.05); 
+  color: #f5f7fa; 
+}
+
+.card h5, .card h6, .card p, .card li, .card label, .card pre { color: #f5f7fa; }
+.card .form-control { background: #1a263b; color: #eef3ff; border-color: #334155; }
+.card .form-control::placeholder { color: #cbd5e1; }
+.btn-primary { background: #2563eb; border-color: #2563eb; }
+
+.icon { font-size: 2rem; }
+
+/* Interview Page Styles */
+.interviewer-icon-container {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  flex-shrink: 0;
+}
+
+.keywords-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+
+/* Modern Info Popover on the Right */
+.info-popover-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.info-btn {
+  cursor: pointer;
+  color: #3b82f6;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.info-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.info-tooltip-classic {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%) translateX(15px);
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  color: #f8fafc;
+  padding: 14px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  font-size: 0.85rem;
+  width: 260px;
+  z-index: 10000;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  line-height: 1.6;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: none !important; /* Block all movement animations */
+}
+
+/* Triangle pointing LEFT to the i icon */
+.info-tooltip-classic::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent #1e293b transparent transparent;
+}
+
+@media (max-width: 767.98px) {
+  .info-tooltip-classic {
+    left: auto;
+    right: 100%;
+    transform: translateY(-50%) translateX(-15px);
+  }
+  
+  .info-tooltip-classic::before {
+    right: auto;
+    left: 100%;
+    border-color: transparent transparent transparent #0f172a;
+  }
+}
+.cursor-pointer { cursor: pointer; }
+.user-email-text { font-size: 0.75rem; }
+
+.upload-zone {
+  transition: all 0.3s ease;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+}
+
+.upload-zone:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+  border-style: solid !important;
+}
+
+.icon.idle { color: #10b981; }
+.icon.thinking { color: #f59e0b; animation: pulse 1.2s infinite; }
+.icon.speaking { color: #ef4444; animation: talk 0.8s infinite; }
+
+@keyframes pulse { 0%{opacity:.6}50%{opacity:1}100%{opacity:.6}}
+@keyframes talk { 0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+
+/* Resume Score Circle Styles */
+.score-circle {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: conic-gradient(#10b981 var(--score, 0%), #334155 0%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin: 0 auto;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  transition: --score 1s ease-out;
+}
+
+.score-circle::before {
+  content: "";
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: #203047;
+}
+
+.score-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.score-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 5px;
+}
+
+/* Chat Styles */
+.chat { display: flex; flex-direction: column; gap: 0.5rem; }
+.msg { max-width: 75%; display: flex; }
+.msg.left { align-self: flex-start; justify-content: flex-start; }
+.msg.right { align-self: flex-end; justify-content: flex-end; }
+.bubble {
+  background: #1a263b;
+  color: #eef3ff;
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.msg.right .bubble { background: #2563eb; color: #fff; }
+
+/* Pagination & UI Controls */
+.pagination-input {
+  width: 35px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 0 !important;
+  font-size: 0.75rem !important;
+}
+
+/* Camera Preview Container */
+.camera-preview-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 280px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 1050;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease;
+}
+
+.camera-header {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#interviewVideo {
+  width: 100%;
+  height: auto;
+  display: block;
+  transform: scaleX(-1); /* Mirror effect */
+}
+
+@media (max-width: 576px) {
+  .camera-preview-container {
+    width: 160px;
+    top: 70px;
+    right: 15px;
+  }
+  .camera-header span:first-child {
+    display: none;
+  }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s ease-out forwards;
+}
+
+.feature-card {
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+  cursor: pointer;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+  border-color: #2563eb !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  background: rgba(42, 59, 88, 0.8);
+}
+
+.hero-gradient {
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.15), transparent 50%),
+              radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.1), transparent 50%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Session Timer Style */
+.session-timer-badge {
+  position: fixed;
+  top: 57px; /* Moved slightly up from 85px */
+  left: 5px;
+  z-index: 9999; /* Max z-index */
+  background: rgba(30, 41, 59, 0.8);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 10px;
+  color: #f8fafc;
+  font-family: monospace;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.timer-critical {
+  color: #ef4444;
+  animation: pulse-red 1s infinite;
+}
+
+@keyframes pulse-red {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.whitespace-nowrap { white-space: nowrap; }
+
+/* Admin Panel Styles */
+.admin-status-select-modern {
+  width: auto !important;
+  min-width: 140px;
+  font-weight: 600;
+  border-radius: 10px !important;
+  background-color: #1e293b !important;
+  color: #f59e0b !important;
+  border: 1.5px solid #f59e0b !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23f59e0b'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.5rem !important;
+}
+
+.admin-status-select-modern:hover {
+  background-color: #24334d !important;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+  transform: translateY(-1px);
+}
+
+.admin-status-select-modern:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.25rem rgba(245, 158, 11, 0.25) !important;
+  border-color: #fbbf24 !important;
+}
+
+.admin-status-select {
+  width: auto !important;
+  min-width: 130px;
+  font-weight: 600;
+  text-transform: capitalize;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+
+.admin-status-select:focus {
+  box-shadow: 0 0 0 0.25rem rgba(245, 158, 11, 0.25) !important;
+  border-color: #f59e0b !important;
+}
+
+.admin-text-preview {
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-status-pending { color: #f59e0b !important; border-color: rgba(245, 158, 11, 0.5) !important; background-color: rgba(245, 158, 11, 0.1) !important; }
+.admin-status-approved { color: #10b981 !important; border-color: rgba(16, 185, 129, 0.5) !important; background-color: rgba(16, 185, 129, 0.1) !important; }
+.admin-status-rejected { color: #ef4444 !important; border-color: rgba(239, 68, 68, 0.5) !important; background-color: rgba(239, 68, 68, 0.1) !important; }
+
+.admin-table-fixed {
+  table-layout: auto !important; /* Back to auto for content-based scaling */
+  width: 100%;
+}
+
+.admin-table-fixed th,
+.admin-table-fixed td {
+  vertical-align: top !important;
+  padding: 1rem 0.75rem !important;
+}
+
+.admin-filename-column { min-width: 150px; }
+.admin-status-column { width: 90px; }
+.admin-tags-column { min-width: 300px; width: 50%; } /* Increased width and flex for tags */
+.admin-created-column { width: 180px; } /* Slightly smaller date column */
+.admin-notes-column { width: auto; }
+.admin-actions-column { 
+  width: 120px; 
+  vertical-align: top;
+  padding-top: 1.25rem !important;
+}
+
+.admin-tags-container {
+  width: 100%;
+  max-height: none; /* Removed fixed height to show all tags */
+  overflow-y: visible; /* Removed scrollbar */
+  word-wrap: break-word;
+}
+
+.admin-tags-container .badge {
+  font-size: 0.75rem; /* Slightly larger for readability */
+  padding: 0.25rem 0.5rem;
+  margin: 2px !important;
+  display: inline-block;
+}
+
+.admin-notes-cell {
+  min-width: 200px;
+}
+
+.admin-notes-textarea {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  font-size: 0.85rem !important;
+  color: #f1f5f9 !important;
+  padding: 8px !important;
+  resize: vertical; /* Allow vertical resizing */
+  line-height: 1.4;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.admin-notes-cell .admin-notes-textarea {
+  max-width: 300px; /* Only limit width when inside the table */
+  resize: none;
+}
+
+.admin-notes-textarea:focus {
+  background: rgba(15, 23, 42, 0.5) !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 0.25rem rgba(245, 158, 11, 0.15) !important;
+  color: #fff !important;
+}
+
+.admin-notes-textarea[readonly] {
+  color: #94a3b8 !important;
+  cursor: default;
+}
+
+.auto-expand-textarea {
+  overflow-y: auto !important;
+  resize: none;
+  min-height: 45px;
+  max-height: 200px;
+  transition: height 0.1s ease-out;
+}
+
+.admin-pagination-input {
+  width: 40px !important;
+  flex: none !important;
+}
+
+.admin-refresh-btn {
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+/* Utility Classes */
+.step-number {
+  width: 24px;
+  height: 24px;
+}
+
+/* Dashboard Specific Styles */
+.dashboard-card {
+  max-width: 650px;
+  border-radius: 24px !important;
+}
+
+/* Interviewer Icon Animations */
+.icon-thinking {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.icon-speaking {
+  animation: wave 1s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.7; }
+}
+
+@keyframes wave {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(-3px); }
+  75% { transform: translateY(3px); }
+  100% { transform: translateY(0); }
+}
+
+.interviewer-icon-container {
+  width: 64px !important;
+  height: 64px !important;
+  min-width: 64px !important;
+  min-height: 64px !important;
+  flex-shrink: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  aspect-ratio: 1 / 1 !important;
+  overflow: hidden;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+.interviewer-icon-container i {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.reset-info-text {
+  font-size: 0.75rem;
+}
+
+.sticky-header-container {
+  background-color: #1e293b !important; /* Solid dark blue/slate background */
+  z-index: 100;
+  padding: 1rem !important; /* Internal padding instead of parent padding */
+  margin-bottom: 0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.interview-transcript-container {
+  max-height: 600px;
+  overflow-y: scroll !important; /* Force scroll bar visibility */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar for better visibility */
+.interview-transcript-container::-webkit-scrollbar {
+  width: 8px;
+}
+.interview-transcript-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+.interview-transcript-container::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.3);
+  border-radius: 4px;
+}
+.interview-transcript-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.5);
+}
+
+.chat {
+  padding: 1rem;
+}
+
+/* Auto-expanding textarea styling */
+.auto-expand-textarea {
+  resize: none;
+  overflow-y: hidden;
+  min-height: 45px;
+  max-height: 150px;
+  transition: height 0.1s ease;
+  line-height: 1.5;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.question-limit-select {
+  width: 80px;
+}
+
+/* Form switch cursor */
+.form-check-input, .form-check-label, .custom-switch {
+  cursor: pointer !important;
+}
+
+.custom-switch .form-check-input:hover, 
+.custom-switch .form-check-label:hover {
+  cursor: pointer !important;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Score Visuals for Interview Readiness */
+.readiness-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.readiness-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 8px solid #334155;
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: radial-gradient(circle, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 1) 100%);
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.readiness-circle::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(from 0deg, transparent, rgba(255,255,255,0.03), transparent 30%);
+  animation: rotate 10s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.readiness-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+.feedback-box {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.95)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(25px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+}
+
+.score-high { border-color: #059669 !important; color: #10b981; text-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+
+.password-strength-progress {
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.password-criteria-list {
+  background-color: rgba(255, 255, 255, 0.05) !important; /* Slightly lighter glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-weight: 700; /* Bold text */
+}
+
+.password-criteria-list li {
+  transition: color 0.3s ease;
+}
+
+.transition-all {
+  transition: all 0.3s ease;
+}
+.score-medium { border-color: #d97706 !important; color: #f59e0b; text-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+.score-low { border-color: #dc2626 !important; color: #ef4444; text-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+.score-na { border-color: #475569 !important; color: #94a3b8; text-shadow: none; }
+
+.max-w-600 {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.upload-zone-area {
+  min-height: 180px;
+  background: #1e293b !important; /* Slightly lighter solid background to improve visibility */
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: 2px dashed rgba(59, 130, 246, 0.6) !important;
+  position: relative;
+  z-index: 5;
+}
+
+.upload-zone-area h6 {
+  color: #ffffff !important; /* Pure white for maximum contrast */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.upload-zone-area .text-secondary {
+  color: #cbd5e1 !important; /* Brighter gray for better readability */
+}
+
+.upload-zone-area .bg-primary.bg-opacity-10 {
+  background-color: rgba(37, 99, 235, 0.3) !important; /* More solid icon background */
+}
+
+.file-name-text {
+  max-width: 100%;
+  word-break: break-all;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.file-ready-text {
+  font-size: 0.7rem;
+}
+
+.feedback-header {
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.feedback-subtitle {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* --- Resume Builder Specific Styles --- */
+.builder-card { 
+  background: rgba(32, 48, 71, 0.6); 
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.05); 
+  color: #f5f7fa;
+  height: calc(150vh - 150px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.builder-card .nav-pills {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(32, 48, 71, 0.95);
+  margin: 0 !important;
+  padding: 15px 15px 10px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.builder-card .tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  /* Standard thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.builder-card .tab-content::-webkit-scrollbar {
+  width: 5px;
+}
+.builder-card .tab-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.resume-preview-container {
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    height: calc(140vh - 100px); /* Increased height to make it taller */
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: sticky;
+    top: 20px;
+    width: 100%;
+    box-shadow: none;
+    display: flex;
+    justify-content: center; /* Centered within its column */
+}
+
+/* Custom Scrollbar for Preview Container */
+.resume-preview-container::-webkit-scrollbar {
+    width: 5px;
+}
+.resume-preview-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+#resume-template {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto; /* Horizontal centering */
+    background: white !important;
+    padding: 20mm;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    color: #333 !important;
+    line-height: 1.4;
+    font-size: 10pt;
+    border: none;
+    transform-origin: top center; /* Centered scaling */
+}
+
+/* Scaling the resume template to fit on standard laptop and PC screens */
+@media (min-width: 992px) {
+    #resume-template {
+        transform: scale(0.7); /* Slightly smaller to leave more breathing room */
+        margin-bottom: -90mm;   
+    }
+}
+
+@media (min-width: 1400px) {
+    #resume-template {
+        transform: scale(1.0);  /* Maintain A4 feel but tiny bit smaller */
+        margin-bottom: -40mm;
+    }
+}
+
+.resume-header { border-bottom: 2px solid #2c3e50; padding-bottom: 15px; margin-bottom: 15px; }
+.resume-name { font-size: 19pt !important; font-weight: bold; color: #2c3e50 !important; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; overflow-wrap: break-word; word-break: break-word; }
+
+@media (max-width: 767.98px) {
+    .resume-builder-actions {
+        flex-direction: column;
+        align-items: stretch !important;
+        width: 100%;
+    }
+
+    .resume-builder-actions .btn,
+    .resume-builder-actions .dropdown {
+        width: 100%;
+    }
+}
+
+.icon-speaking, .icon-thinking {
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
+}
+
+.icon-thinking {
+    animation-name: thinking-pulse;
+}
+
+@keyframes thinking-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.icon-speaking {
+    animation-name: speaking-pulse;
+}
+
+@keyframes speaking-pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+.robot-container i {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.robot-container .bi-robot {
+    animation: blink 4s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+    52% { opacity: 0.2; }
+    54% { opacity: 1; }
+}
+
+/* --- Kendall Theme --- */
+.theme-kendall .resume-name {
+    font-family: 'Garamond', serif;
+    font-weight: bold;
+    text-align: center;
+    letter-spacing: 4px;
+    font-size: 24pt;
+}
+.theme-kendall .section-title {
+    font-family: 'Garamond', serif;
+    text-align: center;
+    font-size: 14pt;
+    letter-spacing: 2px;
+    border-top: 1px solid #000;
+    border-bottom: 1px solid #000;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    margin-top: 15px;
+}
+
+/* --- Flat/Modern Theme --- */
+.theme-flat {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+.theme-flat .section-title {
+    background-color: #f2f2f2;
+    padding: 5px 10px;
+    font-size: 12pt;
+    font-weight: bold;
+    border-left: 4px solid #333;
+}
+.theme-flat .item-header span:first-child {
+    font-weight: bold;
+}
+
+/* --- Government-Standard Theme --- */
+.theme-gov {
+    font-family: 'Times New Roman', Times, serif;
+}
+.theme-gov .resume-name {
+    font-size: 18pt;
+    font-weight: bold;
+}
+.theme-gov .section-title {
+    font-weight: bold;
+    border-bottom: 2px solid #000;
+    padding-bottom: 2px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+.theme-gov .item-header {
+    font-weight: normal;
+}
+.theme-gov .item-header span:first-child {
+    font-weight: bold;
+}
+
+/* --- Classic Theme (Serif) --- */
+.theme-classic {
+    font-family: 'Times New Roman', Times, serif;
+}
+
+.theme-classic .resume-header {
+    border-bottom-color: #333;
+}
+
+.theme-classic .resume-name {
+    color: #333 !important;
+}
+
+.theme-classic .section-title {
+    border-bottom-color: #ccc;
+    color: #333;
+}
+
+/* --- Modern Theme (Sans-Serif) --- */
+.theme-modern {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.theme-modern .resume-header {
+    border-bottom-color: #007BFF;
+}
+
+.theme-modern .resume-name {
+    color: #007BFF !important;
+    letter-spacing: 1px;
+}
+
+.theme-modern .section-title {
+    border-bottom: 2px solid #007BFF;
+    color: #333;
+    text-transform: uppercase;
+    font-size: 13pt;
+}
+
+.theme-modern .item-header span:first-child {
+    color: #007BFF;
+}
+#resume-template {
+  font-family: 'Times New Roman', Times, serif; /* Standard, ATS-friendly font */
+  color: #333;
+}
+
+.resume-header {
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.resume-name {
+  font-size: 22pt !important; /* Larger, clear name */
+  font-weight: bold;
+  color: #333 !important;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.resume-title {
+  font-size: 12pt;
+  color: #555;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.resume-contact {
+  font-size: 10pt;
+  color: #444;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.section-title {
+  font-size: 14pt;
+  font-weight: bold;
+  color: #333;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 5px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.resume-item {
+  margin-bottom: 15px;
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  font-size: 11pt;
+}
+
+.item-sub {
+  font-style: italic;
+  color: #555;
+  font-size: 10pt;
+  margin-bottom: 5px;
+}
+
+.item-desc {
+  font-size: 10pt;
+  line-height: 1.4;
+  color: #444;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.skill-group-title {
+  font-weight: bold;
+  font-size: 11pt;
+  margin-bottom: 5px;
+}
+
+.skills-list {
+  font-size: 10pt;
+  color: #444;
+}
+
+.cert-lang-item {
+  font-size: 10pt;
+  color: #444;
+}
+
+.offline-toast {
+  position: fixed;
+  bottom: -100px; /* Start off-screen */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  z-index: 10000;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: bottom 0.3s ease-in-out;
+}
+
+.offline-toast.visible {
+  bottom: 20px; /* Slide in */
+}
+.offline-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+/* Tauri Navigation Bar */
+.tauri-nav-bar {
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  padding: 4px 12px;
+  height: 38px;
+  position: sticky;
+  top: 0;
+  z-index: 10000;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-app-region: drag; /* Chrome/Tauri */
+}
+
+.tauri-nav-controls {
+  display: flex;
+  gap: 4px;
+  margin-right: 16px;
+  -webkit-app-region: no-drag;
+}
+
+.tauri-nav-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #495057;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.tauri-nav-btn:hover {
+  background: #e9ecef;
+  color: #212529;
+}
+
+.tauri-nav-btn:active {
+  background: #dee2e6;
+}
+
+.tauri-nav-title {
+  font-size: 13px;
+  color: #6c757d;
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 80px; /* Offset for symmetry with controls */
+}
+.offline-card {
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 20px 24px;
+  text-align: center;
+  color: #fff;
+  width: min(420px, 92%);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.offline-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+.offline-title {
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.offline-desc {
+  font-size: 14px;
+  color: #b5b5b5;
+  margin-bottom: 10px;
+}
+.resume-title { font-size: 11pt; color: #555; font-weight: 500; margin-bottom: 8px; overflow-wrap: break-word; word-break: break-word; }
+.resume-contact { font-size: 9pt; color: #666; display: flex; gap: 12px; flex-wrap: wrap; }
+
+.section-title { 
+    font-size: 11pt; 
+    font-weight: bold; 
+    color: #2c3e50; 
+    text-transform: uppercase; 
+    border-bottom: 1px solid #ddd; 
+    margin-top: 18px; 
+    margin-bottom: 8px;
+    padding-bottom: 3px;
+    letter-spacing: 0.5px;
+}
+.resume-item { margin-bottom: 12px; }
+.cert-lang-item { margin-top: 2px !important; }
+.item-header { display: flex; justify-content: space-between; font-weight: 600; font-size: 10pt; }
+.item-sub { font-style: italic; color: #555; font-size: 9.5pt; }
+.item-desc { margin-top: 4px; font-size: 9.5pt; white-space: pre-line; color: #444 !important; }
+
+.skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 5px; }
+.skill-group-title { font-weight: bold; font-size: 9pt; color: #555; margin-bottom: 2px; }
+.skills-list { font-size: 9.5pt; color: #444; }
+
+.builder-card .nav-pills .nav-link { 
+    color: rgba(255, 255, 255, 0.7); 
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 5px;
+}
+.builder-card .nav-pills .nav-link.active { 
+    background-color: var(--bs-primary); 
+    color: white; 
+}
+.builder-card .nav-pills .nav-link:hover:not(.active) {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.builder-card .form-control, 
+.builder-card .form-select {
+    background-color: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+.builder-card .form-control:focus, 
+.builder-card .form-select:focus {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: var(--bs-primary);
+    color: white;
+}
+.builder-card .form-label { color: rgba(255, 255, 255, 0.8); font-size: 0.85rem; font-weight: 600; }
+
+.btn-xs { padding: 0.2rem 0.4rem; font-size: 0.75rem; }
+
+/* --- Mobile Responsiveness for Resume Builder --- */
+@media (max-width: 1200px) {
+    .resume-preview-container {
+        height: auto;
+        max-height: 80vh; /* Better responsive height */
+        margin-top: 20px;
+        position: relative;
+        top: 0;
+        overflow: auto !important; /* Allow both X and Y scrolling */
+        display: flex; /* Flex layout to center content */
+        justify-content: center; /* Center horizontally */
+        align-items: flex-start; /* Start from top */
+        padding: 20px;
+        background: rgba(0,0,0,0.2);
+        border-radius: 12px;
+    }
+    
+    #resume-template {
+        transform: scale(0.8); /* Overview size */
+        transform-origin: top center;
+        margin: 0; /* Center handled by flex container */
+        margin-bottom: -60mm;
+        flex-shrink: 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+}
+
+@media (max-width: 992px) {
+    #resume-template {
+        transform: scale(0.75);
+        margin-bottom: -75mm;
+    }
+}
+
+@media (max-width: 768px) {
+    .resume-preview-container {
+        padding: 15px;
+        max-height: 70vh;
+        justify-content: center; /* Explicitly centered */
+    }
+    #resume-template {
+        transform: scale(0.65);
+        margin-bottom: -105mm;
+    }
+}
+
+@media (max-width: 576px) {
+    #resume-template {
+        transform: scale(0.6);
+        margin-bottom: -120mm;
+    }
+}
+
+@media (max-width: 480px) {
+    #resume-template {
+        transform: scale(0.55);
+        margin-bottom: -135mm;
+    }
+}
+
+@media (max-width: 380px) {
+    #resume-template {
+        transform: scale(0.5);
+        margin-bottom: -150mm;
+    }
+}
+
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+
+.glass-card {
+  background: rgba(32, 48, 71, 0.6) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.glass-card-dark {
+  background: rgba(15, 23, 42, 0.5) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.history-filter-group {
+  border-radius: 12px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.history-filter-group:hover {
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.1) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.history-filter-group:active {
+  transform: translateY(0);
+  background: rgba(37, 99, 235, 0.2) !important;
+}
+
+.history-filter-group .input-group-text,
+.history-filter-group select,
+.history-filter-group i {
+  cursor: pointer !important;
+}
+
+.interview-transcript-container {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  padding-right: 10px !important;
+}
+
+.history-sort-select {
+  box-shadow: none !important;
+  cursor: pointer !important;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.5rem !important;
+}
+
+/* Interview UI Components */
+.voice-label { font-size: 0.7rem; }
+.voice-btn { font-size: 0.7rem; }
+.feedback-text { line-height: 1.6; font-style: italic; }
+.feedback-box-max { max-width: 600px; }
+.sticky-header-container { 
+  z-index: 10; 
+  margin: -1rem -1rem 1rem -1rem; 
+  padding: 1rem 1rem 0.75rem 1rem; 
+}
+.interviewer-avatar { width: 35px; height: 35px; }
+
+/* --- Device-specific Visibility --- */
+/* Hide the admin portal button on devices smaller than a 14-inch laptop.
+   We use 1920px as the threshold to exclude tablets and smaller laptops. */
+@media (max-width: 1450px) {
+  .admin-portal-btn {
+    display: none !important;
+  }
+}
+
+/* --- Sidebar Hamburger Menu (Mobile Only) --- */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  z-index: 1040;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.sidebar-overlay.active {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.mobile-sidebar {
+  position: fixed;
+  top: 0;
+  left: -280px;
+  width: 280px;
+  height: 100%;
+  background: #0f172a;
+  z-index: 1050;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+}
+
+.mobile-sidebar.active {
+  left: 0 !important;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  border-radius: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.sidebar-link:hover, .sidebar-link.active {
+  background: rgba(37, 99, 235, 0.1);
+  color: #3b82f6;
+}
+
+/* Coach Tips */
+.manual-builder-btn {
+  position: relative;
+  z-index: 10;
+}
+
+.coach-tip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 193, 7, 0.05);
+  border-radius: 4px;
+}
+
+.coach-tip i {
+  font-size: 0.9rem;
+}
+
+.sidebar-link i {
+  font-size: 1.25rem;
+}
+
+.hamburger-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+@media (max-width: 1199px) {
+  .hamburger-btn {
+    display: block;
+  }
+  .glass-nav .container .d-flex.gap-1 {
+    display: none !important;
+  }
+}
+
+.interviewer-label { font-size: 0.75rem; line-height: 1; }
+.interviewer-status { font-size: 0.75rem; opacity: 0.8; max-width: 80px; }
+.question-badge { font-size: 0.7rem; }
+/* Job Search Page Styles */
+.job-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+}
+.job-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    background: rgba(255,255,255,0.08);
+}
+.job-description {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Careerjet Widget Customization */
+.cj-widget-wrapper {
+    background: rgba(30, 41, 59, 0.7) !important; /* Darker background (Slate 800) */
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 1px;
+    box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 1.5rem;
+    color: #f8fafc !important; /* Light text for dark background */
+    transition: all 0.3s ease;
+}
+
+.cj-widget-wrapper:hover {
+    box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.6);
+    background: rgba(30, 41, 59, 0.85) !important;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Ensure the widget contents blend with our dark wrapper */
+#job-box-container .cj-job-box, 
+.cj-search-box-wrapper .cj-search-box {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Target internal Careerjet elements to ensure text is visible on dark background */
+#job-box-container .cj-job-box *, 
+.cj-search-box-wrapper .cj-search-box * {
+    color: #f8fafc !important;
+    background-color: transparent !important;
+}
+
+/* Specific styling for links inside the widget to make them pop on dark bg */
+#job-box-container .cj-job-box a {
+    color: #60a5fa !important; /* Brighter blue for links */
+    text-decoration: none;
+}
+
+#job-box-container .cj-job-box a:hover {
+    color: var(--accent-primary-aa) !important;
+    text-decoration: underline;
+}
+ :root {
+   --bg-dark: #0f172a;
+   --text-secondary-aa: #cbd5e1;
+   --accent-primary-aa: #60a5fa;
+   --accent-info-aa: #22d3ee;
+ }
+ 
+ .loader-text {
+   color: var(--text-secondary-aa);
+ }
+ 
+.text-secondary {
+  color: var(--text-secondary-aa) !important;
+}
+ 
+ .history-panel-bg { background-color: rgba(15, 23, 42, 0.8) !important; }
+ .history-details-bg { background-color: rgba(15, 23, 42, 0.8) !important; }
+ .transcript-list { max-height: 400px; overflow-y: auto; }
+ .question-title { color: var(--accent-info-aa); }
+ .readiness-box-primary { background-color: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.2); }
+ .readiness-score-glow { text-shadow: 0 0 15px rgba(34, 211, 238, 0.4); }
+ .readiness-box-secondary { background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
+ .readiness-mini-label { font-size: 0.7rem; letter-spacing: 0.05em; }
+ .feedback-section { background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); }
+ .feedback-mini-label { font-size: 0.7rem; letter-spacing: 0.05em; }
+ .feedback-text { font-size: 0.85rem; opacity: 0.9; white-space: pre-wrap; }
+ .feedback-note { font-size: 0.7rem; opacity: 0.5; }
+
+.otp-visual {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  padding: 12px;
+  background: #1a263b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+}
+
+.otp-visual:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+.btn-overlay-trigger {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.otp-box {
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #eef3ff;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.otp-visual:hover .otp-box {
+  border-color: rgba(13, 110, 253, 0.5);
+  background: rgba(13, 110, 253, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.otp-placeholder {
+  opacity: 0.25;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.otp-input-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  outline: none;
+}
+
+
+old resume_builder.html file
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resume Builder - ICP</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+  <script>
+    if (!localStorage.getItem("token") || localStorage.getItem("token") === "undefined" || localStorage.getItem("token") === "null") {
+      window.location.href = '/static/pages/login.html';
+    }
+  </script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <script src="/static/js/app.js"></script>
+</head>
+<body class="auth-page">
+  <div id="app" v-cloak>
+
+  <!-- Page Loader -->
+  <div id="global-loader" class="page-loader" v-if="isLoading" role="status" aria-live="polite" aria-atomic="true">
+    <div class="loader-spinner"></div>
+    <div class="loader-text">Preparing Resume Builder...</div>
+  </div>
+
+  <nav class="navbar navbar-dark glass-nav">
+    <div class="container d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-3">
+        <button class="hamburger-btn d-xl-none me-2" onclick="window.handleMobileMenu()" title="Toggle navigation menu">
+          <i class="bi bi-list"></i>
+        </button>
+        <a class="navbar-brand fw-bold fs-4 mb-0 me-0" href="/">
+          <span class="text-primary">I</span>CP
+        </a>
+        <div class="d-flex gap-1 d-none d-xl-flex">
+          <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/dashboard.html" title="Go to Dashboard">Dashboard</a>
+          <a class="btn btn-primary btn-sm px-2" href="/static/pages/resume_builder.html" title="Create your professional resume">Resume Builder</a>
+          <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/find-jobs.html" title="Search for job opportunities">Search Job</a>
+          <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/history.html" title="View your past sessions">View History</a>
+          <a class="btn btn-outline-light btn-sm px-2" href="/static/pages/interview.html" title="Start a mock interview">Mock Interview</a>
+        </div>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <!-- Web Account Dropdown -->
+        <div class="dropdown d-none d-xl-inline-block" v-if="logged">
+          <button class="btn btn-outline-light btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle me-1"></i>
+            Account
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 glass-card mt-2 dropdown-menu-wide">
+            <li class="px-3 py-2 dropdown-item-profile">
+              <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
+              <div class="text-white fw-semibold text-break">{{ userName }}</div>
+                <div class="text-secondary small text-break">{{ userEmail }}</div>
+              </li>
+              <li><hr class="dropdown-divider bg-light opacity-25"></li>
+              <li><a class="dropdown-item text-danger small" href="#" @click.prevent="logout">Logout</a></li>
+            </ul>
+          </div>
+          
+          <span class="text-secondary d-none d-xl-inline-block mx-1" v-if="logged">|</span>
+          
+          <button class="btn btn-outline-danger btn-sm px-2 d-none d-xl-inline-block" @click="logout()" v-if="logged" title="Logout">
+            <span>Logout</span>
+          </button>
+        </div>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-1 px-md-2 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 px-2 flex-wrap">
+            <div>
+                <h2 class="text-white fw-bold mb-0">Profile Crafter</h2>
+                <p class="text-white-50 small mb-0">Build your resume with ATS-friendly themes.</p>
+            </div>
+            <div class="d-flex align-items-center gap-2 resume-builder-actions mt-2 mt-md-0">
+                <div class="dropdown">
+                    <button class="btn btn-outline-light dropdown-toggle" type="button" id="themeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-palette-fill me-1"></i> Theme: {{ currentTheme.name }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="themeDropdown">
+                        <li v-for="theme in themes"><a class="dropdown-item" href="#" @click.prevent="setTheme(theme)">{{ theme.name }}</a></li>
+                    </ul>
+                </div>
+                <button @click="downloadPDF" class="btn btn-primary shadow-sm" title="Download your resume as a professional PDF">
+                    <i class="bi bi-file-earmark-pdf-fill me-2"></i> Download PDF
+                </button>
+            </div>
+        </div>
+
+    <div class="row g-0 justify-content-evenly">
+        <!-- Form Column -->
+        <div class="col-xl-5">
+            <div class="mb-3 px-2 text-center">
+                    <h5 class="text-white fw-bold mb-0 text-decoration-underline">Resume Information</h5>
+                </div>
+            <div class="builder-card">
+                <ul class="nav nav-pills gap-1 justify-content-center" id="pills-tab" role="tablist">
+                    <li class="nav-item" role="presentation"><button class="nav-link active" id="pills-basics-tab" data-bs-toggle="pill" data-bs-target="#tab-basics" type="button" role="tab" aria-controls="tab-basics" aria-selected="true" title="Basic Personal Information">Basics</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-edu-tab" data-bs-toggle="pill" data-bs-target="#tab-edu" type="button" role="tab" aria-controls="tab-edu" aria-selected="false" title="Educational Background">Education</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-exp-tab" data-bs-toggle="pill" data-bs-target="#tab-exp" type="button" role="tab" aria-controls="tab-exp" aria-selected="false" title="Work Experience">Experience</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-projects-tab" data-bs-toggle="pill" data-bs-target="#tab-projects" type="button" role="tab" aria-controls="tab-projects" aria-selected="false" title="Key Projects and Portfolio">Projects</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-skills-tab" data-bs-toggle="pill" data-bs-target="#tab-skills" type="button" role="tab" aria-controls="tab-skills" aria-selected="false" title="Technical and Soft Skills">Skills</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-others-tab" data-bs-toggle="pill" data-bs-target="#tab-others" type="button" role="tab" aria-controls="tab-others" aria-selected="false" title="Certifications and Languages">Others</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-extra-tab" data-bs-toggle="pill" data-bs-target="#tab-extra" type="button" role="tab" aria-controls="tab-extra" aria-selected="false" title="Additional Information">Extra</button></li>
+                </ul>
+
+                <div class="tab-content" id="pills-tabContent">
+                    <!-- Basics Tab -->
+                    <div class="tab-pane fade show active" id="tab-basics" role="tabpanel" aria-labelledby="pills-basics-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Your Profile</h6>
+                        </div>
+                        <div class="card mb-3 bg-dark border-secondary">
+                            <div class="card-body p-3">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label for="resume-name" class="form-label">Full Name</label>
+                                        <input id="resume-name" v-model="resume.name" type="text" class="form-control" title="Enter your full name" placeholder="Full Name" maxlength="50">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="resume-title" class="form-label">Title</label>
+                                        <input id="resume-title" v-model="resume.title" type="text" class="form-control" title="Enter your professional title" placeholder="e.g., Software Engineer" maxlength="70">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="resume-email" class="form-label">Email</label>
+                                        <input id="resume-email" v-model="resume.email" type="email" class="form-control" title="Enter your contact email" placeholder="Email Address" maxlength="50">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="resume-phone" class="form-label">Phone</label>
+                                        <input id="resume-phone" v-model="resume.phone" type="text" class="form-control" title="Enter your phone number" placeholder="Phone Number" maxlength="20">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="resume-location" class="form-label">Location</label>
+                                        <input id="resume-location" v-model="resume.location" type="text" class="form-control" title="Enter your location (City, Country)" placeholder="City, Country" maxlength="100">
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="resume-website" class="form-label">Website</label>
+                                        <input id="resume-website" v-model="resume.website" type="text" class="form-control" title="Enter your portfolio or LinkedIn URL" placeholder="URL" maxlength="70">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="resume-summary" class="form-label">Summary</label>
+                                        <textarea id="resume-summary" v-model="resume.summary" class="form-control" rows="4" title="Write a short professional summary" placeholder="Briefly describe your professional background" maxlength="250"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Education Tab -->
+                    <div class="tab-pane fade" id="tab-edu" role="tabpanel" aria-labelledby="pills-edu-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Education History</h6>
+                            <button @click="addItem('education')" class="btn btn-xs btn-outline-primary" title="Add new education entry">+ Add</button>
+                        </div>
+                        <div v-for="(edu, index) in resume.education" :key="index" class="card mb-3 bg-dark border-secondary">
+                            <div class="card-body p-3 position-relative">
+                                <button @click="removeItem('education', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this education entry"></button>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label :for="'edu-school-'+index" class="form-label">Institution</label>
+                                        <input :id="'edu-school-'+index" v-model="edu.school" type="text" class="form-control" title="Enter school or university name" placeholder="Institution Name" maxlength="60">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'edu-degree-'+index" class="form-label">Degree</label>
+                                        <input :id="'edu-degree-'+index" v-model="edu.degree" type="text" class="form-control" title="Enter degree or certification" placeholder="Degree / Course" maxlength="100">
+                                    </div>
+                                    <div class="col-6">
+                                        <label :for="'edu-location-'+index" class="form-label">Location</label>
+                                        <input :id="'edu-location-'+index" v-model="edu.location" type="text" class="form-control" title="Enter school location" placeholder="e.g., City, Country" maxlength="30">
+                                    </div>
+                                    <div class="col-6">
+                                        <label :for="'edu-date-'+index" class="form-label">Dates</label>
+                                        <input :id="'edu-date-'+index" v-model="edu.date" type="text" class="form-control" title="Enter period of study" placeholder="e.g., 2020 - 2024" maxlength="20">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'edu-gpa-'+index" class="form-label">Grade</label>
+                                        <input :id="'edu-gpa-'+index" v-model="edu.gpa" type="text" class="form-control" title="Enter GPA or Grade" placeholder="Grade / GPA" maxlength="20">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0">Key Achievements / Bullets</label>
+                                            <button @click="addBullet('education', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                        </div>
+                                        <div v-for="(bullet, bIndex) in edu.bullets" :key="bIndex" class="bullet-input-wrapper">
+                                            <div class="input-group input-group-sm">
+                                                <textarea v-model="edu.bullets[bIndex]" class="form-control" rows="2" placeholder="Start with an action verb..." title="Enter a bullet point for your education" maxlength="250"></textarea>
+                                                <button @click="removeBullet('education', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                            <div v-if="getGuidance(edu.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(edu.bullets[bIndex]) }}</div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <label class="form-label small">Action Verb Suggestions:</label>
+                                            <div class="action-verbs-list">
+                                                <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('education', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Experience Tab -->
+                    <div class="tab-pane fade" id="tab-exp" role="tabpanel" aria-labelledby="pills-exp-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Work Experience</h6>
+                            <button @click="addItem('experience')" class="btn btn-xs btn-outline-primary" title="Add new work experience entry">+ Add</button>
+                        </div>
+                        <div v-for="(exp, index) in resume.experience" :key="index" class="card mb-3 bg-dark border-secondary">
+                            <div class="card-body p-3 position-relative">
+                                <button @click="removeItem('experience', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this work experience entry"></button>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label :for="'exp-company-'+index" class="form-label">Company</label>
+                                        <input :id="'exp-company-'+index" v-model="exp.company" type="text" class="form-control" title="Enter company name" placeholder="Company Name" maxlength="70">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'exp-position-'+index" class="form-label">Position</label>
+                                        <input :id="'exp-position-'+index" v-model="exp.position" type="text" class="form-control" title="Enter your job title" placeholder="Job Title" maxlength="80">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'exp-date-'+index" class="form-label">Dates</label>
+                                        <input :id="'exp-date-'+index" v-model="exp.date" type="text" class="form-control" title="Enter employment period" placeholder="e.g., Jan 2022 - Present" maxlength="50">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0">Key Achievements / Bullets</label>
+                                            <button @click="addBullet('experience', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                        </div>
+                                        <div v-for="(bullet, bIndex) in exp.bullets" :key="bIndex" class="bullet-input-wrapper">
+                                            <div class="input-group input-group-sm">
+                                                <textarea v-model="exp.bullets[bIndex]" class="form-control" rows="2" placeholder="Start with an action verb..." title="Enter a bullet point for your work experience" maxlength="250"></textarea>
+                                                <button @click="removeBullet('experience', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
+                                            </div>
+                                            <div v-if="getGuidance(exp.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(exp.bullets[bIndex]) }}</div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <label class="form-label small">Action Verb Suggestions:</label>
+                                            <div class="action-verbs-list">
+                                                <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('experience', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Projects Tab -->
+                    <div class="tab-pane fade" id="tab-projects" role="tabpanel" aria-labelledby="pills-projects-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Key Projects</h6>
+                            <button @click="addItem('projects')" class="btn btn-xs btn-outline-primary" title="Add new project entry">+ Add</button>
+                        </div>
+                        <div v-for="(proj, index) in resume.projects" :key="index" class="card mb-3 bg-dark border-secondary">
+                            <div class="card-body p-3 position-relative">
+                                <button @click="removeItem('projects', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this project entry"></button>
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <label :for="'proj-name-'+index" class="form-label">Project Name</label>
+                                        <input :id="'proj-name-'+index" v-model="proj.name" type="text" class="form-control" title="Enter project name" placeholder="Project Name" maxlength="100">
+                                    </div>
+                                    <div class="col-12">
+                                        <label :for="'proj-tech-'+index" class="form-label">Tech Stack</label>
+                                        <input :id="'proj-tech-'+index" v-model="proj.tech" type="text" class="form-control" title="Enter technologies used" placeholder="e.g., Vue.js, Python, MongoDB" maxlength="100">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label mb-0">Description / Bullets</label>
+                                            <button @click="addBullet('projects', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                        </div>
+                                        <div v-for="(bullet, bIndex) in proj.bullets" :key="bIndex" class="bullet-input-wrapper">
+                                             <div class="input-group input-group-sm">
+                                                 <textarea v-model="proj.bullets[bIndex]" class="form-control" rows="2" placeholder="Describe the project or a key achievement..." title="Enter a bullet point for your project" maxlength="250"></textarea>
+                                                 <button @click="removeBullet('projects', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
+                                             </div>
+                                             <div v-if="getGuidance(proj.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(proj.bullets[bIndex]) }}</div>
+                                         </div>
+                                         <div class="mt-1">
+                                             <label class="form-label small">Action Verb Suggestions:</label>
+                                             <div class="action-verbs-list">
+                                                 <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('projects', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
+                                             </div>
+                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skills Tab -->
+                    <div class="tab-pane fade" id="tab-skills" role="tabpanel" aria-labelledby="pills-skills-tab">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Languages & Frameworks</h6>
+                                <button @click="addItem('skills_tech')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_tech" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_tech[index]" type="text" class="form-control" placeholder="e.g., Python, JavaScript, React">
+                                <button @click="removeItem('skills_tech', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Tools & Platforms</h6>
+                                <button @click="addItem('skills_tools')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_tools" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_tools[index]" type="text" class="form-control" placeholder="e.g., Docker, Git, AWS">
+                                <button @click="removeItem('skills_tools', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Soft Skills</h6>
+                                <button @click="addItem('skills_soft')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_soft" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_soft[index]" type="text" class="form-control" placeholder="e.g., Leadership, Communication">
+                                <button @click="removeItem('skills_soft', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Other Related Skills</h6>
+                                <button @click="addItem('skills_other')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                            </div>
+                            <div v-for="(skill, index) in resume.skills_other" :key="index" class="input-group mb-2">
+                                <input v-model="resume.skills_other[index]" type="text" class="form-control" placeholder="e.g., Agile Methodologies">
+                                <button @click="removeItem('skills_other', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Others Tab -->
+                    <div class="tab-pane fade" id="tab-others" role="tabpanel" aria-labelledby="pills-others-tab">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Certifications</h6>
+                                <button @click="addItem('certifications')" class="btn btn-xs btn-outline-primary" title="Add new certification">+ Add</button>
+                            </div>
+                            <div v-for="(cert, index) in resume.certifications" :key="index" class="input-group mb-2">
+                                <input v-model="cert.name" type="text" class="form-control" title="Enter certification name" placeholder="Certification Name" maxlength="100">
+                                <button @click="removeItem('certifications', index)" class="btn btn-outline-danger" title="Remove certification"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold mb-0">Languages</h6>
+                                <button @click="addItem('languages')" class="btn btn-xs btn-outline-primary" title="Add new language">+ Add</button>
+                            </div>
+                            <div v-for="(lang, index) in resume.languages" :key="index" class="input-group mb-2">
+                                <input v-model="lang.name" type="text" class="form-control" title="Enter language and proficiency" placeholder="e.g., English (Fluent)" maxlength="60">
+                                <button @click="removeItem('languages', index)" class="btn btn-outline-danger" title="Remove language"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extra Tab -->
+                    <div class="tab-pane fade" id="tab-extra" role="tabpanel" aria-labelledby="pills-extra-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Additional Information</h6>
+                            <button @click="addItem('extra_info')" class="btn btn-xs btn-outline-primary" title="Add new entry">+ Add</button>
+                        </div>
+                        <div v-for="(info, index) in resume.extra_info" :key="index" class="input-group mb-2">
+                            <input v-model="info.content" type="text" class="form-control" title="Enter additional information" placeholder="e.g., Available for relocation" maxlength="150">
+                            <button @click="removeItem('extra_info', index)" class="btn btn-outline-danger" title="Remove entry"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Column -->
+        <div class="col-xl-6">
+            <div class="mb-3 px-2 text-center">
+                <h5 class="text-white fw-bold mb-0 text-decoration-underline">Resume Preview</h5>
+            </div>
+            <div class="resume-preview-container">
+                <div id="resume-template" :class="currentTheme.className">
+                    <!-- Header -->
+                    <div class="resume-header text-center">
+                        <div class="resume-name" :style="{ fontSize: nameFontSize }">{{ resume.name || 'FULL NAME' }}</div>
+                        <div class="resume-title">{{ resume.title || 'Professional Title' }}</div>
+                        <div class="resume-contact justify-content-center">
+                            <span v-if="resume.email"><i class="bi bi-envelope"></i> {{ resume.email }}</span>
+                            <span v-if="resume.phone"><i class="bi bi-telephone"></i> {{ resume.phone }}</span>
+                            <span v-if="resume.location"><i class="bi bi-geo-alt"></i> {{ resume.location }}</span>
+                            <span v-if="resume.website"><i class="bi bi-globe"></i> {{ resume.website }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Summary -->
+                    <div v-if="resume.summary">
+                        <div class="section-title">Summary</div>
+                        <div class="item-desc">{{ resume.summary }}</div>
+                    </div>
+
+                    <!-- Education -->
+                    <div v-if="resume.education.some(e => e.school || e.degree)">
+                        <div class="section-title">Education</div>
+                        <div v-for="(edu, index) in resume.education" :key="'preview-edu-'+index">
+                            <div class="resume-item" v-if="edu.school || edu.degree">
+                                <div class="item-header">
+                                    <span>{{ edu.school }}<span v-if="edu.location" class="fw-normal text-muted small ms-2">| {{ edu.location }}</span></span>
+                                    <span class="small">{{ edu.date }}</span>
+                                </div>
+                                <div class="item-header">
+                                    <span class="item-sub fw-normal">{{ edu.degree }}</span>
+                                    <span v-if="edu.gpa" class="small fw-normal">GPA: {{ edu.gpa }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Experience -->
+                    <div v-if="resume.experience.some(e => e.company || e.position)">
+                        <div class="section-title">Experience</div>
+                        <div v-for="(exp, index) in resume.experience" :key="'preview-exp-'+index">
+                            <div class="resume-item" v-if="exp.company || exp.position">
+                                <div class="item-header">
+                                    <span>{{ exp.company }}</span>
+                                    <span class="small">{{ exp.date }}</span>
+                                </div>
+                                <div class="item-sub">{{ exp.position }}</div>
+                                <div class="item-desc">
+                                    <div v-for="bullet in exp.bullets">• {{ bullet }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Projects -->
+                    <div v-if="resume.projects.some(p => p.name)">
+                        <div class="section-title">Key Projects</div>
+                        <div v-for="(proj, index) in resume.projects" :key="'preview-proj-'+index">
+                            <div class="resume-item" v-if="proj.name">
+                                <div class="item-header">
+                                    <span>{{ proj.name }}</span>
+                                    <span v-if="proj.tech" class="small fw-normal">{{ proj.tech }}</span>
+                                </div>
+                                <ul class="item-desc list-unstyled ps-0" v-if="proj.bullets && proj.bullets.length > 0">
+                                    <li v-for="bullet in proj.bullets">• {{ bullet }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skills -->
+                    <div v-if="resume.skills_tech.length || resume.skills_tools.length || resume.skills_soft.length || resume.skills_other.length">
+                        <div class="section-title">Skills & Expertise</div>
+                        <div class="skills-grid">
+                            <div v-if="resume.skills_tech.length">
+                                <div class="skill-group-title">Languages & Frameworks</div>
+                                <div class="skills-list">{{ resume.skills_tech.join(', ') }}</div>
+                            </div>
+                            <div v-if="resume.skills_tools.length">
+                                <div class="skill-group-title">Tools & Platforms</div>
+                                <div class="skills-list">{{ resume.skills_tools.join(', ') }}</div>
+                            </div>
+                            <div v-if="resume.skills_soft.length">
+                                <div class="skill-group-title">Soft Skills</div>
+                                <div class="skills-list">{{ resume.skills_soft.join(', ') }}</div>
+                            </div>
+                            <div v-if="resume.skills_other.length">
+                                <div class="skill-group-title">Other Skills</div>
+                                <div class="skills-list">{{ resume.skills_other.join(', ') }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Others -->
+                    <div class="row mt-1" v-if="resume.certifications.some(c => c.name) || resume.languages.some(l => l.name)">
+                        <div class="col-6" v-if="resume.certifications.some(c => c.name)">
+                            <div class="section-title">Certifications</div>
+                            <div v-for="(cert, index) in resume.certifications" :key="'preview-cert-'+index">
+                                <div class="item-desc cert-lang-item" v-if="cert.name">• {{ cert.name }}</div>
+                            </div>
+                        </div>
+                        <div class="col-6" v-if="resume.languages.some(l => l.name)">
+                            <div class="section-title">Languages</div>
+                            <div v-for="(lang, index) in resume.languages" :key="'preview-lang-'+index">
+                                <div class="item-desc cert-lang-item" v-if="lang.name">• {{ lang.name }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extra -->
+                    <div v-if="resume.extra_info.some(i => i.content)">
+                        <div class="section-title">Additional Information</div>
+                        <div v-for="(info, index) in resume.extra_info" :key="'preview-extra-'+index">
+                            <div class="item-desc" v-if="info.content">• {{ info.content }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- Mobile Sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="window.handleMobileMenu()"></div>
+  <div class="mobile-sidebar" id="mobileSidebar">
+    <div class="sidebar-header border-bottom border-secondary border-opacity-25 pb-3">
+      <div class="d-flex flex-column">
+        <a class="navbar-brand fw-bold fs-4 mb-1" href="/">
+          <span class="text-primary">I</span>CP
+        </a>
+        <div class="user-info-mobile mt-2" v-if="logged">
+          <div class="text-white fw-bold small">{{ userName }}</div>
+          <div class="text-secondary smaller user-email-text">{{ userEmail }}</div>
+        </div>
+      </div>
+      <button class="btn btn-link text-white p-0" onclick="window.handleMobileMenu()" title="Close navigation menu">
+        <i class="bi bi-x-lg fs-4"></i>
+      </button>
+    </div>
+    <div class="sidebar-nav">
+      <a href="/static/pages/dashboard.html" class="sidebar-link" title="Go to Dashboard">
+        <i class="bi bi-speedometer2"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="/static/pages/resume_builder.html" class="sidebar-link active" title="Resume Builder">
+        <i class="bi bi-file-earmark-person"></i>
+        <span>Resume Builder</span>
+      </a>
+      <a href="/static/pages/find-jobs.html" class="sidebar-link" title="Search for Jobs">
+        <i class="bi bi-search"></i>
+        <span>Search Job</span>
+      </a>
+      <a href="/static/pages/history.html" class="sidebar-link" title="View Interview History">
+        <i class="bi bi-clock-history"></i>
+        <span>View History</span>
+      </a>
+      <a href="/static/pages/interview.html" class="sidebar-link" title="Start Mock Interview">
+        <i class="bi bi-play-circle"></i>
+        <span>Mock Interview</span>
+      </a>
+    </div>
+    <div class="mt-auto pt-4 border-top border-secondary border-opacity-25">
+      <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" @click="logout()">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+      </button>
+    </div>
+  </div>
+  </div>
+
+  <script src="/static/js/resume_builder.js?v=1.3"></script>
+</body>
+</html>

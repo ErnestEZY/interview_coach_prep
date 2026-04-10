@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get Started</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <style>
+    [v-cloak] { display: none !important; }
+  </style>
+  <script src="/static/js/app.js"></script>
+</head>
+<body>
+  <!-- Global Loader -->
+  <div id="global-loader" class="page-loader">
+    <div class="loader-spinner"></div>
+    <div class="loader-text animate-pulse">Loading ICP...</div>
+  </div>
+
+  <div id="app" v-cloak>
+    <nav class="navbar navbar-dark glass-nav">
+      <div class="container d-flex align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <a class="navbar-brand fw-bold fs-4 mb-0" href="/">
+            <span class="text-primary">I</span>CP
+          </a>
+            <div class="d-flex gap-2">
+              <template v-if="!logged">
+                <div class="d-flex gap-2">
+                  <a class="btn btn-outline-light btn-sm" href="/static/pages/login.html">Login</a>
+                  <a class="btn btn-outline-light btn-sm" href="/static/pages/register.html">Register</a>
+                </div>
+              </template>
+              <template v-if="logged">
+                <a class="btn btn-primary btn-sm px-3" href="/static/pages/dashboard.html">Go to Dashboard</a>
+              </template>
+            </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-5 mt-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-10 text-center animate-fade-in">
+          <div class="card p-5 shadow-lg border-0 glass-card-dark overflow-hidden">
+            <div class="mb-4">
+              <div class="bg-primary bg-opacity-10 p-4 rounded-circle d-inline-block mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="text-primary" viewBox="0 0 16 16">
+                  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                  <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+                </svg>
+              </div>
+              <h1 class="display-4 fw-bold mb-3">The Ultimate Career Launchpad for Graduates</h1>
+              <p class="lead text-secondary mb-5">Join fellow graduates who have successfully transitioned from campus to career using our AI-powered feedback system. Your professional journey starts here.</p>
+            </div>
+            
+            <div class="row g-4 justify-content-center mb-5">
+              <template v-if="!logged">
+                <div class="col-md-5">
+                  <a href="/static/pages/register.html" class="btn btn-primary btn-lg w-100 py-3 rounded-pill shadow fw-bold">
+                    Create Account
+                  </a>
+                </div>
+                <div class="col-md-5">
+                  <a href="/static/pages/login.html" class="btn btn-outline-light btn-lg w-100 py-3 rounded-pill">
+                    Sign In
+                  </a>
+                </div>
+              </template>
+              <template v-if="logged">
+                <div class="col-md-8">
+                  <a href="/static/pages/dashboard.html" class="btn btn-primary btn-lg w-100 py-3 rounded-pill shadow fw-bold">
+                    Continue to Dashboard
+                  </a>
+                </div>
+              </template>
+            </div>
+            
+            <!-- Key Features Section -->
+            <div class="row g-4 text-start mb-5 px-lg-4">
+              <div class="col-lg-3 col-md-6">
+                <div class="p-3 rounded bg-primary bg-opacity-10 h-100 border border-primary border-opacity-10">
+                  <h5 class="fw-bold text-primary small"><i class="bi bi-robot me-2"></i>AI Coaching</h5>
+                  <p class="smaller text-secondary mb-0">Personalized mock interviews with role-specific questions and real-time guidance.</p>
+                </div>
+              </div>
+              <div class="col-lg-3 col-md-6">
+                <div class="p-3 rounded bg-primary bg-opacity-10 h-100 border border-primary border-opacity-10">
+                  <h5 class="fw-bold text-primary small"><i class="bi bi-file-earmark-text me-2"></i>Resume Analysis</h5>
+                  <p class="smaller text-secondary mb-0">Get instant scores and detailed feedback on how well your resume matches target roles.</p>
+                </div>
+              </div>
+              <div class="col-lg-3 col-md-6">
+                <div class="p-3 rounded bg-primary bg-opacity-10 h-100 border border-primary border-opacity-10">
+                  <h5 class="fw-bold text-primary small"><i class="bi bi-file-earmark-person me-2"></i>Resume Builder</h5>
+                  <p class="smaller text-secondary mb-0">Create and export professional resumes with our built-in architect tool.</p>
+                </div>
+              </div>
+              <div class="col-lg-3 col-md-6">
+                <div class="p-3 rounded bg-primary bg-opacity-10 h-100 border border-primary border-opacity-10">
+                  <h5 class="fw-bold text-primary small"><i class="bi bi-graph-up-arrow me-2"></i>Readiness Score</h5>
+                  <p class="smaller text-secondary mb-0">Track your preparation progress with our proprietary AI Readiness Score algorithm.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stats Section -->
+            <div class="py-4 border-top border-bottom border-secondary border-opacity-25 mb-5">
+              <div class="row text-center g-3">
+                <div class="col-4">
+                  <h3 class="fw-bold mb-0 text-primary">100%</h3>
+                  <p class="small text-secondary mb-0 uppercase tracking-wider">AI Driven</p>
+                </div>
+                <div class="col-4">
+                  <h3 class="fw-bold mb-0 text-primary">Real-time</h3>
+                  <p class="small text-secondary mb-0 uppercase tracking-wider">Feedback</p>
+                </div>
+                <div class="col-4">
+                  <h3 class="fw-bold mb-0 text-primary">Secure</h3>
+                  <p class="small text-secondary mb-0 uppercase tracking-wider">Data Privacy</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- FAQ Section -->
+            <div class="text-start px-lg-4">
+              <h4 class="fw-bold mb-4 text-center">Frequently Asked Questions</h4>
+              <div class="row g-4">
+                <div class="col-md-6">
+                  <h6 class="fw-bold">How does the AI evaluate me?</h6>
+                  <p class="small text-secondary">Our AI analyzes your technical accuracy, communication depth, and role alignment using advanced LLMs like Mistral.</p>
+                </div>
+                <div class="col-md-6">
+                  <h6 class="fw-bold">Is my data secure?</h6>
+                  <p class="small text-secondary">Yes, your resumes and responses are processed securely and we never sell your personal information to third parties.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Legal Links at the bottom of the card with different background -->
+            <div class="mt-5 pt-3 border-top border-secondary border-opacity-10 text-center bg-light bg-opacity-10 rounded-bottom py-3 mx-n5 mb-n5">
+          <p class="text-secondary small mb-0 legal-footer-text">
+            By continuing, you agree to ICP's 
+            <a href="#" class="text-primary text-decoration-none fw-bold" @click.prevent="showTerms">Terms & Conditions</a>,<br>
+            Read our <a href="#" class="text-primary text-decoration-none fw-bold" @click.prevent="showPrivacy">Privacy Policy</a>.
+          </p>
+        </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/js/cta.js"></script>
+</body>
+</html>

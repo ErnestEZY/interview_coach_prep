@@ -1,0 +1,58 @@
+@startuml
+!theme plain
+left to right direction
+
+package "Creational Pattern: Singleton" {
+    class MongoDBClient << (S,#FF7700) Singleton >> {
+        +client: AsyncIOMotorClient
+        +db: Database
+        +get_instance()
+    }
+    note bottom of MongoDBClient: Used in backend/core/db.py to ensure\na single database connection pool.
+}
+
+package "Structural Pattern: Facade" {
+    class EmailService << (F,#0077FF) Facade >> {
+        +send_reset_password_email()
+        +send_admin_alert()
+        +send_verification_email()
+    }
+    note bottom of EmailService: Used in backend/services/email_service.py\nto hide complex EmailJS API logic.
+}
+
+package "Behavioral Pattern: Template Method" {
+    abstract class RAGEngine << (T,#00FF77) Template Method >> {
+        +initialize()
+        +retrieve(query)
+        -vector_search()
+        -rerank()
+    }
+    note bottom of RAGEngine: Used in backend/services/rag_engine.py\nto define a fixed sequence of retrieval steps.
+}
+
+package "Core Entities" {
+    class User {
+        +email: String
+        +role: String
+        +daily_reset_at: datetime
+    }
+    
+    class ResumeRecord {
+        +filename: String
+        +text: String
+        +feedback: Dict
+    }
+    
+    class InterviewSession {
+        +questions_limit: int
+        +transcript: List
+    }
+}
+
+' Relationships
+ResumeRecord "1" --o "1" User
+InterviewSession "1" --o "1" User
+EmailService ..> User : sends alerts to
+RAGEngine ..> ResumeRecord : processes text from
+MongoDBClient ..> User : persists
+@enduml
