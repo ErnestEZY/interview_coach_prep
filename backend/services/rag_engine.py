@@ -4,7 +4,10 @@ from typing import List, Dict, Any
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
 from llama_index.llms.mistralai import MistralAI
 from llama_index.embeddings.mistralai import MistralAIEmbedding
-from mistralai import Mistral
+try:
+    from mistralai import Mistral
+except ImportError:
+    from mistralai.client import Mistral
 from ..core.config import MISTRAL_API_KEY
 from .cache_manager import cache
 
