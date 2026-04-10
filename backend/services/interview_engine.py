@@ -1,6 +1,9 @@
 from datetime import datetime
 from typing import Dict, Any, List
-from mistralai import Mistral
+try:
+    from mistralai import Mistral
+except ImportError:
+    from mistralai.client import Mistral
 from ..core.config import MISTRAL_API_KEY
 from .cache_manager import memoize
 
