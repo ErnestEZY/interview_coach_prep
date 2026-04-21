@@ -134,9 +134,21 @@ const app = createApp({
           clearInterval(this.timerId);
           this.timerId = null;
           localStorage.removeItem('session_expiry_user');
-          alert('Your session has expired. Please login again.');
-          if (window.icp) window.icp.logout();
-          else { localStorage.clear(); window.location.href = "/"; }
+          Swal.fire({
+            icon: 'warning',
+            title: 'Session Expired',
+            text: 'Your session has expired. Please login again to continue.',
+            confirmButtonText: 'Login Again',
+            confirmButtonColor: '#8b5cf6',
+            allowOutsideClick: false
+          }).then(() => {
+            if (window.icp) window.icp.logout();
+            else { 
+              localStorage.clear(); 
+              window.location.href = "/static/pages/login.html"; 
+            }
+          });
+          return; // Exit the tick to prevent further processing
         }
       };
       

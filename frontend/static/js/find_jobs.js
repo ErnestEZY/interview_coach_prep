@@ -284,8 +284,16 @@ const app = createApp({
                     clearInterval(this.timerId);
                     this.timerId = null;
                     if (this.logged) {
-                        alert('Your session has expired. Please login again.');
-                        window.icp.logout();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Session Expired',
+                            text: 'Your session has expired. Please login again to continue.',
+                            confirmButtonText: 'Login Again',
+                            confirmButtonColor: '#8b5cf6',
+                            allowOutsideClick: false
+                        }).then(() => {
+                            window.icp.logout();
+                        });
                     }
                 }
             };

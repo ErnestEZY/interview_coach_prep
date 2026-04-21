@@ -181,7 +181,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             await log_event(str(user["_id"]), username, "login_lockout", ip_address, "failure", {"reason": "max_attempts_reached"})
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Your account has been locked for 10 minutes due to too many failed login attempts."
+                detail="Your account has been locked for 10 minutes due to too many failed login attempts. (5/5)"
             )
         else:
             await users.update_one(
@@ -189,19 +189,13 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
                 {"$set": {"failed_login_attempts": current_attempts}}
             )
             
-            # Warn user at 3 and 4 attempts
-            if current_attempts == 4:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Incorrect password.\nYou have 1 attempt remaining before your account is locked for 10 minutes."
-                )
-            if current_attempts == 3:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Incorrect password.\nYou have 2 attempts remaining before your account is locked for 10 minutes."
-                )
+            remaining = 5 - current_attempts
+            detail_msg = f"Incorrect password ({current_attempts}/5)\nYou have {remaining} attempt{'s' if remaining > 1 else ''} remaining before your account is locked for 10 minutes."
             
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=detail_msg
+            )
 
     # --- END LOCKOUT MECHANISM ---
 
@@ -334,7 +328,7 @@ async def admin_login(
             await log_event(str(user["_id"]), username, "admin_login_lockout", ip_address, "failure", {"reason": "max_attempts_reached"})
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Admin account has been locked for 10 minutes due to too many failed login attempts."
+                detail="Admin account has been locked for 10 minutes due to too many failed login attempts. (5/5)"
             )
         else:
             await users.update_one(
@@ -342,18 +336,15 @@ async def admin_login(
                 {"$set": {"failed_login_attempts": current_attempts}}
             )
             
-            if current_attempts == 4:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Incorrect Password\nRemaining 1 attempt..."
-                )
-            if current_attempts == 3:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Incorrect Password\nRemaining 2 attempts..."
-                )
+            remaining = 5 - current_attempts
+            detail_msg = f"Incorrect password. ({current_attempts}/5)"
+            if remaining <= 2:
+                detail_msg += f"\nYou have {remaining} attempt{'s' if remaining > 1 else ''} remaining before your account is locked for 10 minutes."
             
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=detail_msg
+            )
 
     # --- END ADMIN LOCKOUT MECHANISM ---
 

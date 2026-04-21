@@ -23,12 +23,12 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="/static/css/styles.css?v=1.3">
 </head>
 <body class="auth-page">
   <div id="app" v-cloak>
   <!-- Scripts at start of body for faster execution -->
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=1.3"></script>
   <script src="/static/js/strict_guard.js"></script>
   
   <!-- Page Loader -->
@@ -81,10 +81,15 @@
             <li class="px-3 py-2 dropdown-item-profile">
               <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
               <div class="text-white fw-semibold text-break">{{ userName }}</div>
-              <div class="text-secondary small text-break">{{ userEmail }}</div>
+              <div class="text-secondary smaller user-email-text text-break">{{ userEmail }}</div>
             </li>
             <li><hr class="dropdown-divider bg-light opacity-25"></li>
-            <li><a class="dropdown-item text-danger small" href="#" @click.prevent="logout">Logout</a></li>
+            <li class="px-3 pb-2">
+              <button class="btn btn-primary btn-sm w-100 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2 py-2" onclick="showAppModal()">
+                <i class="bi bi-download"></i>
+                <span class="fw-bold">Download App</span>
+              </button>
+            </li>
           </ul>
         </div>
         

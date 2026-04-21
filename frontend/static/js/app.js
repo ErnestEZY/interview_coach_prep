@@ -170,10 +170,93 @@ if (window.axios) {
         // Encoded auth path to protect against browser console discovery
         const auth_path = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
         window.location.href = is_admin_page ? auth_path : '/static/pages/login.html';
+      } else {
+        // If we are on a public page and auth fails, just clear token but don't redirect away
+        // This prevents redirect loops if we are already on login.html
+        state.clearToken();
       }
     }
     return Promise.reject(error);
   });
+}
+
+// Platform specific banner logic
+function setupPlatformBanner() {
+  const ua = navigator.userAgent.toLowerCase();
+  const isAndroid = /android/i.test(ua);
+  const isIOS = /iphone|ipad|ipod/i.test(ua);
+  const isTauri = state.isTauri;
+  const isMobile = window.innerWidth <= 768;
+  
+  // Check if banner was already closed this session
+  if (sessionStorage.getItem('platform_banner_closed')) return;
+
+  let bannerData = null;
+
+  if (isTauri) {
+    bannerData = {
+      message: "Experience ICP as a native desktop app!",
+      linkText: "Check Web Version",
+      linkUrl: "https://interview-coach-prep.onrender.com",
+      icon: "bi-laptop"
+    };
+  } else if (isAndroid) {
+    bannerData = {
+      message: "Download our Android APK for a better mobile experience!",
+      linkText: "Download APK",
+      linkUrl: "/static/downloads/icp-latest.apk", // Placeholder
+      icon: "bi-android2"
+    };
+  } else if (isIOS && isMobile) {
+    bannerData = {
+      message: "For the best experience on iOS, we recommend using our web version.",
+      linkText: null,
+      linkUrl: null,
+      icon: "bi-apple"
+    };
+  }
+
+  if (bannerData) {
+    const banner = document.createElement('div');
+    banner.className = 'platform-banner';
+    banner.id = 'platform-banner';
+    banner.innerHTML = `
+      <div class="banner-content">
+        <i class="bi ${bannerData.icon}"></i>
+        <div class="d-flex flex-column flex-md-row align-items-center gap-1 gap-md-2">
+          <span>${bannerData.message}</span>
+          ${bannerData.linkUrl ? `<a href="${bannerData.linkUrl}" target="_blank" class="small fw-bold">${bannerData.linkText}</a>` : ''}
+        </div>
+      </div>
+      <button class="banner-close" onclick="window.closePlatformBanner()" aria-label="Close banner">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    `;
+    
+    // Use setTimeout to ensure body is available and styles are loaded
+    setTimeout(() => {
+      if (!document.getElementById('platform-banner')) {
+        document.body.prepend(banner);
+        document.body.classList.add('has-banner');
+      }
+    }, 500);
+  }
+}
+
+window.closePlatformBanner = function() {
+  const banner = document.getElementById('platform-banner');
+  if (banner) {
+    banner.remove();
+    document.body.classList.remove('has-banner');
+    sessionStorage.setItem('platform_banner_closed', 'true');
+  }
+};
+
+// Initialize banner on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupPlatformBanner);
+} else {
+  setupPlatformBanner();
 }
 
 function logout() {
@@ -587,9 +670,291 @@ if (!navigator.onLine) {
   showOfflineOverlay();
 }
 
-// Ensure Tauri navigation is setup after DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupTauriNavigation);
-} else {
-  setupTauriNavigation();
+// --- PWA & App Download Banner ---
+
+/**
+ * Injects the App Download Banner and handle visibility logic
+ */
+function handleAppPromotion() {
+  const bannerKey = 'icp_app_banner_dismissed';
+  const path = window.location.pathname;
+  
+  // Exclude admin/portal pages from promotion
+  const isAdminPage = path.includes('admin') || path.includes('portal');
+  if (isAdminPage) {
+    console.log('[App Promotion] Admin/Portal page detected, skipping promotion.');
+    return;
+  }
+
+  const dismissedTime = localStorage.getItem(bannerKey);
+  const urlParams = new URLSearchParams(window.location.search);
+  const forceShow = urlParams.has('show_banner');
+
+  // 1. Footer Promotion Injection
+  const injectFooterPromotion = () => {
+    // Only allow on CTA page
+    if (!path.includes('cta.html')) {
+      console.log('[App Promotion] Not on CTA page, skipping footer card.');
+      return;
+    }
+
+    // Check if already injected
+    if (document.getElementById('footer-app-promotion')) return;
+
+    const promotionDiv = document.createElement('div');
+    promotionDiv.id = 'footer-app-promotion';
+    promotionDiv.className = 'container mt-4 mb-5 animate-fade-in';
+    promotionDiv.innerHTML = `
+      <div class="card border-0 glass-card p-4 text-center overflow-hidden position-relative shadow-lg rounded-4">
+        <div class="position-absolute top-0 start-0 w-100 h-100 bg-primary opacity-5" style="z-index: -1;"></div>
+        <div class="row align-items-center g-3">
+          <div class="col-lg-6 text-lg-start">
+            <h5 class="fw-bold mb-1">Take ICP with you!</h5>
+            <p class="text-secondary small mb-lg-0">Get the official apps for your devices. <span class="opacity-50">(iOS & MacOS in development)</span></p>
+          </div>
+          <div class="col-lg-6 text-lg-end">
+            <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-3">
+              <a href="/downloads/apk/app-release.apk" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+                <i class="bi bi-android2 fs-5"></i> 
+                <div class="text-start" style="line-height: 1.1;">
+                  <span class="smaller d-block opacity-75 fw-normal">Download</span>
+                  <span>Android APK</span>
+                </div>
+              </a>
+              <a href="/downloads/msi/installer" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #0078d4, #005a9e); border: none;">
+                <i class="bi bi-windows fs-5"></i> 
+                <div class="text-start" style="line-height: 1.1;">
+                  <span class="smaller d-block opacity-75 fw-normal">Download</span>
+                  <span>Windows MSI</span>
+                </div>
+              </a>
+              <div class="w-100 d-lg-none"></div>
+              <button onclick="showAppModal()" class="btn btn-link text-secondary text-decoration-none small px-0">Other OS?</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const appContainer = document.getElementById('app');
+    if (appContainer) {
+      appContainer.appendChild(promotionDiv);
+    } else {
+      document.body.appendChild(promotionDiv);
+    }
+  };
+
+  // 2. Universal Banner Logic
+  const showBanner = () => {
+    // Only allow on CTA page
+    if (!path.includes('cta.html')) {
+      console.log('[App Promotion] Not on CTA page, skipping banner.');
+      return;
+    }
+
+    if (dismissedTime && !forceShow) {
+      const fourDays = 4 * 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(dismissedTime) < fourDays) {
+        console.log('[App Promotion] Banner recently dismissed, skipping.');
+        return;
+      }
+    }
+
+    const bannerHtml = `
+      <div id="app-download-banner" class="app-banner" style="display: block !important;">
+        <div class="container banner-content">
+          <div class="banner-info">
+            <i class="bi bi-phone-vibrate fs-4 text-primary"></i>
+            <div>
+              <div class="fw-bold text-white small">Experience ICP Everywhere</div>
+              <div class="text-secondary smaller">Download our official apps for Windows and Android. iOS/Mac coming soon!</div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.7rem;">Get App</button>
+            <button type="button" class="btn-close btn-close-white small" style="font-size: 0.6rem;" id="banner-close-btn"></button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Remove existing if any
+    const existing = document.getElementById('app-download-banner');
+    if (existing) existing.remove();
+
+    document.body.insertAdjacentHTML('beforeend', bannerHtml);
+    console.log('[App Promotion] Universal banner injected into DOM.');
+
+    const closeBtn = document.getElementById('banner-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        const banner = document.getElementById('app-download-banner');
+        if (banner) banner.remove();
+        localStorage.setItem(bannerKey, Date.now().toString());
+        console.log('[App Promotion] Banner dismissed by user.');
+      });
+    }
+  };
+
+  injectFooterPromotion();
+  // Call immediately if forceShow, otherwise wait 2s
+  if (forceShow) showBanner();
+  else setTimeout(showBanner, 2000);
 }
+
+/**
+ * Show a universal modal for all app downloads
+ */
+function showAppModal() {
+  const content = `
+    <div class="text-start">
+      <div class="mb-4">
+        <h6 class="fw-bold text-primary mb-2">Available Now</h6>
+        <div class="d-grid gap-2">
+          <a href="/downloads/apk/app-release.apk" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-android2 fs-4 text-success"></i>
+              <div>
+                <div class="fw-bold">Android APK</div>
+                <div class="smaller text-secondary">Optimized for mobile screens</div>
+              </div>
+            </div>
+            <i class="bi bi-download"></i>
+          </a>
+          <a href="/downloads/msi/installer" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-windows fs-4 text-info"></i>
+              <div>
+                <div class="fw-bold">Windows Installer (MSI)</div>
+                <div class="smaller text-secondary">Native desktop experience</div>
+              </div>
+            </div>
+            <i class="bi bi-download"></i>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h6 class="fw-bold text-secondary mb-2 opacity-50">Coming Soon</h6>
+        <div class="p-3 border border-secondary border-opacity-10 rounded-4 bg-light shadow-sm">
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <i class="bi bi-apple fs-4 text-dark"></i>
+            <div class="fw-bold text-dark">iOS & MacOS</div>
+          </div>
+          <p class="smaller text-dark mb-0 fw-medium">We are currently developing native apps for Apple devices. For now, please use the <strong>Web Version</strong> or <strong>Add to Home Screen</strong> on Safari.</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  Swal.fire({
+    title: 'Download ICP App',
+    html: content,
+    showConfirmButton: false,
+    showCloseButton: true,
+    background: '#0f172a',
+    color: '#fff',
+    width: '450px'
+  });
+}
+
+// Expose IOS Hint helper
+window.icp.showIOSHint = () => showAppModal('iOS');
+
+/**
+ * Inject promotion into mobile sidebar
+ */
+function injectSidebarPromotion() {
+  const sidebarNav = document.querySelector('.sidebar-nav');
+  if (!sidebarNav || document.getElementById('sidebar-app-promotion')) return;
+
+  const promoDiv = document.createElement('div');
+  promoDiv.id = 'sidebar-app-promotion';
+  promoDiv.className = 'mt-4 px-3 mb-4';
+  promoDiv.innerHTML = `
+    <div class="p-3 rounded-4 bg-primary bg-opacity-10 border border-primary border-opacity-25 shadow-sm">
+      <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-bold small">
+        <i class="bi bi-phone-vibrate fs-5"></i>
+        <span>Get the App</span>
+      </div>
+      <p class="smaller text-secondary mb-3">Experience ICP as a native app on your desktop or mobile.</p>
+      <div class="d-grid gap-2">
+        <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill fw-bold shadow-sm py-2">
+          <i class="bi bi-download me-2"></i>Download Now
+        </button>
+      </div>
+    </div>
+  `;
+  sidebarNav.appendChild(promoDiv);
+}
+
+/**
+ * Handle Offline Detection and UI
+ */
+function setupOfflineDetection() {
+  const overlay = document.createElement('div');
+  overlay.id = 'offline-overlay';
+  overlay.className = 'offline-overlay';
+  overlay.innerHTML = `
+    <div class="offline-icon"><i class="bi bi-wifi-off"></i></div>
+    <h2 class="offline-title">You're Offline</h2>
+    <p class="offline-message">It looks like you've lost your internet connection. Some features of ICP may be limited until you're back online.</p>
+    <button onclick="window.location.reload()" class="btn btn-primary offline-retry-btn">
+      <i class="bi bi-arrow-clockwise me-2"></i> Try Reconnecting
+    </button>
+  `;
+  document.body.appendChild(overlay);
+
+  const toggleOfflineUI = () => {
+    if (navigator.onLine) {
+      overlay.classList.remove('active');
+    } else {
+      overlay.classList.add('active');
+    }
+  };
+
+  window.addEventListener('online', toggleOfflineUI);
+  window.addEventListener('offline', toggleOfflineUI);
+  
+  // Initial check
+  toggleOfflineUI();
+}
+
+// Initialize everything on load
+document.addEventListener('DOMContentLoaded', () => {
+  // 0. Inject PWA Manifest
+  if (!document.querySelector('link[rel="manifest"]')) {
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = '/manifest.json';
+    document.head.appendChild(link);
+  }
+
+  // 1. Register Service Worker for PWA (with versioning to force update)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js?v=2').then(reg => {
+      console.log('ICP Service Worker registered (v2)');
+      
+      // Check for updates
+      reg.onupdatefound = () => {
+        const installingWorker = reg.installing;
+        installingWorker.onstatechange = () => {
+          if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            console.log('New content available; please refresh.');
+            // Optionally show a "Refresh to update" toast here
+          }
+        };
+      };
+    }).catch(err => {
+      console.warn('SW registration failed:', err);
+    });
+  }
+
+  setupOfflineDetection();
+  handleAppPromotion();
+  injectSidebarPromotion();
+  
+  // 3. Setup Tauri Navigation
+  setupTauriNavigation();
+});
+

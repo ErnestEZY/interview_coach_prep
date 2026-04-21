@@ -100,6 +100,51 @@ input::-webkit-credentials-auto-fill-button {
   opacity: 0.8;
 }
 
+.dropdown-menu-wide {
+  min-width: 350px !important;
+  padding: 1rem !important;
+  max-width: 90vw;
+  z-index: 999999 !important; /* Extremely high to stay on top of everything */
+  transform: translateZ(999999px); /* Force GPU layer to stay in front */
+}
+
+/* Ensure parent nav and dropdown containers don't clip the menu */
+.glass-nav, .dropdown, .navbar {
+  z-index: 10000 !important;
+  overflow: visible !important;
+}
+
+.dropdown-menu.show {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: absolute !important;
+}
+
+.dropdown-item-profile {
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 1rem !important;
+}
+
+.dropdown-item-profile .user-email-text {
+  word-break: break-all;
+  white-space: normal;
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-opacity-100:hover {
+  opacity: 1 !important;
+}
+
 body { 
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
   min-height: 100vh;
@@ -198,13 +243,108 @@ html {
 
 .navbar { 
   background: rgba(14, 22, 38, 0.8) !important; 
+}
+
+/* --- App Download Banner --- */
+.app-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(15, 23, 42, 0.98);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 12px 0;
+  z-index: 2000;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  display: none;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.banner-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.banner-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.smaller {
+  font-size: 0.75rem;
+}
+
+/* --- Offline Mode Styles --- */
+.offline-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.95);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255,255,255,0.05); 
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  z-index: 10000; /* Higher than everything */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  text-align: center;
+  padding: 30px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
 }
+
+.offline-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.offline-icon {
+  font-size: 5rem;
+  color: #f87171;
+  margin-bottom: 25px;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(248, 113, 113, 0)); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 0 15px rgba(248, 113, 113, 0.5)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(248, 113, 113, 0)); }
+}
+
+.offline-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.offline-message {
+  font-size: 1rem;
+  color: #94a3b8;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.offline-retry-btn {
+  margin-top: 30px;
+  padding: 0.75rem 2rem;
+  border-radius: 50px;
+  font-weight: 600;
+}
+
 
 /* Authentication Pages Styles */
 .auth-page {
@@ -1969,10 +2109,13 @@ html {
 .feedback-text { line-height: 1.6; font-style: italic; }
 .feedback-box-max { max-width: 600px; }
 .sticky-header-container { 
-  z-index: 10; 
+  z_index: 10; 
   margin: -1rem -1rem 1rem -1rem; 
   padding: 1rem 1rem 0.75rem 1rem; 
 }
+
+/* --- Platform Specific Banners --- */
+/* Top banner styles removed to keep all banners at the bottom */
 .interviewer-avatar { width: 35px; height: 35px; }
 
 /* --- Device-specific Visibility --- */

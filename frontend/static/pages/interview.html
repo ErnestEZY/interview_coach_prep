@@ -144,14 +144,19 @@
                 Account
               </button>
               <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 glass-card mt-2 dropdown-menu-wide">
-                <li class="px-3 py-2 dropdown-item-profile">
-                  <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
-                  <div class="text-white fw-semibold text-break">{{ userName }}</div>
-                   <div class="text-secondary small text-break">{{ userEmail }}</div>
-                 </li>
-                 <li><hr class="dropdown-divider bg-light opacity-25"></li>
-                 <li><a class="dropdown-item text-danger small" href="#" @click.prevent="logout">Logout</a></li>
-               </ul>
+                  <li class="px-3 py-2 dropdown-item-profile">
+                      <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
+                      <div class="text-white fw-semibold text-break">{{ userName }}</div>
+                      <div class="text-secondary smaller user-email-text text-break">{{ userEmail }}</div>
+                  </li>
+                  <li><hr class="dropdown-divider bg-light opacity-25"></li>
+                  <li class="px-3 pb-2">
+                    <button class="btn btn-primary btn-sm w-100 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2 py-2" onclick="showAppModal()">
+                      <i class="bi bi-download"></i>
+                      <span class="fw-bold">Download App</span>
+                    </button>
+                  </li>
+                </ul>
             </div>
             
             <span class="text-secondary d-none d-xl-inline-block mx-1" v-if="logged">|</span>
