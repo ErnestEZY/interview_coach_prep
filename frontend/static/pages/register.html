@@ -9,19 +9,21 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   
   <!-- Vue 3 -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <!-- Axios -->
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <link rel="stylesheet" href="/static/css/styles.css?v=1.3">
-  <script src="/static/js/app.js?v=1.3"></script>
   <style>
     [v-cloak] { display: none !important; }
   </style>
 </head>
 <body class="auth-page">
+  <!-- Scripts at start of body for faster execution -->
+  <script src="/static/js/app.js?v=1.3"></script>
+
   <div id="app" v-cloak>
     <nav class="navbar navbar-dark glass-nav">
       <div class="container d-flex align-items-center">
@@ -158,7 +160,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/static/js/app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="/static/js/email_service.js"></script>
   <script src="/static/js/register.js"></script>

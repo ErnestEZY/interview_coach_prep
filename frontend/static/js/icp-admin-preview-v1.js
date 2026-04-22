@@ -14,13 +14,24 @@ const app = createApp({
     },
     mounted() {
         this.init();
-        window.addEventListener('auth:changed', () => {
+        
+        // Named listener for auth changes
+        this._authListener = () => {
             this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
             if (this.logged) this.startTimer();
-        });
-        window.addEventListener('beforeunload', () => {
+        };
+        window.addEventListener('auth:changed', this._authListener);
+        
+        // Named listener for beforeunload
+        this._unloadListener = () => {
             if (this.fileUrl) URL.revokeObjectURL(this.fileUrl);
-        });
+        };
+        window.addEventListener('beforeunload', this._unloadListener);
+    },
+    beforeUnmount() {
+        if (this.timerId) clearInterval(this.timerId);
+        if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        if (this._unloadListener) window.removeEventListener('beforeunload', this._unloadListener);
     },
     methods: {
         formatTime(seconds) {

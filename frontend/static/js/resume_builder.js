@@ -7,8 +7,11 @@ try {
                 userName: '',
                 userEmail: '',
                 logged: false,
+                isMobileMenuOpen: false,
                 sessionTime: 0,
+                timerId: null,
                 isLoading: true,
+                _isUnmounted: false,
                 totalPages: 1,
                 currentPage: 1,
                 themes: [
@@ -79,25 +82,35 @@ try {
             deep: true
         }
     },
-    mounted() {
+    computed: {
+        nameFontSize() {
+            const length = this.resume.name.length;
+            if (length > 30) return '12pt';
+            if (length > 20) return '14pt';
+            return '16pt';
+        }
+    },
+        async mounted() {
+        console.log("Resume Builder Mounted");
+        
+        // Listen for auth changes
+        this._authListener = () => {
+            const token = localStorage.getItem('token');
+            this.logged = !!token;
+            if (!this.logged) {
+                window.location.href = '/static/pages/login.html';
+            }
+        };
+        window.addEventListener('auth:changed', this._authListener);
+        
         // Initialize page count after loading state
         this.$nextTick(() => {
             setTimeout(() => {
                 this.updatePageCount();
             }, 500);
         });
-    },
-        computed: {
-            nameFontSize() {
-                const length = this.resume.name.length;
-                if (length > 30) return '12pt';
-                if (length > 20) return '14pt';
-                return '16pt';
-            }
-        },
-        async mounted() {
-            console.log("Resume Builder Mounted");
-            const token = localStorage.getItem('token');
+
+        const token = localStorage.getItem('token');
             this.logged = !!token;
             
             if (!this.logged) {
@@ -122,7 +135,7 @@ try {
             // Setup session timer if app.js is loaded
             if (window.setupSessionTimer) {
                 try {
-                    window.setupSessionTimer(this);
+                    this.timerId = window.setupSessionTimer(this);
                 } catch (e) {
                     console.error("Error setting up session timer:", e);
                 }
@@ -139,7 +152,22 @@ try {
             if (this.resume.education.length === 0) this.addItem('education');
             if (this.resume.experience.length === 0) this.addItem('experience');
         },
+        beforeUnmount() {
+            this._isUnmounted = true;
+            if (this.timerId) {
+                clearInterval(this.timerId);
+                this.timerId = null;
+            }
+            if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+            document.body.style.overflow = "";
+        },
         methods: {
+            toggleMobileMenu() {
+                this.isMobileMenuOpen = !this.isMobileMenuOpen;
+                if (window.handleMobileMenu) {
+                    window.handleMobileMenu(this.isMobileMenuOpen);
+                }
+            },
             async checkAnalysisImport() {
                 const feedbackStr = localStorage.getItem('resume_feedback');
                 const hidePrompt = localStorage.getItem('resume_builder_hide_import_prompt') === 'true';

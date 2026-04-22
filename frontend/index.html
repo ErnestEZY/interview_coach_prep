@@ -9,12 +9,14 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link rel="stylesheet" href="/static/css/styles.css?v=1.3">
-  <script src="/static/js/app.js?v=1.3"></script> 
 </head>
 <body>
+  <!-- Scripts at start of body for faster execution -->
+  <script src="/static/js/app.js?v=1.3"></script>
+
   <div id="app" v-cloak>
     <!-- Page Loader -->
     <div id="global-loader" class="page-loader">
@@ -45,17 +47,17 @@
                       <i class="bi bi-person-circle me-1"></i>
                       Account
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 glass-card mt-2 dropdown-menu-wide">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 dropdown-menu-wide">
                       <li class="px-3 py-2 dropdown-item-profile">
                         <div class="fw-bold text-primary small text-uppercase mb-1">{{ isAdmin ? 'Admin Profile' : 'User Profile' }}</div>
                         <div class="text-white fw-semibold text-break">{{ userName }}</div>
                         <div class="text-secondary smaller user-email-text text-break">{{ userEmail }}</div>
                       </li>
-                      <li><hr class="dropdown-divider bg-light opacity-25"></li>
+                      <li><hr class="dropdown-divider"></li>
                       <li class="px-3 pb-2">
-                        <button class="btn btn-primary btn-sm w-100 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2 py-2" onclick="showAppModal()">
+                        <button onclick="showAppModal()" class="btn btn-primary btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
                           <i class="bi bi-download"></i>
-                          <span class="fw-bold">Download App</span>
+                          <span>Download App</span>
                         </button>
                       </li>
                     </ul>

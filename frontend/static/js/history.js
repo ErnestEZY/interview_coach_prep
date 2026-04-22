@@ -7,9 +7,11 @@ const app = createApp({
             isAdmin: false,
             userName: '',
             userEmail: '',
+            isMobileMenuOpen: false,
             hasAnalyzed: false,
             sessionTime: 0,
             timerId: null,
+            _isUnmounted: false,
             items: [],
             allItems: [],
             sortOrder: 'desc',
@@ -23,7 +25,8 @@ const app = createApp({
     mounted() {
         this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
         
-        window.addEventListener('auth:changed', () => {
+        // Named listener for auth changes
+        this._authListener = () => {
             const wasLogged = this.logged;
             this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
             
@@ -33,21 +36,27 @@ const app = createApp({
                 if (this.timerId) clearInterval(this.timerId);
                 this.items = [];
             }
-        });
+        };
+        window.addEventListener('auth:changed', this._authListener);
 
         this.init();
-        
-        // Mobile menu handler
-        window.handleMobileMenu = function() {
-            const sidebar = document.getElementById('mobileSidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            if (sidebar && overlay) {
-                sidebar.classList.toggle('active');
-                overlay.classList.toggle('active');
-            }
-        };
+    },
+    beforeUnmount() {
+        this._isUnmounted = true;
+        if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+        }
+        if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        document.body.style.overflow = "";
     },
     methods: {
+        toggleMobileMenu() {
+            this.isMobileMenuOpen = !this.isMobileMenuOpen;
+            if (window.handleMobileMenu) {
+                window.handleMobileMenu(this.isMobileMenuOpen);
+            }
+        },
         showProgressChart() {
             // Filter logic:
             // 1. Only include items that have a valid numeric readiness_score (not null, not undefined)
@@ -281,11 +290,20 @@ const app = createApp({
             localStorage.setItem('session_expiry_user', exp);
             
             const updateTimer = () => {
+                if (this._isUnmounted) {
+                    if (this.timerId) {
+                        clearInterval(this.timerId);
+                        this.timerId = null;
+                    }
+                    return;
+                }
                 const now = Math.floor(Date.now() / 1000);
                 this.sessionTime = Math.max(0, exp - now);
                 if (this.sessionTime <= 0) {
-                    clearInterval(this.timerId);
-                    this.timerId = null;
+                    if (this.timerId) {
+                        clearInterval(this.timerId);
+                        this.timerId = null;
+                    }
                     localStorage.removeItem('session_expiry_user');
                     Swal.fire({
                         icon: 'warning',
@@ -295,7 +313,8 @@ const app = createApp({
                         confirmButtonColor: '#8b5cf6',
                         allowOutsideClick: false
                     }).then(() => {
-                        window.icp.logout();
+                        if (window.icp) window.icp.logout();
+                        else { localStorage.clear(); window.location.href = "/static/pages/login.html"; }
                     });
                 }
             };

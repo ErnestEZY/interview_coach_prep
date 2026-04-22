@@ -29,9 +29,13 @@ const app = createApp({
     },
     mounted() {
         this.checkAuth();
-        window.addEventListener('auth:changed', () => {
+        this._authListener = () => {
             this.checkAuth();
-        });
+        };
+        window.addEventListener('auth:changed', this._authListener);
+    },
+    beforeUnmount() {
+        if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
     },
     methods: {
         async checkAuth() {

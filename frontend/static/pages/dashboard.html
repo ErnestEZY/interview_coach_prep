@@ -20,16 +20,17 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
   <link rel="stylesheet" href="/static/css/styles.css?v=1.3">
 </head>
 <body class="auth-page">
-  <div id="app" v-cloak>
   <!-- Scripts at start of body for faster execution -->
   <script src="/static/js/app.js?v=1.3"></script>
   <script src="/static/js/strict_guard.js"></script>
+
+  <div id="app" v-cloak>
   
   <!-- Page Loader -->
   <div id="global-loader" class="page-loader" v-if="isLoading" role="status" aria-live="polite" aria-atomic="true">
@@ -38,15 +39,15 @@
   </div>
 
    <!-- Session Timer Display - Only show when 3 minutes left -->
-   <div class="session-timer-badge" v-if="logged && sessionTime > 0 && sessionTime <= 180" v-cloak role="status" aria-live="polite" aria-atomic="true">
-     <i class="bi bi-clock-history" :class="sessionTime <= 60 ? 'timer-critical' : ''"></i>
-     <span>Session: {{ formatTime(sessionTime) }}</span>
-     <span class="ms-2 small text-warning" v-if="sessionTime <= 180 && sessionTime > 178">Time is running out!</span>
-   </div>
+    <div class="session-timer-badge" v-show="logged && sessionTime > 0 && sessionTime <= 180" v-cloak role="status" aria-live="polite" aria-atomic="true">
+      <i class="bi bi-clock-history" :class="sessionTime <= 60 ? 'timer-critical' : ''"></i>
+      <span>Session: {{ formatTime(sessionTime) }}</span>
+      <span class="ms-2 small text-warning" v-show="sessionTime <= 180 && sessionTime > 178">Time is running out!</span>
+    </div>
   <nav class="navbar navbar-dark glass-nav">
     <div class="container d-flex align-items-center justify-content-between">
       <div class="d-flex align-items-center gap-3">
-        <button class="hamburger-btn d-xl-none me-2" onclick="window.handleMobileMenu()" title="Toggle navigation menu">
+        <button class="hamburger-btn d-xl-none me-2" @click.stop="toggleMobileMenu" title="Toggle navigation menu" aria-label="Toggle navigation menu">
           <i class="bi bi-list"></i>
         </button>
         <a class="navbar-brand fw-bold fs-4 mb-0 me-0" href="/">
@@ -77,17 +78,17 @@
             <i class="bi bi-person-circle me-1"></i>
             Account
           </button>
-          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 glass-card mt-2 dropdown-menu-wide">
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 dropdown-menu-wide">
             <li class="px-3 py-2 dropdown-item-profile">
               <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
               <div class="text-white fw-semibold text-break">{{ userName }}</div>
               <div class="text-secondary smaller user-email-text text-break">{{ userEmail }}</div>
             </li>
-            <li><hr class="dropdown-divider bg-light opacity-25"></li>
+            <li><hr class="dropdown-divider"></li>
             <li class="px-3 pb-2">
-              <button class="btn btn-primary btn-sm w-100 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2 py-2" onclick="showAppModal()">
+              <button onclick="showAppModal()" class="btn btn-primary btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
                 <i class="bi bi-download"></i>
-                <span class="fw-bold">Download App</span>
+                <span>Download App</span>
               </button>
             </li>
           </ul>
@@ -103,8 +104,8 @@
   </nav>
 
   <!-- Mobile Sidebar -->
-  <div class="sidebar-overlay" id="sidebarOverlay" onclick="window.handleMobileMenu()"></div>
-  <div class="mobile-sidebar" id="mobileSidebar">
+    <div class="sidebar-overlay" id="sidebarOverlay" :class="{ active: isMobileMenuOpen }" @click="toggleMobileMenu"></div>
+  <div class="mobile-sidebar" :class="{ active: isMobileMenuOpen }" id="mobileSidebar">
     <div class="sidebar-header border-bottom border-secondary border-opacity-25 pb-3">
       <div class="d-flex flex-column">
         <a class="navbar-brand fw-bold fs-4 mb-1" href="/">
@@ -115,7 +116,7 @@
           <div class="text-secondary smaller user-email-text">{{ userEmail }}</div>
         </div>
       </div>
-      <button class="btn btn-link text-white p-0" onclick="window.handleMobileMenu()" title="Close navigation menu">
+      <button class="btn btn-link text-white p-0" @click="toggleMobileMenu" title="Close navigation menu">
         <i class="bi bi-x-lg fs-4"></i>
       </button>
     </div>
@@ -140,8 +141,9 @@
         <i class="bi bi-play-circle"></i>
         <span>Mock Interview</span>
       </a>
-      <hr class="border-secondary opacity-25 my-3">
-      <a href="javascript:void(0)" @click="logout()" class="sidebar-link text-danger" title="Logout from session">
+    </div>
+    <div class="sidebar-footer">
+      <a href="javascript:void(0)" @click="logout()" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 rounded-3" title="Logout from session">
         <i class="bi bi-box-arrow-right"></i>
         <span>Logout</span>
       </a>

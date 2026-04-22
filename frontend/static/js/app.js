@@ -1,28 +1,43 @@
-// Immediate Global Sidebar Logic (defined early to prevent race conditions)
-window.handleMobileMenu = function() {
-  console.log("handleMobileMenu called");
-  const sidebar = document.getElementById("mobileSidebar");
-  const overlay = document.getElementById("sidebarOverlay");
+/**
+ * Global application utilities
+ */
+
+// Global Mobile Menu Toggle Handler (Vanilla JS Fallback for better reliability)
+window.handleMobileMenu = function(forceState) {
+  const sidebar = document.getElementById('mobileSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (!sidebar || !overlay) return;
   
-  if (sidebar && overlay) {
-    const isActive = sidebar.classList.contains("active");
-    if (isActive) {
-      sidebar.classList.remove("active");
-      overlay.classList.remove("active");
-      document.body.style.overflow = ""; // Enable scroll
-    } else {
-      sidebar.classList.add("active");
-      overlay.classList.add("active");
-      document.body.style.overflow = "hidden"; // Disable scroll
-    }
-    console.log("Sidebar active state:", !isActive);
+  const isActive = sidebar.classList.contains('active');
+  const newState = (forceState !== undefined) ? forceState : !isActive;
+
+  if (newState) {
+    sidebar.classList.add('active');
+    overlay.classList.add('active');
+    document.body.style.overflow = "hidden";
   } else {
-    console.error("Mobile sidebar elements not found:", { sidebar: !!sidebar, overlay: !!overlay });
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = "";
   }
 };
 
+// Global listener for hamburger buttons
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.hamburger-btn') || e.target.closest('.sidebar-header .btn-link') || e.target.closest('.sidebar-overlay');
+  if (btn) {
+    // If it's a Vue-managed page, it might already have its own toggleMobileMenu.
+    // But we use this as a reliable fallback.
+    window.handleMobileMenu();
+  }
+});
+
 window.setupSessionTimer = function(vueInstance) {
   const checkTimer = () => {
+    if (vueInstance._isUnmounted) {
+      // The interval will be cleared in the component's beforeUnmount hook
+      return;
+    }
     const expiration = localStorage.getItem('token_expiration');
     if (expiration) {
       const now = Math.floor(Date.now() / 1000);
@@ -31,17 +46,19 @@ window.setupSessionTimer = function(vueInstance) {
         // Clear resume builder session when token expires
         localStorage.removeItem('resume_builder_session');
         localStorage.removeItem('resume_builder_imported');
-        window.logout();
+        if (window.icp && window.icp.logout) window.icp.logout();
+        else window.location.href = '/';
         return;
       }
       vueInstance.sessionTime = timeLeft;
     }
   };
-  setInterval(checkTimer, 1000);
+  const intervalId = setInterval(checkTimer, 1000);
   checkTimer();
+  return intervalId;
 };
 
-const state = {
+const icpState = {
   token: localStorage.getItem("token") || "",
   
   // Detect if running in Tauri
@@ -117,8 +134,8 @@ const state = {
   }
 };
 
-if (state.token === "undefined" || state.token === "null") {
-  state.clearToken();
+if (icpState.token === "undefined" || icpState.token === "null") {
+  icpState.clearToken();
 }
 
 // Setup Axios Interceptors
@@ -126,14 +143,14 @@ if (window.axios) {
   // Request Interceptor
   axios.interceptors.request.use(function (config) {
     // Only add token if it exists and we're NOT hitting the login endpoint
-    if (state.token && !config.url.includes('/api/auth/login')) {
-      config.headers['Authorization'] = 'Bearer ' + state.token;
+    if (icpState.token && !config.url.includes('/api/auth/login')) {
+      config.headers['Authorization'] = 'Bearer ' + icpState.token;
     }
     
     // Prepend API base URL if in Tauri and request is for /api
-    if (state.isTauri && config.url.startsWith('/api')) {
+    if (icpState.isTauri && config.url.startsWith('/api')) {
       const originalPath = config.url;
-      config.url = state.apiBase + originalPath;
+      config.url = icpState.apiBase + originalPath;
       console.log(`[Tauri Axios] ${originalPath} -> ${config.url}`);
     }
     return config;
@@ -155,7 +172,7 @@ if (window.axios) {
     }
     
     if (error.response && error.response.status === 401) {
-      state.clearToken();
+      icpState.clearToken();
       const currentPath = window.location.pathname;
       const isPublicPage = 
         currentPath === '/' || 
@@ -173,96 +190,17 @@ if (window.axios) {
       } else {
         // If we are on a public page and auth fails, just clear token but don't redirect away
         // This prevents redirect loops if we are already on login.html
-        state.clearToken();
+        icpState.clearToken();
       }
     }
     return Promise.reject(error);
   });
 }
 
-// Platform specific banner logic
-function setupPlatformBanner() {
-  const ua = navigator.userAgent.toLowerCase();
-  const isAndroid = /android/i.test(ua);
-  const isIOS = /iphone|ipad|ipod/i.test(ua);
-  const isTauri = state.isTauri;
-  const isMobile = window.innerWidth <= 768;
-  
-  // Check if banner was already closed this session
-  if (sessionStorage.getItem('platform_banner_closed')) return;
-
-  let bannerData = null;
-
-  if (isTauri) {
-    bannerData = {
-      message: "Experience ICP as a native desktop app!",
-      linkText: "Check Web Version",
-      linkUrl: "https://interview-coach-prep.onrender.com",
-      icon: "bi-laptop"
-    };
-  } else if (isAndroid) {
-    bannerData = {
-      message: "Download our Android APK for a better mobile experience!",
-      linkText: "Download APK",
-      linkUrl: "/static/downloads/icp-latest.apk", // Placeholder
-      icon: "bi-android2"
-    };
-  } else if (isIOS && isMobile) {
-    bannerData = {
-      message: "For the best experience on iOS, we recommend using our web version.",
-      linkText: null,
-      linkUrl: null,
-      icon: "bi-apple"
-    };
-  }
-
-  if (bannerData) {
-    const banner = document.createElement('div');
-    banner.className = 'platform-banner';
-    banner.id = 'platform-banner';
-    banner.innerHTML = `
-      <div class="banner-content">
-        <i class="bi ${bannerData.icon}"></i>
-        <div class="d-flex flex-column flex-md-row align-items-center gap-1 gap-md-2">
-          <span>${bannerData.message}</span>
-          ${bannerData.linkUrl ? `<a href="${bannerData.linkUrl}" target="_blank" class="small fw-bold">${bannerData.linkText}</a>` : ''}
-        </div>
-      </div>
-      <button class="banner-close" onclick="window.closePlatformBanner()" aria-label="Close banner">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    `;
-    
-    // Use setTimeout to ensure body is available and styles are loaded
-    setTimeout(() => {
-      if (!document.getElementById('platform-banner')) {
-        document.body.prepend(banner);
-        document.body.classList.add('has-banner');
-      }
-    }, 500);
-  }
-}
-
-window.closePlatformBanner = function() {
-  const banner = document.getElementById('platform-banner');
-  if (banner) {
-    banner.remove();
-    document.body.classList.remove('has-banner');
-    sessionStorage.setItem('platform_banner_closed', 'true');
-  }
-};
-
-// Initialize banner on load
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', setupPlatformBanner);
-} else {
-  setupPlatformBanner();
-}
-
 function logout() {
   const currentPath = window.location.pathname;
   const is_admin_page = currentPath.includes('icp-admin-');
-  state.clearToken();
+  icpState.clearToken();
   if (is_admin_page) {
     // Encoded auth path: /static/pages/icp-admin-auth-9f2d8b4e.html
     window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
@@ -290,9 +228,9 @@ function decodeToken(token) {
 function apiUrl(path) {
   if (path.startsWith('http')) return path;
   const p = path.startsWith('/') ? path : '/' + path;
-  const fullUrl = state.apiBase + p;
+  const fullUrl = icpState.apiBase + p;
   // Log API calls in Tauri for easier debugging
-  if (state.isTauri) {
+  if (icpState.isTauri) {
     console.log(`[Tauri API] ${path} -> ${fullUrl}`);
   }
   return fullUrl;
@@ -319,8 +257,8 @@ window.icp_debug = {
     location.reload();
   },
   getStatus: () => {
-    console.log("Tauri Detected:", state.isTauri);
-    console.log("Current API Base:", state.apiBase);
+    console.log("Tauri Detected:", icpState.isTauri);
+    console.log("Current API Base:", icpState.apiBase);
     console.log("Protocol:", window.location.protocol);
     console.log("Hostname:", window.location.hostname);
   }
@@ -384,7 +322,7 @@ window.handleForgotPasswordResponse = function(event) {
 };
 // Attach to window.icp for global access
 Object.assign(window.icp, {
-  state,
+  state: icpState,
   decodeToken,
   apiUrl,
   logout,
@@ -604,7 +542,7 @@ const showOfflineOverlay = () => {
 };
 
 const setupTauriNavigation = () => {
-  if (!state.isTauri) return;
+  if (!icpState.isTauri) return;
   if (document.getElementById('tauri-nav-bar')) return;
   
   const navBar = document.createElement('div');
@@ -692,114 +630,120 @@ function handleAppPromotion() {
 
   // 1. Footer Promotion Injection
   const injectFooterPromotion = () => {
-    // Only allow on CTA page
-    if (!path.includes('cta.html')) {
-      console.log('[App Promotion] Not on CTA page, skipping footer card.');
-      return;
-    }
-
-    // Check if already injected
-    if (document.getElementById('footer-app-promotion')) return;
-
-    const promotionDiv = document.createElement('div');
-    promotionDiv.id = 'footer-app-promotion';
-    promotionDiv.className = 'container mt-4 mb-5 animate-fade-in';
-    promotionDiv.innerHTML = `
-      <div class="card border-0 glass-card p-4 text-center overflow-hidden position-relative shadow-lg rounded-4">
-        <div class="position-absolute top-0 start-0 w-100 h-100 bg-primary opacity-5" style="z-index: -1;"></div>
-        <div class="row align-items-center g-3">
-          <div class="col-lg-6 text-lg-start">
-            <h5 class="fw-bold mb-1">Take ICP with you!</h5>
-            <p class="text-secondary small mb-lg-0">Get the official apps for your devices. <span class="opacity-50">(iOS & MacOS in development)</span></p>
-          </div>
-          <div class="col-lg-6 text-lg-end">
-            <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-3">
-              <a href="/downloads/apk/app-release.apk" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
-                <i class="bi bi-android2 fs-5"></i> 
-                <div class="text-start" style="line-height: 1.1;">
-                  <span class="smaller d-block opacity-75 fw-normal">Download</span>
-                  <span>Android APK</span>
-                </div>
-              </a>
-              <a href="/downloads/msi/installer" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #0078d4, #005a9e); border: none;">
-                <i class="bi bi-windows fs-5"></i> 
-                <div class="text-start" style="line-height: 1.1;">
-                  <span class="smaller d-block opacity-75 fw-normal">Download</span>
-                  <span>Windows MSI</span>
-                </div>
-              </a>
-              <div class="w-100 d-lg-none"></div>
-              <button onclick="showAppModal()" class="btn btn-link text-secondary text-decoration-none small px-0">Other OS?</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const appContainer = document.getElementById('app');
-    if (appContainer) {
-      appContainer.appendChild(promotionDiv);
-    } else {
-      document.body.appendChild(promotionDiv);
-    }
-  };
-
-  // 2. Universal Banner Logic
-  const showBanner = () => {
-    // Only allow on CTA page
-    if (!path.includes('cta.html')) {
-      console.log('[App Promotion] Not on CTA page, skipping banner.');
-      return;
-    }
-
-    if (dismissedTime && !forceShow) {
-      const fourDays = 4 * 24 * 60 * 60 * 1000;
-      if (Date.now() - parseInt(dismissedTime) < fourDays) {
-        console.log('[App Promotion] Banner recently dismissed, skipping.');
+    // Small delay to ensure DOM is fully ready and other scripts haven't cleared body
+    setTimeout(() => {
+      // Only allow on CTA page
+      const path = window.location.pathname;
+      const isCtaPage = path.toLowerCase().includes('cta');
+      
+      if (!isCtaPage) {
+        console.log('[App Promotion] Not a CTA page, skipping footer injection. Path:', path);
         return;
       }
-    }
 
-    const bannerHtml = `
-      <div id="app-download-banner" class="app-banner" style="display: block !important;">
-        <div class="container banner-content">
-          <div class="banner-info">
-            <i class="bi bi-phone-vibrate fs-4 text-primary"></i>
-            <div>
-              <div class="fw-bold text-white small">Experience ICP Everywhere</div>
-              <div class="text-secondary smaller">Download our official apps for Windows and Android. iOS/Mac coming soon!</div>
+      console.log('[App Promotion] CTA page detected, injecting footer promotion.');
+
+      // Check if already injected
+      if (document.getElementById('footer-app-promotion')) return;
+
+      const promotionDiv = document.createElement('div');
+      promotionDiv.id = 'footer-app-promotion';
+      promotionDiv.className = 'container mt-4 mb-5 animate-fade-in';
+      promotionDiv.innerHTML = `
+        <div class="card border-0 glass-card p-4 text-center overflow-hidden position-relative shadow-lg rounded-4">
+          <div class="position-absolute top-0 start-0 w-100 h-100 bg-primary opacity-5" style="z-index: -1;"></div>
+          <div class="row align-items-center g-3">
+            <div class="col-lg-6 text-lg-start">
+              <h5 class="fw-bold mb-1">Take ICP with you!</h5>
+              <p class="text-secondary small mb-lg-0">Get the official apps for your devices. <span class="opacity-50">(iOS & MacOS in development)</span></p>
+            </div>
+            <div class="col-lg-6 text-lg-end">
+              <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-3">
+                <a href="/downloads/apk/app-release.apk" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+                  <i class="bi bi-android2 fs-5"></i> 
+                  <div class="text-start" style="line-height: 1.1;">
+                    <span class="smaller d-block opacity-75 fw-normal">Download</span>
+                    <span>Android APK</span>
+                  </div>
+                </a>
+                <a href="/downloads/msi/installer" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #0078d4, #005a9e); border: none;">
+                  <i class="bi bi-windows fs-5"></i> 
+                  <div class="text-start" style="line-height: 1.1;">
+                    <span class="smaller d-block opacity-75 fw-normal">Download</span>
+                    <span>Windows MSI</span>
+                  </div>
+                </a>
+                <div class="w-100 d-lg-none"></div>
+                <button onclick="showAppModal()" class="btn btn-link text-secondary text-decoration-none small px-0">Other OS?</button>
+              </div>
             </div>
           </div>
-          <div class="d-flex align-items-center gap-2">
-            <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.7rem;">Get App</button>
-            <button type="button" class="btn-close btn-close-white small" style="font-size: 0.6rem;" id="banner-close-btn"></button>
-          </div>
         </div>
-      </div>
-    `;
+      `;
 
-    // Remove existing if any
-    const existing = document.getElementById('app-download-banner');
-    if (existing) existing.remove();
-
-    document.body.insertAdjacentHTML('beforeend', bannerHtml);
-    console.log('[App Promotion] Universal banner injected into DOM.');
-
-    const closeBtn = document.getElementById('banner-close-btn');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        const banner = document.getElementById('app-download-banner');
-        if (banner) banner.remove();
-        localStorage.setItem(bannerKey, Date.now().toString());
-        console.log('[App Promotion] Banner dismissed by user.');
-      });
-    }
+      // Prefer appending to body to avoid Vue overwriting the #app container
+      // and ensuring it's at the very bottom of the page
+      document.body.appendChild(promotionDiv);
+    }, 100);
   };
 
   injectFooterPromotion();
-  // Call immediately if forceShow, otherwise wait 2s
-  if (forceShow) showBanner();
-  else setTimeout(showBanner, 2000);
+  injectAppPopUpBanner();
+}
+
+/**
+ * Inject a fixed bottom pop-up banner for the app (Specifically for CTA page)
+ */
+function injectAppPopUpBanner() {
+  const path = window.location.pathname;
+  const isCtaPage = path.toLowerCase().includes('cta');
+  
+  if (!isCtaPage) return;
+
+  // Use a timeout to ensure it appears after a brief delay
+  setTimeout(() => {
+    if (document.getElementById('app-popup-banner')) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'app-popup-banner';
+    banner.className = 'app-banner'; // Use existing CSS class
+    banner.style.display = 'block';
+    banner.innerHTML = `
+      <div class="container d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+          <div class="text-primary fs-4">
+            <i class="bi bi-phone-vibrate"></i>
+          </div>
+          <div class="text-start">
+            <div class="fw-bold text-white small">Experience ICP Everywhere</div>
+            <div class="smaller text-secondary">Download our official apps for Windows and Android. <span class="opacity-50">iOS/Mac are still in development.</span></div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">Get App</button>
+          <button onclick="document.getElementById('app-popup-banner').remove()" class="btn-close btn-close-white small" aria-label="Close"></button>
+        </div>
+      </div>
+    `;
+    
+    // Add specific styles for the content if needed (to match image)
+    const style = document.createElement('style');
+    style.innerHTML = `
+      #app-popup-banner .container {
+        max-width: 900px;
+      }
+      #app-popup-banner .smaller {
+        font-size: 0.75rem;
+      }
+      @media (max-width: 768px) {
+        #app-popup-banner .smaller {
+          display: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(banner);
+  }, 500);
 }
 
 /**
@@ -865,25 +809,24 @@ window.icp.showIOSHint = () => showAppModal('iOS');
  * Inject promotion into mobile sidebar
  */
 function injectSidebarPromotion() {
+  const path = window.location.pathname;
+  // Exclude admin pages
+  if (path.includes('admin') || path.includes('portal')) {
+    return;
+  }
+  
   const sidebarNav = document.querySelector('.sidebar-nav');
   if (!sidebarNav || document.getElementById('sidebar-app-promotion')) return;
 
   const promoDiv = document.createElement('div');
   promoDiv.id = 'sidebar-app-promotion';
-  promoDiv.className = 'mt-4 px-3 mb-4';
+  promoDiv.className = 'sidebar-promo-mini';
   promoDiv.innerHTML = `
-    <div class="p-3 rounded-4 bg-primary bg-opacity-10 border border-primary border-opacity-25 shadow-sm">
-      <div class="d-flex align-items-center gap-2 mb-2 text-primary fw-bold small">
-        <i class="bi bi-phone-vibrate fs-5"></i>
-        <span>Get the App</span>
-      </div>
-      <p class="smaller text-secondary mb-3">Experience ICP as a native app on your desktop or mobile.</p>
-      <div class="d-grid gap-2">
-        <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill fw-bold shadow-sm py-2">
-          <i class="bi bi-download me-2"></i>Download Now
-        </button>
-      </div>
-    </div>
+    <div class="promo-title">Get the App</div>
+    <p class="promo-text">Practice anywhere with our mobile app.</p>
+    <button onclick="showAppModal()" class="btn btn-primary btn-sm w-100 rounded-pill mt-2 py-1 shadow-sm" style="font-size: 0.7rem;">
+      <i class="bi bi-download me-1"></i>Download
+    </button>
   `;
   sidebarNav.appendChild(promoDiv);
 }

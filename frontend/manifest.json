@@ -4,13 +4,27 @@
   "description": "Master your next interview with AI-powered mock interviews and resume feedback.",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#8b5cf6",
+  "scope": "/",
   "icons": [
     {
       "src": "/static/images/favicon-32x32.png",
       "sizes": "32x32",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/static/pages/dashboard.html"
+    },
+    {
+      "name": "Mock Interview",
+      "url": "/static/pages/interview.html"
+    }
+  ],
+  "screenshots": []
 }

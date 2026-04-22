@@ -1,29 +1,15 @@
 const { createApp } = Vue;
 
-// Immediate Global Sidebar Logic
-window.handleMobileMenu = function() {
-    const sidebar = document.getElementById('mobileSidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    if (sidebar && overlay) {
-        const isActive = sidebar.classList.contains("active");
-        if (isActive) {
-            sidebar.classList.remove("active");
-            overlay.classList.remove("active");
-        } else {
-            sidebar.classList.add("active");
-            overlay.classList.add("active");
-        }
-    }
-};
-
 const app = createApp({
     data() {
         return {
+            initializing: false,
             logged: false,
             isAdmin: false,
             userName: '',
             userEmail: '',
             hasAnalyzed: false,
+            isMobileMenuOpen: false,
             
             // Session Config
             sessionId: null,
@@ -40,7 +26,6 @@ const app = createApp({
             recording: false,
             thinking: false,
             speaking: false,
-            thinking: false,
             recognition: null,
             
             // Resume/Job Context
@@ -69,6 +54,8 @@ const app = createApp({
             faceDetectionTimer: null,
             faceAbsentTimer: null,
             isFaceDetected: false,
+            faceStatusText: 'Initializing...',
+            faceStatusClass: 'bg-danger',
             isStarting: false,
             modelsLoaded: false,
             videoDevices: [],
@@ -85,7 +72,8 @@ const app = createApp({
             faceConfirmTimer: null,
             selectedFemaleVoiceId: null,
             selectedMaleVoiceId: null,
-            isPaused: false
+            isPaused: false,
+            _isUnmounted: false
         };
     },
     computed: {
@@ -126,54 +114,111 @@ const app = createApp({
         }
     },
     mounted() {
-        // Check initial auth
-        this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
+        // Initialize state
+        const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
+        this.logged = !!token;
         
-        // Listen for auth changes
-        window.addEventListener('auth:changed', () => {
+        // Named listener for auth changes
+        this._authListener = () => {
+            const newToken = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
             const wasLogged = this.logged;
-            this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
+            this.logged = !!newToken;
+            
             if (this.logged && !wasLogged) {
                 this.init();
             } else if (!this.logged) {
-                try {
-                    localStorage.removeItem('resume_feedback');
-                    localStorage.removeItem('resume_filename');
-                    localStorage.removeItem('resume_score');
-                    localStorage.removeItem('target_job_title');
-                    localStorage.removeItem('target_location');
-                    localStorage.removeItem('interview_session_id');
-                } catch (_) {}
-                this.sessionId = null;
-                this.currentQuestion = 0;
-                this.transcript = [];
-                this.readinessScore = null;
-                this.feedbackExplanation = "";
-            }
-        });
-
-        // Initialize
-        this.init();
-
-        // Mobile menu handler
-        window.handleMobileMenu = function() {
-            const sidebar = document.getElementById('mobileSidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            if (sidebar && overlay) {
-                sidebar.classList.toggle('active');
-                overlay.classList.toggle('active');
+                this.resetSession();
             }
         };
+        window.addEventListener('auth:changed', this._authListener);
 
-        // Global click listener for inactivity
-        document.addEventListener('click', () => this.resetInactivityTimer());
-        document.addEventListener('keypress', () => this.resetInactivityTimer());
+        // Initial load
+        this.init();
+
+        // Named listeners for activity
+        this._activityListener = () => this.resetInactivityTimer();
+        document.addEventListener('click', this._activityListener);
+        document.addEventListener('keypress', this._activityListener);
+    },
+    beforeUnmount() {
+        this._isUnmounted = true;
+        // Clear all intervals and timeouts
+        if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+        }
+        if (this.interviewTimerId) {
+            clearInterval(this.interviewTimerId);
+            this.interviewTimerId = null;
+        }
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+            this.inactivityTimer = null;
+        }
+        if (this.faceDetectionTimer) {
+            clearInterval(this.faceDetectionTimer);
+            this.faceDetectionTimer = null;
+        }
+        if (this.faceAbsentTimer) {
+            clearTimeout(this.faceAbsentTimer);
+            this.faceAbsentTimer = null;
+        }
+        if (this.faceConfirmTimer) {
+            clearTimeout(this.faceConfirmTimer);
+            this.faceConfirmTimer = null;
+        }
+        
+        // Stop camera stream if active
+        this.stopCamera();
+        
+        // Stop speech recognition if active
+        if (this.recognition) {
+            this.recording = false;
+            try { this.recognition.stop(); } catch(e) {}
+        }
+
+        // Remove global listeners
+        if (this._authListener) {
+            window.removeEventListener('auth:changed', this._authListener);
+            this._authListener = null;
+        }
+        if (this._activityListener) {
+            document.removeEventListener('click', this._activityListener);
+            document.removeEventListener('keypress', this._activityListener);
+            this._activityListener = null;
+        }
+
+        // Reset body overflow in case mobile menu was open
+        document.body.style.overflow = "";
     },
     methods: {
+        resetSession() {
+            try {
+                localStorage.removeItem('resume_feedback');
+                localStorage.removeItem('resume_filename');
+                localStorage.removeItem('resume_score');
+                localStorage.removeItem('target_job_title');
+                localStorage.removeItem('target_location');
+                localStorage.removeItem('interview_session_id');
+            } catch (_) {}
+            this.sessionId = null;
+            this.currentQuestion = 0;
+            this.transcript = [];
+            this.readinessScore = null;
+            this.feedbackExplanation = "";
+        },
+        toggleMobileMenu() {
+            this.isMobileMenuOpen = !this.isMobileMenuOpen;
+            if (window.handleMobileMenu) {
+                window.handleMobileMenu(this.isMobileMenuOpen);
+            }
+        },
         async loadVideoDevices() {
             try {
                 await this.ensureCameraPermissions();
+                if (this._isUnmounted) return;
                 const devices = await this.getVideoDevices();
+                if (this._isUnmounted) return;
                 this.videoDevices = devices;
                 if (!this.selectedCameraId) {
                     const stored = localStorage.getItem('interview_camera_device_id') || '';
@@ -190,7 +235,9 @@ const app = createApp({
         async loadAudioDevices() {
             try {
                 await this.ensureAudioPermissions();
+                if (this._isUnmounted) return;
                 const devices = await this.getAudioDevices();
+                if (this._isUnmounted) return;
                 this.audioDevices = devices;
                 if (!this.selectedMicId) {
                     const stored = localStorage.getItem('interview_mic_device_id') || '';
@@ -213,6 +260,9 @@ const app = createApp({
             // webkitSpeechRecognition uses system default, but we track choice for UI consistency
         },
         async init() {
+            if (this._isUnmounted) return;
+            if (this.initializing) return;
+            this.initializing = true;
             // --- One-time cache clearing for voice fix ---
             if (!localStorage.getItem('voice_fix_applied_v2')) {
                 localStorage.removeItem('interview_voice_female_id');
@@ -224,14 +274,39 @@ const app = createApp({
             try {
                 this.loading = true;
                 if (this.logged) {
-                    this.setUserFromToken();
+                    await this.setUserFromToken();
+                    if (this._isUnmounted) return;
                     this.startTimer();
                     this.computeResumeStatus();
+
+                    // Robust resume check: if not found locally, try fetching once from server
+                    if (!this.hasResume) {
+                        try {
+                            const r = await axios.get(window.icp.apiUrl('/api/resume/my'));
+                            if (this._isUnmounted) return;
+                            const items = r.data || [];
+                            if (items && items.length > 0) {
+                                const latest = items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+                                if (latest && latest.feedback) {
+                                    localStorage.setItem('resume_feedback', JSON.stringify(latest.feedback));
+                                    localStorage.setItem('resume_filename', latest.filename || '');
+                                    this.computeResumeStatus();
+                                }
+                            }
+                        } catch(e) { console.warn("Background resume fetch failed:", e); }
+                    }
+
                     this.loadAudioDevices();
+                    
+                    // Only load camera if enabled
+                    if (this.useCamera) {
+                        this.loadVideoDevices();
+                    }
                 }
                 if (this.logged) {
                     try {
                         const r = await axios.get(window.icp.apiUrl('/api/interview/limits'));
+                        if (this._isUnmounted) return;
                         if (r && r.data) {
                             this.interviewAttempts = r.data.remaining ?? this.interviewAttempts;
                             this.maxInterviewAttempts = r.data.limit ?? this.maxInterviewAttempts;
@@ -239,6 +314,8 @@ const app = createApp({
                     } catch (e) {}
                 }
                 
+                if (this._isUnmounted) return;
+
                 // Initialize speech recognition if supported
                 if ('webkitSpeechRecognition' in window) {
                     this.recognition = new webkitSpeechRecognition();
@@ -247,6 +324,7 @@ const app = createApp({
                     this.recognition.lang = 'en-US';
                     
                     this.recognition.onresult = (event) => {
+                        if (this._isUnmounted) return;
                         let finalTranscript = '';
                         for (let i = event.resultIndex; i < event.results.length; ++i) {
                             if (event.results[i].isFinal) {
@@ -260,11 +338,13 @@ const app = createApp({
                     };
 
                     this.recognition.onerror = (event) => {
+                        if (this._isUnmounted) return;
                         console.error('Speech recognition error', event.error);
                         this.recording = false;
                     };
                     
                     this.recognition.onend = () => {
+                        if (this._isUnmounted) return;
                         if (this.recording) {
                             this.recognition.start();
                         }
@@ -283,6 +363,7 @@ const app = createApp({
                 
                 await this.restoreSessionIfAny();
             } catch (e) {
+                if (this._isUnmounted) return;
                 console.error("Interview initialization failed", e);
                 Swal.fire({
                     title: 'Error',
@@ -291,31 +372,39 @@ const app = createApp({
                     confirmButtonColor: '#8b5cf6'
                 });
             } finally {
+                if (this._isUnmounted) return;
                 const hasLocalResume = !!(localStorage.getItem('resume_feedback') || localStorage.getItem('resume_filename') || localStorage.getItem('target_job_title'));
-                const delay = hasLocalResume ? 200 : 700;
+                const delay = hasLocalResume ? 200 : 500;
                 await new Promise(r => setTimeout(r, delay));
+                if (this._isUnmounted) return;
                 this.loading = false;
+                this.initializing = false;
             }
         },
 
         async setUserFromToken() {
+            if (this._isUnmounted) return;
             const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
             if (!token) return;
             try {
                 const response = await axios.get(window.icp.apiUrl('/api/auth/me'));
+                if (this._isUnmounted) return;
                 const me = response.data || {};
-                this.userName = me.name || 'Guest';
-                this.userEmail = me.email || '';
+                if (me.name) this.userName = me.name;
+                if (me.email) this.userEmail = me.email;
                 this.hasAnalyzed = !!me.has_analyzed;
             } catch (_) {
+                if (this._isUnmounted) return;
                 try {
                     const base64Url = token.split('.')[1];
                     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
                     const payload = JSON.parse(atob(base64));
-                    this.userName = payload.name || 'Guest';
-                    this.userEmail = payload.email || '';
+                    if (payload.name) this.userName = payload.name;
+                    if (payload.email) this.userEmail = payload.email;
                     this.hasAnalyzed = !!payload.has_analyzed;
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Token decode failed:", e);
+                }
             }
         },
 
@@ -329,7 +418,7 @@ const app = createApp({
                 try { parsedFeedback = JSON.parse(localFeedbackStr); } catch (_) { parsedFeedback = null; }
             }
             
-            if (parsedFeedback || localFilename || storedJobTitle || this.hasAnalyzed) {
+            if (parsedFeedback || localFilename || storedJobTitle) {
                 this.hasResume = true;
                 this.resumeFeedback = parsedFeedback || this.resumeFeedback;
                 const detectedTitle = (parsedFeedback && parsedFeedback.DetectedJobTitle) || '';
@@ -341,10 +430,16 @@ const app = createApp({
             }
         },
 
-        startTimer() {
-            if (this.timerId) return;
+        updateTimer() {
+            if (this._isUnmounted) return;
             const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
-            if (!token) return;
+            if (!token) {
+                if (this.timerId) {
+                    clearInterval(this.timerId);
+                    this.timerId = null;
+                }
+                return;
+            }
             
             const decode = (t) => {
                 try {
@@ -358,28 +453,44 @@ const app = createApp({
             if (!payload || !payload.exp) return;
             
             const exp = payload.exp;
+            const now = Math.floor(Date.now() / 1000);
+            const newSessionTime = Math.max(0, exp - now);
             
-            const updateTimer = () => {
-                const now = Math.floor(Date.now() / 1000);
-                this.sessionTime = Math.max(0, exp - now);
-                
-                if (this.sessionTime <= 0) {
+            // Only update if value changed to avoid unnecessary re-renders
+            if (this.sessionTime !== newSessionTime) {
+                this.sessionTime = newSessionTime;
+            }
+            
+            if (this.sessionTime <= 0 && !this._isUnmounted) {
+                if (this.timerId) {
                     clearInterval(this.timerId);
                     this.timerId = null;
-                    Swal.fire({
-                        title: 'Session Ended',
-                        text: 'Your session has expired. Please login again.',
-                        icon: 'warning',
-                        confirmButtonColor: '#8b5cf6'
-                    }).then(() => {
-                        if (window.icp) window.icp.logout();
-                        else { localStorage.clear(); window.location.href = "/"; }
-                    });
                 }
-            };
-            
-            updateTimer();
-            this.timerId = setInterval(updateTimer, 1000);
+                Swal.fire({
+                    title: 'Session Ended',
+                    text: 'Your session has expired. Please login again.',
+                    icon: 'warning',
+                    confirmButtonColor: '#8b5cf6'
+                }).then(() => {
+                    if (window.icp) window.icp.logout();
+                    else { localStorage.clear(); window.location.href = "/"; }
+                });
+            }
+        },
+        startTimer() {
+            if (this.timerId) return;
+            this.updateTimer();
+            // Store the interval ID and ensure it's cleared in beforeUnmount
+            this.timerId = setInterval(() => {
+                if (this._isUnmounted) {
+                    if (this.timerId) {
+                        clearInterval(this.timerId);
+                        this.timerId = null;
+                    }
+                    return;
+                }
+                this.updateTimer();
+            }, 1000);
         },
 
         formatTime(seconds) {
@@ -436,6 +547,8 @@ const app = createApp({
                 
                 const response = await axios.post(window.icp.apiUrl('/api/interview/start'), fd);
                 
+                if (this._isUnmounted) return;
+                
                 this.sessionId = response.data.session_id;
                 try { localStorage.setItem('interview_session_id', String(this.sessionId)); } catch (_) {}
                 this.currentQuestion = 1;
@@ -451,11 +564,14 @@ const app = createApp({
                 // Speak the first question (ensure voices ready and gender applied)
                 if (this.speaker) {
                     await this.ensureVoicesReady();
+                    if (this._isUnmounted) return;
                     await this.initVoices();
+                    if (this._isUnmounted) return;
                     this.speak(response.data.message);
                 }
 
             } catch (e) {
+                if (this._isUnmounted) return;
                 console.error('Failed to start interview', e);
                 Swal.fire({
                     title: 'Error',
@@ -464,7 +580,9 @@ const app = createApp({
                     confirmButtonColor: '#8b5cf6'
                 });
             } finally {
-                this.isStarting = false;
+                if (!this._isUnmounted) {
+                    this.isStarting = false;
+                }
             }
         },
 
@@ -503,6 +621,9 @@ const app = createApp({
                             if (this.interviewTimerId) clearInterval(this.interviewTimerId);
                             if (sid) await axios.post(window.icp.apiUrl(`/api/interview/${sid}/end`));
                         } catch (_) {}
+                        
+                        if (this._isUnmounted) return;
+                        
                         const endMsg = "Session ended due to repeated invalid responses. Readiness Score: N/A.";
                         this.transcript.push({ role: 'ai', content: endMsg });
                         this.readinessScore = null;
@@ -514,6 +635,8 @@ const app = createApp({
                         this.thinking = false;
                         return;
                     }
+                    
+                    if (this._isUnmounted) return;
                     
                     const msg = "I didn’t quite catch that. Please answer in clear words. Try responding to the previous question in your own words.";
                     this.transcript.push({ role: 'ai', content: msg });
@@ -528,6 +651,8 @@ const app = createApp({
                 const fd = new FormData();
                 fd.append('user_text', userAnswer);
                 const response = await axios.post(window.icp.apiUrl(`/api/interview/${this.sessionId}/reply`), fd);
+                
+                if (this._isUnmounted) return;
                 
                 const msg = response.data.message;
                 const ended = !!response.data.ended;
@@ -559,6 +684,7 @@ const app = createApp({
                 this.resetInactivityTimer();
                 
             } catch (e) {
+                if (this._isUnmounted) return;
                 console.error('Failed to submit answer', e);
                 Swal.fire({
                     title: 'Error',
@@ -570,8 +696,10 @@ const app = createApp({
                 this.answer = userAnswer; 
                 this.transcript.pop(); // Remove user message from transcript
             } finally {
-                this.submitting = false;
-                this.thinking = false;
+                if (!this._isUnmounted) {
+                    this.submitting = false;
+                    this.thinking = false;
+                }
             }
         },
         
@@ -628,10 +756,12 @@ const app = createApp({
                 confirmButtonText: 'Yes, end it!'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    if (this._isUnmounted) return;
                     const sid = this.sessionId;
                     if (this.interviewTimerId) clearInterval(this.interviewTimerId);
                     axios.post(window.icp.apiUrl(`/api/interview/${sid}/end`))
                         .then((response) => {
+                            if (this._isUnmounted) return;
                             const msg = response.data && response.data.message ? response.data.message : 'Session ended.';
                             this.transcript.push({ role: 'ai', content: msg });
                             this.readinessScore = null;
@@ -640,6 +770,7 @@ const app = createApp({
                             this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
                         })
                         .catch(() => {
+                            if (this._isUnmounted) return;
                             const endMsg = 'Session ended early. No score generated.';
                             this.transcript.push({ role: 'ai', content: endMsg });
                             this.readinessScore = null;
@@ -648,7 +779,9 @@ const app = createApp({
                             this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
                         })
                         .finally(() => {
-                            this.resetUIState(); // Centralized reset
+                            if (!this._isUnmounted) {
+                                this.resetUIState(); // Centralized reset
+                            }
                         });
                 }
             });
@@ -688,6 +821,9 @@ const app = createApp({
                 confirmButtonColor: '#8b5cf6',
                 footer: '<div class="small" style="color: #475569; font-weight: 500;">If paused, you can resume later from History → Resume Session.</div>'
             });
+            
+            if (this._isUnmounted) return;
+            
             if (res.isConfirmed) {
                 this.isPaused = false;
                 this.resetInactivityTimer();
@@ -712,6 +848,9 @@ const app = createApp({
                 confirmButtonColor: '#8b5cf6',
                 footer: '<div class="small" style="color: #475569; font-weight: 500;">If paused, you can resume later from History → Resume Session.</div>'
             });
+            
+            if (this._isUnmounted) return;
+            
             if (res.isConfirmed) {
                 this.isPaused = false;
                 this.resetInactivityTimer();
@@ -838,48 +977,62 @@ const app = createApp({
         },
 
         startFaceDetection() {
+            if (this._isUnmounted) return;
             if (this.faceDetectionTimer) clearInterval(this.faceDetectionTimer);
             
-            const video = document.getElementById('interviewVideo');
-            if (!video) return;
-
             this.faceDetectionTimer = setInterval(async () => {
-                if (!video.srcObject) return;
+                if (this._isUnmounted) {
+                    if (this.faceDetectionTimer) {
+                        clearInterval(this.faceDetectionTimer);
+                        this.faceDetectionTimer = null;
+                    }
+                    return;
+                }
+
+                const video = document.getElementById('interviewVideo');
+                // Safety check: if video element is gone or camera disabled, stop checking
+                if (!video || !video.srcObject || !this.useCamera) {
+                    if (!this.useCamera) {
+                        clearInterval(this.faceDetectionTimer);
+                        this.faceDetectionTimer = null;
+                    }
+                    return;
+                }
                 
-                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
-                
-                if (detections.length > 0) {
-                    this.isFaceDetected = true;
-                    if (this.faceAbsentTimer) {
-                        clearTimeout(this.faceAbsentTimer);
-                        this.faceAbsentTimer = null;
+                try {
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+                    
+                    if (this._isUnmounted) return;
+
+                    if (detections.length > 0) {
+                        this.isFaceDetected = true;
+                        if (this.faceAbsentTimer) {
+                            clearTimeout(this.faceAbsentTimer);
+                            this.faceAbsentTimer = null;
+                        }
+                        if (this.faceConfirmTimer) {
+                            clearTimeout(this.faceConfirmTimer);
+                            this.faceConfirmTimer = null;
+                        }
+                        this.faceWarningShown = false;
+                        this.faceStatusText = 'Face Detected';
+                        this.faceStatusClass = 'bg-success';
+                    } else {
+                        this.isFaceDetected = false;
+                        this.faceStatusText = 'No Face';
+                        this.faceStatusClass = 'bg-warning text-dark';
+                        if (!this.faceAbsentTimer && this.sessionId) {
+                            this.faceAbsentTimer = setTimeout(async () => {
+                                if (this._isUnmounted) return;
+                                if (this.sessionId && !this.isFaceDetected) {
+                                    await this.showPresenceConfirm('camera');
+                                    this.faceWarningShown = true;
+                                }
+                            }, 15000);
+                        }
                     }
-                    if (this.faceConfirmTimer) {
-                        clearTimeout(this.faceConfirmTimer);
-                        this.faceConfirmTimer = null;
-                    }
-                    this.faceWarningShown = false;
-                    // Update status badge if exists
-                    const statusBadge = document.getElementById('faceStatus');
-                    if (statusBadge) {
-                        statusBadge.className = 'badge bg-success';
-                        statusBadge.innerText = 'Face Detected';
-                    }
-                } else {
-                    this.isFaceDetected = false;
-                    const statusBadge = document.getElementById('faceStatus');
-                    if (statusBadge) {
-                        statusBadge.className = 'badge bg-warning text-dark';
-                        statusBadge.innerText = 'No Face';
-                    }
-                    if (!this.faceAbsentTimer && this.sessionId) {
-                        this.faceAbsentTimer = setTimeout(async () => {
-                            if (this.sessionId && !this.isFaceDetected) {
-                                await this.showPresenceConfirm('camera');
-                                this.faceWarningShown = true;
-                            }
-                        }, 15000);
-                    }
+                } catch (err) {
+                    // Ignore errors during detached state
                 }
             }, 1000);
         },
@@ -1062,6 +1215,9 @@ const app = createApp({
                 const sid = localStorage.getItem('interview_session_id');
                 if (!sid || !this.logged) return;
                 const r = await axios.get(window.icp.apiUrl(`/api/interview/${sid}`));
+                
+                if (this._isUnmounted) return;
+                
                 const d = r.data || {};
                 if (d.ended_at) {
                     try { localStorage.removeItem('interview_session_id'); } catch (_) {}
@@ -1088,11 +1244,13 @@ const app = createApp({
                 this.startInterviewTimer();
                 this.resetInactivityTimer();
             } catch (e) {
+                if (this._isUnmounted) return;
                 console.warn('Restore session failed', e);
             }
         },
 
         startInterviewTimer() {
+            if (this._isUnmounted) return;
             if (this.interviewTimerId) clearInterval(this.interviewTimerId);
             
             // If interviewTime wasn't set (e.g. on refresh), estimate based on questions
@@ -1101,6 +1259,13 @@ const app = createApp({
             }
 
             this.interviewTimerId = setInterval(() => {
+                if (this._isUnmounted) {
+                    if (this.interviewTimerId) {
+                        clearInterval(this.interviewTimerId);
+                        this.interviewTimerId = null;
+                    }
+                    return;
+                }
                 if (this.interviewTime > 0) {
                     this.interviewTime--;
                 } else {
@@ -1110,12 +1275,23 @@ const app = createApp({
         },
 
         resetInactivityTimer() {
+            if (this._isUnmounted) return;
             this.lastInteractionTime = Date.now();
-            if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+            if (this.inactivityTimer) {
+                clearTimeout(this.inactivityTimer);
+                this.inactivityTimer = null;
+            }
             
             if (!this.sessionId) return;
             
             this.inactivityTimer = setTimeout(() => {
+                if (this._isUnmounted) {
+                    if (this.inactivityTimer) {
+                        clearTimeout(this.inactivityTimer);
+                        this.inactivityTimer = null;
+                    }
+                    return;
+                }
                 if (this.sessionId) {
                     this.showInactivityConfirm();
                 }
@@ -1148,16 +1324,63 @@ const app = createApp({
     }
 });
 
+// Wait for DOM to be ready before mounting
+function mountApp() {
+    try {
+        const appElement = document.getElementById('app');
+        if (!appElement) {
+            console.error('App element not found');
+            return;
+        }
+        app.mount('#app');
+    } catch (e) {
+        console.error("Vue Mount Error:", e);
+        // Remove v-cloak if mount fails so user sees something
+        const el = document.getElementById('app');
+        if (el) el.removeAttribute('v-cloak');
+        document.body.innerHTML += `<div style="color: red; padding: 20px; text-align: center;">
+            <h3>Application Error</h3>
+            <p>Failed to initialize the interview interface. Please refresh or contact support.</p>
+            <pre>${e.message}</pre>
+        </div>`;
+    }
+}
+
+// Mount when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mountApp);
+} else {
+    mountApp();
+}
+
+// Force clear any stale resume data on load
 try {
-    app.mount('#app');
+    const currentFeedback = localStorage.getItem('resume_feedback');
+    const currentFilename = localStorage.getItem('resume_filename');
+    const currentJobTitle = localStorage.getItem('target_job_title');
+    
+    // Clear all potential stale data
+    console.log('Checking resume data:', {
+        feedback: currentFeedback,
+        filename: currentFilename,
+        jobTitle: currentJobTitle
+    });
+    
+    // Force clear if data is null, undefined, or corrupted
+    if (!currentFeedback || currentFeedback === 'null' || currentFeedback === 'undefined') {
+        localStorage.removeItem('resume_feedback');
+        localStorage.removeItem('resume_filename');
+        localStorage.removeItem('target_job_title');
+        console.log('Force cleared resume data - null/undefined detected');
+    }
+    
+    // Additional cache clearing for safety
+    if (localStorage.getItem('interview_session_id')) {
+        console.log('Clearing stale session data');
+        localStorage.removeItem('interview_session_id');
+        localStorage.removeItem('interview_remaining_time');
+    }
+    
 } catch (e) {
-    console.error("Vue Mount Error:", e);
-    // Remove v-cloak if mount fails so user sees something
-    const el = document.getElementById('app');
-    if (el) el.removeAttribute('v-cloak');
-    document.body.innerHTML += `<div style="color: red; padding: 20px; text-align: center;">
-        <h3>Application Error</h3>
-        <p>Failed to initialize the interview interface. Please refresh or contact support.</p>
-        <pre>${e.message}</pre>
-    </div>`;
+    console.log('Error checking resume data:', e);
 }

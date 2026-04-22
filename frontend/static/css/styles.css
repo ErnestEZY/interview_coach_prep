@@ -106,9 +106,19 @@ input::-webkit-credentials-auto-fill-button {
   max-width: 90vw;
   z-index: 999999 !important; /* Extremely high to stay on top of everything */
   transform: translateZ(999999px); /* Force GPU layer to stay in front */
+  background: #1e293b !important; /* Static non-transparent color */
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 /* Ensure parent nav and dropdown containers don't clip the menu */
+.dropdown-divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+  opacity: 1 !important;
+  margin: 0.5rem 0;
+}
+
 .glass-nav, .dropdown, .navbar {
   z-index: 10000 !important;
   overflow: visible !important;
@@ -2137,7 +2147,7 @@ html {
   background: rgba(0, 0, 0, 0.5);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
-  z-index: 1040;
+  z-index: 10040;
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
@@ -2155,12 +2165,55 @@ html {
   width: 280px;
   height: 100%;
   background: #0f172a;
-  z-index: 1050;
+  z-index: 10050;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
+  padding: 1.5rem 1.2rem;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-promo-mini {
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 12px;
+  padding: 0.6rem;
+  margin: 0.75rem 0;
+}
+
+.sidebar-promo-mini .promo-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #3b82f6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.sidebar-promo-mini .promo-text {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+/* Ensure SweetAlert2 modal overlaps everything */
+.swal2-container {
+  z-index: 20000 !important;
 }
 
 .mobile-sidebar.active {
@@ -2219,6 +2272,17 @@ html {
   font-size: 1.25rem;
 }
 
+/* Resume Builder Custom Styles */
+.resume-form-hint {
+  color: #0dcaf0 !important;
+  opacity: 0.9;
+}
+
+.sticky-preview-column {
+  top: 2rem;
+  height: fit-content;
+}
+
 .hamburger-btn {
   display: none;
   background: transparent;
@@ -2227,6 +2291,8 @@ html {
   font-size: 1.5rem;
   padding: 0.5rem;
   cursor: pointer;
+  z-index: 10001 !important;
+  position: relative;
 }
 
 @media (max-width: 1199px) {

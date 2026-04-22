@@ -16,6 +16,7 @@ const app = createApp({
             sessionTime: 0,
             timerId: null,
             loading: false,
+            _isUnmounted: false,
             // Filter options
             statusOptions: [
                 { value: '', label: 'Any status' },
@@ -45,12 +46,21 @@ const app = createApp({
     },
     mounted() {
         this.init();
-        window.addEventListener('auth:changed', () => {
+        
+        // Named listener for auth changes
+        this._authListener = () => {
              if (!window.icp.state.token) {
-                 // Encoded login path: /static/pages/icp-admin-auth-9f2d8b4e.html
-                 window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
+                 window.location.href = "/static/pages/icp-admin-auth-9f2d8b4e.html";
+             } else {
+                 this.startTimer();
              }
-        });
+        };
+        window.addEventListener('auth:changed', this._authListener);
+    },
+    beforeUnmount() {
+        this._isUnmounted = true;
+        if (this.timerId) clearInterval(this.timerId);
+        if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
     },
     methods: {
         formatTime(seconds) {
@@ -79,9 +89,16 @@ const app = createApp({
             localStorage.setItem('session_expiry_admin', exp);
             
             const updateTimer = () => {
+                if (this._isUnmounted) {
+                    if (this.timerId) {
+                        clearInterval(this.timerId);
+                        this.timerId = null;
+                    }
+                    return;
+                }
                 const now = Math.floor(Date.now() / 1000);
                 this.sessionTime = Math.max(0, exp - now);
-                if (this.sessionTime <= 0) {
+                if (this.sessionTime <= 0 && !this._isUnmounted) {
                     clearInterval(this.timerId);
                     this.timerId = null;
                     localStorage.removeItem('session_expiry_admin');
@@ -140,6 +157,9 @@ const app = createApp({
                 if (this.tag) params.tag = this.tag;
                 
                 const response = await axios.get(window.icp.apiUrl('/api/admin/resumes'), { params });
+                
+                if (this._isUnmounted) return;
+                
                 const data = response.data;
                 
                 if (!Array.isArray(data)) {

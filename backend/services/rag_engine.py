@@ -70,14 +70,19 @@ class RAGEngine:
             # Batch embed chunks
             print(f"Embedding {len(self.chunks)} chunks...")
             # Mistral allows batch embeddings
-            resp = self.mistral_client.embeddings.create(
-                model="mistral-embed",
-                inputs=self.chunks
-            )
-            self.embeddings = [e.embedding for e in resp.data]
-            
-            self._initialized = True
-            print(f"Advanced Lightweight RAG Engine ready with {len(self.chunks)} chunks.")
+            try:
+                resp = self.mistral_client.embeddings.create(
+                    model="mistral-embed",
+                    inputs=self.chunks
+                )
+                self.embeddings = [e.embedding for e in resp.data]
+                self._initialized = True
+                print(f"Advanced Lightweight RAG Engine ready with {len(self.chunks)} chunks.")
+            except Exception as e:
+                print(f"Warning: Failed to embed RAG chunks (likely quota/429): {e}")
+                print("RAG Engine will operate in keyword-only mode.")
+                self.embeddings = []
+                self._initialized = True # Still mark as initialized to avoid repeated failures
 
         except Exception as e:
             print(f"Error during Advanced Lightweight RAG initialization: {e}")
@@ -102,34 +107,41 @@ class RAGEngine:
         followed by Reranking with Mistral.
         """
         self._ensure_initialized()
-        if not self.chunks or not self.embeddings or not self.mistral_client:
+        if not self.chunks or not self.mistral_client:
             return []
             
-        cache_key = f"rag_retrieve_v2_{query}_{top_k}"
+        cache_key = f"rag_retrieve_v3_{query}_{top_k}"
         cached = cache.get(cache_key)
         if cached:
             return cached
 
         try:
-            # 1. Hybrid Search: Get Vector Similarity + Keyword Score
-            # Get query embedding
-            resp = self.mistral_client.embeddings.create(
-                model="mistral-embed",
-                inputs=[query]
-            )
-            query_emb = np.array(resp.data[0].embedding)
-            
             hybrid_scores = []
-            for i, emb in enumerate(self.embeddings):
-                # Vector Score (Cosine Similarity)
-                v_score = np.dot(query_emb, np.array(emb))
+            
+            # 1. Hybrid Search: Get Vector Similarity + Keyword Score
+            if self.embeddings:
+                # Get query embedding
+                resp = self.mistral_client.embeddings.create(
+                    model="mistral-embed",
+                    inputs=[query]
+                )
+                query_emb = np.array(resp.data[0].embedding)
                 
-                # Keyword Score
-                k_score = self._get_keyword_score(query, self.chunks[i])
-                
-                # Combined Score (Weighting: 0.7 Vector, 0.3 Keyword)
-                combined = (0.7 * v_score) + (0.3 * k_score)
-                hybrid_scores.append(combined)
+                for i, emb in enumerate(self.embeddings):
+                    # Vector Score (Cosine Similarity)
+                    v_score = np.dot(query_emb, np.array(emb))
+                    
+                    # Keyword Score
+                    k_score = self._get_keyword_score(query, self.chunks[i])
+                    
+                    # Combined Score (Weighting: 0.7 Vector, 0.3 Keyword)
+                    combined = (0.7 * v_score) + (0.3 * k_score)
+                    hybrid_scores.append(combined)
+            else:
+                # Fallback to Keyword Only if embeddings failed
+                print("RAG Retrieval: Falling back to Keyword-only search (no embeddings).")
+                for i, chunk in enumerate(self.chunks):
+                    hybrid_scores.append(self._get_keyword_score(query, chunk))
             
             # Get top 10 candidates for reranking
             top_candidates_idx = np.argsort(hybrid_scores)[-10:][::-1]

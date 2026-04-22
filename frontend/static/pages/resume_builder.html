@@ -14,15 +14,17 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="/static/css/styles.css">
-  <script src="/static/js/app.js"></script>
 </head>
 <body class="auth-page">
-  <div id="app" v-cloak>
+  <!-- Scripts at start of body for faster execution -->
+  <script src="/static/js/app.js"></script>
 
+  <div id="app" v-cloak>
+  
   <!-- Page Loader -->
   <div id="global-loader" class="page-loader" v-if="isLoading" role="status" aria-live="polite" aria-atomic="true">
     <div class="loader-spinner"></div>
@@ -32,7 +34,7 @@
   <nav class="navbar navbar-dark glass-nav">
     <div class="container d-flex align-items-center justify-content-between">
       <div class="d-flex align-items-center gap-3">
-        <button class="hamburger-btn d-xl-none me-2" onclick="window.handleMobileMenu()" title="Toggle navigation menu">
+        <button class="hamburger-btn d-xl-none me-2" @click.stop="toggleMobileMenu" title="Toggle navigation menu" aria-label="Toggle navigation menu">
           <i class="bi bi-list"></i>
         </button>
         <a class="navbar-brand fw-bold fs-4 mb-0 me-0" href="/">
@@ -53,17 +55,17 @@
             <i class="bi bi-person-circle me-1"></i>
             Account
           </button>
-          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 glass-card mt-2 dropdown-menu-wide">
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 dropdown-menu-wide">
             <li class="px-3 py-2 dropdown-item-profile">
               <div class="fw-bold text-primary small text-uppercase mb-1">User Profile</div>
               <div class="text-white fw-semibold text-break">{{ userName }}</div>
               <div class="text-secondary smaller user-email-text text-break">{{ userEmail }}</div>
             </li>
-            <li><hr class="dropdown-divider bg-light opacity-25"></li>
+            <li><hr class="dropdown-divider"></li>
             <li class="px-3 pb-2">
-              <button class="btn btn-primary btn-sm w-100 rounded-pill shadow-sm d-flex align-items-center justify-content-center gap-2 py-2" onclick="showAppModal()">
+              <button onclick="showAppModal()" class="btn btn-primary btn-sm w-100 rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
                 <i class="bi bi-download"></i>
-                <span class="fw-bold">Download App</span>
+                <span>Download App</span>
               </button>
             </li>
           </ul>
@@ -237,7 +239,7 @@
                                                 <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('experience', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
                                             </div>
                                             <hr class="my-2 opacity-25">
-                                            <div class="form-text smaller" style="color: #0dcaf0; opacity: 0.9;">
+                                            <div class="form-text smaller resume-form-hint">
                                                 <i class="bi bi-lightbulb-fill me-1"></i> Tip: Use the <strong>Google XYZ formula</strong>: Accomplished [X] as measured by [Y], by doing [Z].
                                             </div>
                                         </div>
@@ -283,7 +285,7 @@
                                                   <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('projects', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
                                               </div>
                                               <hr class="my-2 opacity-25">
-                                              <div class="form-text smaller" style="color: #0dcaf0; opacity: 0.9;">
+                                              <div class="form-text smaller resume-form-hint">
                                                   <i class="bi bi-lightbulb-fill me-1"></i> Tip: Use the <strong>Google XYZ formula</strong>: Accomplished [X] as measured by [Y], by doing [Z].
                                               </div>
                                          </div>
@@ -377,7 +379,7 @@
         </div>
 
         <!-- Preview Column -->
-        <div class="col-xl-6 sticky-xl-top" style="top: 2rem; height: fit-content;">
+        <div class="col-xl-6 sticky-xl-top sticky-preview-column">
             <div class="text-center mb-3 px-2">
                 <h5 class="text-white fw-bold mb-3 text-decoration-underline">Resume Preview</h5>
             </div>
@@ -536,8 +538,8 @@
   </div>
 
   <!-- Mobile Sidebar -->
-  <div class="sidebar-overlay" id="sidebarOverlay" onclick="window.handleMobileMenu()"></div>
-  <div class="mobile-sidebar" id="mobileSidebar">
+      <div class="sidebar-overlay" id="sidebarOverlay" :class="{ active: isMobileMenuOpen }" @click="toggleMobileMenu"></div>
+  <div class="mobile-sidebar" :class="{ active: isMobileMenuOpen }" id="mobileSidebar">
     <div class="sidebar-header border-bottom border-secondary border-opacity-25 pb-3">
       <div class="d-flex flex-column">
         <a class="navbar-brand fw-bold fs-4 mb-1" href="/">
@@ -548,7 +550,7 @@
           <div class="text-secondary smaller user-email-text">{{ userEmail }}</div>
         </div>
       </div>
-      <button class="btn btn-link text-white p-0" onclick="window.handleMobileMenu()" title="Close navigation menu">
+      <button class="btn btn-link text-white p-0" @click="toggleMobileMenu" title="Close navigation menu">
         <i class="bi bi-x-lg fs-4"></i>
       </button>
     </div>
@@ -574,11 +576,11 @@
         <span>Mock Interview</span>
       </a>
     </div>
-    <div class="mt-auto pt-4 border-top border-secondary border-opacity-25">
-      <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" @click="logout()">
+    <div class="sidebar-footer">
+      <a href="javascript:void(0)" @click="logout()" class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2 py-2 rounded-3" title="Logout from session">
         <i class="bi bi-box-arrow-right"></i>
         <span>Logout</span>
-      </button>
+      </a>
     </div>
   </div>
   </div>

@@ -7,6 +7,7 @@ const app = createApp({
       isAdmin: false,
       userName: '',
       userEmail: '',
+      isMobileMenuOpen: false,
       hasAnalyzed: false,
       sessionTime: 0,
       timerId: null,
@@ -29,8 +30,14 @@ const app = createApp({
       consent: false,
       showInfoTooltip: false,
       isSubmitted: false,
-      selectedFile: null
+      selectedFile: null,
+      _isUnmounted: false
     };
+  },
+  computed: {
+    hasResume() {
+      return !!this.feedback || !!this.hasAnalyzed;
+    }
   },
   mounted() {
     // Check initial token
@@ -51,8 +58,8 @@ const app = createApp({
       this.persistedFileName = '';
     }
 
-    // Listen for auth changes
-    window.addEventListener('auth:changed', () => {
+    // Named listener for auth changes
+    this._authListener = () => {
       const newToken = window.icp && window.icp.state ? window.icp.state.token : null;
       this.logged = !!newToken;
       if (this.logged) {
@@ -71,16 +78,32 @@ const app = createApp({
           this.timerId = null;
         }
       }
-    });
+    };
+    window.addEventListener('auth:changed', this._authListener);
     
-    document.addEventListener('click', (e) => {
+    // Named listener for tooltip
+    this._tooltipListener = (e) => {
       const wrapper = document.querySelector('.info-popover-wrapper');
       if (wrapper && !wrapper.contains(e.target)) {
         this.showInfoTooltip = false;
       }
-    });
+    };
+    document.addEventListener('click', this._tooltipListener);
+  },
+  beforeUnmount() {
+    this._isUnmounted = true;
+    if (this.timerId) clearInterval(this.timerId);
+    if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+    if (this._tooltipListener) document.removeEventListener('click', this._tooltipListener);
+    document.body.style.overflow = "";
   },
   methods: {
+    toggleMobileMenu() {
+      this.isMobileMenuOpen = !this.isMobileMenuOpen;
+      if (window.handleMobileMenu) {
+        window.handleMobileMenu(this.isMobileMenuOpen);
+      }
+    },
     async setUserFromToken() {
       const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
       if (!token) return;
@@ -127,12 +150,25 @@ const app = createApp({
       localStorage.setItem('session_expiry_user', exp);
       
       const updateTimer = () => {
+        if (this._isUnmounted) {
+          if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+          }
+          return;
+        }
         const now = Math.floor(Date.now() / 1000);
-        this.sessionTime = Math.max(0, exp - now);
+        const newSessionTime = Math.max(0, exp - now);
+        
+        if (this.sessionTime !== newSessionTime) {
+          this.sessionTime = newSessionTime;
+        }
         
         if (this.sessionTime <= 0) {
-          clearInterval(this.timerId);
-          this.timerId = null;
+          if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+          }
           localStorage.removeItem('session_expiry_user');
           Swal.fire({
             icon: 'warning',
@@ -148,7 +184,6 @@ const app = createApp({
               window.location.href = "/static/pages/login.html"; 
             }
           });
-          return; // Exit the tick to prevent further processing
         }
       };
       

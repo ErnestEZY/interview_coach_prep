@@ -1,24 +1,5 @@
 const { createApp } = Vue;
 
-// Immediate Global Sidebar Logic (defined early to prevent race conditions)
-window.handleMobileMenu = function() {
-  const sidebar = document.getElementById("mobileSidebar");
-  const overlay = document.getElementById("sidebarOverlay");
-  
-  if (sidebar && overlay) {
-    const isActive = sidebar.classList.contains("active");
-    if (isActive) {
-      sidebar.classList.remove("active");
-      overlay.classList.remove("active");
-      document.body.style.overflow = ""; // Enable scroll
-    } else {
-      sidebar.classList.add("active");
-      overlay.classList.add("active");
-      document.body.style.overflow = "hidden"; // Disable scroll
-    }
-  }
-};
-
 const app = createApp({
     data() {
         return {
@@ -26,13 +7,15 @@ const app = createApp({
             isAdmin: false,
             userName: '',
             userEmail: '',
+            isMobileMenuOpen: false,
             hasAnalyzed: false,
             isLoading: false,
             hasSearched: false,
             careerjetWidgetId: '',
             syncInterval: null,
             sessionTime: 0,
-            timerId: null
+            timerId: null,
+            _isUnmounted: false
         };
     },
     computed: {
@@ -45,8 +28,8 @@ const app = createApp({
     mounted() {
         this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
         
-        // Listen for auth changes
-        window.addEventListener('auth:changed', () => {
+        // Named listener for auth changes
+        this._authListener = () => {
             const wasLogged = this.logged;
             this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
             
@@ -58,16 +41,31 @@ const app = createApp({
                 this.hasSearched = false;
                 this.updateSearchBox();
             }
-        });
+        };
+        window.addEventListener('auth:changed', this._authListener);
 
         this.init();
     },
     beforeUnmount() {
+        this._isUnmounted = true;
         if (this.syncInterval) {
             clearInterval(this.syncInterval);
+            this.syncInterval = null;
         }
+        if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+        }
+        if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        document.body.style.overflow = "";
     },
     methods: {
+        toggleMobileMenu() {
+            this.isMobileMenuOpen = !this.isMobileMenuOpen;
+            if (window.handleMobileMenu) {
+                window.handleMobileMenu(this.isMobileMenuOpen);
+            }
+        },
         async setUserFromToken() {
             const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
             if (!token) return;
@@ -177,6 +175,13 @@ const app = createApp({
             const maxAttempts = 60;
             
             this.syncInterval = setInterval(() => {
+                if (this._isUnmounted) {
+                    if (this.syncInterval) {
+                        clearInterval(this.syncInterval);
+                        this.syncInterval = null;
+                    }
+                    return;
+                }
                 const findInputs = (doc) => {
                     let s = doc.getElementById('s');
                     let l = doc.getElementById('l');
@@ -277,12 +282,21 @@ const app = createApp({
             const exp = payload.exp;
             
             const updateTimer = () => {
+                if (this._isUnmounted) {
+                    if (this.timerId) {
+                        clearInterval(this.timerId);
+                        this.timerId = null;
+                    }
+                    return;
+                }
                 const now = Math.floor(Date.now() / 1000);
                 this.sessionTime = Math.max(0, exp - now);
                 
                 if (this.sessionTime <= 0) {
-                    clearInterval(this.timerId);
-                    this.timerId = null;
+                    if (this.timerId) {
+                        clearInterval(this.timerId);
+                        this.timerId = null;
+                    }
                     if (this.logged) {
                         Swal.fire({
                             icon: 'warning',
@@ -292,7 +306,8 @@ const app = createApp({
                             confirmButtonColor: '#8b5cf6',
                             allowOutsideClick: false
                         }).then(() => {
-                            window.icp.logout();
+                            if (window.icp) window.icp.logout();
+                            else { localStorage.clear(); window.location.href = "/static/pages/login.html"; }
                         });
                     }
                 }
