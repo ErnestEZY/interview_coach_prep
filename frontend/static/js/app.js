@@ -716,7 +716,7 @@ function injectAppPopUpBanner() {
           </div>
           <div class="text-start">
             <div class="fw-bold text-white small">Experience ICP Everywhere</div>
-            <div class="smaller text-secondary">Download our official apps for Windows and Android. <span class="opacity-50">iOS/Mac are still in development.</span></div>
+            <div class="smaller text-secondary">Download our official apps for Windows and Android. <span class="opacity-50">iOS/Mac coming soon.</span></div>
           </div>
         </div>
         <div class="d-flex align-items-center gap-3">

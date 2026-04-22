@@ -294,6 +294,36 @@ html {
   font-size: 0.75rem;
 }
 
+/* Mobile App Banner Styles */
+@media (max-width: 768px) {
+  .app-banner .container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .app-banner .text-start {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .app-banner .d-flex.align-items-center.gap-3 {
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .app-banner .d-flex.align-items-center.gap-3 .text-primary.fs-4 {
+    margin-bottom: 5px;
+  }
+  
+  .app-banner .d-flex.align-items-center.gap-3:last-child {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
 /* --- Offline Mode Styles --- */
 .offline-overlay {
   position: fixed;
