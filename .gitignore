@@ -92,3 +92,7 @@ mobile_app/android/*.keystore
 *.dmg
 *.app
 apks/
+
+# Local-only files (not for git)
+docs/
+start.sh
