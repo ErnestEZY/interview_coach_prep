@@ -84,32 +84,29 @@ app.include_router(job_router)
 # --- App Download Routes ---
 @app.get("/downloads/apk/app-release.apk")
 async def download_apk():
-    # Check multiple possible paths for the APK file
     possible_paths = [
-        os.path.join(os.getcwd(), "apks", "app-release.apk"),  # Production build location
-        os.path.join(os.getcwd(), "mobile_app", "android", "app", "build", "outputs", "flutter-apk", "app-release.apk"),  # Flutter build location
+        os.path.join(os.getcwd(), "apps", "apk", "app-release.apk"),
+        os.path.join(os.getcwd(), "mobile_app", "android", "app", "build", "outputs", "flutter-apk", "app-release.apk"),
+        os.path.join(os.getcwd(), "mobile_app", "build", "app", "outputs", "flutter-apk", "app-release.apk"),
     ]
-    
     for apk_path in possible_paths:
         apk_path = os.path.abspath(apk_path)
         if os.path.exists(apk_path):
             return FileResponse(apk_path, filename="icp-android.apk", media_type="application/vnd.android.package-archive")
-    
     return Response(content="APK file not found on server", status_code=404)
 
 @app.get("/downloads/msi/installer")
 async def download_msi():
-    # Check multiple possible paths for the MSI installer
     possible_paths = [
+        os.path.join(os.getcwd(), "apps", "msi", "Interview Coach Prep_0.1.0_x64_en-US.msi"),
+        os.path.join(os.getcwd(), "apps", "msi", "Interview_Coach_Prep_0.1.0_x64_en-US.msi"),
         os.path.join(os.getcwd(), "src-tauri", "target", "release", "bundle", "msi", "Interview Coach Prep_0.1.0_x64_en-US.msi"),
         os.path.join(os.getcwd(), "src-tauri", "target", "release", "bundle", "msi", "Interview_Coach_Prep_0.1.0_x64_en-US.msi"),
     ]
-    
     for msi_path in possible_paths:
         msi_path = os.path.abspath(msi_path)
         if os.path.exists(msi_path):
             return FileResponse(msi_path, filename="Interview_Coach_Prep_0.1.0_x64.msi", media_type="application/x-msi")
-    
     return Response(content="MSI installer not found on server", status_code=404)
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")

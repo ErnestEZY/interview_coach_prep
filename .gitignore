@@ -87,11 +87,16 @@ mobile_app/android/*.keystore
 
 # Desktop Binaries
 *.exe
-*.msi
 *.deb
 *.dmg
 *.app
-apks/
+
+# App release binaries (tracked in git for Render deployment)
+!apps/
+!apps/apk/
+!apps/msi/
+!apps/apk/*.apk
+!apps/msi/*.msi
 
 # Local-only files (not for git)
 docs/
