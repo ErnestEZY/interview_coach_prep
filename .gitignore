@@ -100,4 +100,4 @@ mobile_app/android/*.keystore
 
 # Local-only files (not for git)
 docs/
-start.sh
+start.ps1
