@@ -297,8 +297,8 @@ html {
 /* Mobile App Banner Styles */
 @media (max-width: 768px) {
   .app-banner .container-fluid {
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 4px 2px;
+    gap: 4px;
     flex-wrap: nowrap;
   }
 
@@ -345,8 +345,9 @@ html {
   }
 
   .app-banner .text-primary.fs-4 {
-    font-size: 1.4rem !important;
+    font-size: 1.6rem !important;
     line-height: 1;
+    margin: 0 6px;
   }
 
   .app-banner .btn-sm {
