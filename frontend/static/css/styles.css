@@ -266,6 +266,7 @@ html {
   backdrop-filter: blur(15px);
   border-top: 1px solid rgba(139, 92, 246, 0.3);
   padding: 12px 0;
+  padding-left: 0;
   z-index: 2000;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
   animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -297,9 +298,10 @@ html {
 /* Mobile App Banner Styles */
 @media (max-width: 768px) {
   .app-banner .container-fluid {
-    padding: 4px 2px;
-    gap: 4px;
+    padding: 8px 12px !important;
+    gap: 8px;
     flex-wrap: nowrap;
+    justify-content: space-around !important;
   }
 
   .app-banner .d-flex.align-items-center.gap-3:first-child {
@@ -309,6 +311,8 @@ html {
     flex-direction: row !important;
     gap: 8px !important;
     line-height: 1.3;
+    justify-content: flex-start !important;
+    padding-left: 0 !important;
   }
 
   .app-banner .fw-bold.text-white.small {
@@ -332,6 +336,20 @@ html {
     white-space: normal;
   }
 
+  .app-banner .text-primary.fs-4 {
+    margin-left: 4px !important;
+    margin-right: 12px !important;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start !important;
+    width: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    font-size: 1.8rem !important;
+    line-height: 1;
+  }
+
   .app-banner .text-start {
     text-align: left;
     flex: 1;
@@ -342,12 +360,6 @@ html {
   .app-banner .d-flex.align-items-center.gap-3:last-child {
     flex-shrink: 0;
     gap: 6px;
-  }
-
-  .app-banner .text-primary.fs-4 {
-    font-size: 1.6rem !important;
-    line-height: 1;
-    margin: 0 6px;
   }
 
   .app-banner .btn-sm {

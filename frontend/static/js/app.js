@@ -711,7 +711,7 @@ function injectAppPopUpBanner() {
     banner.innerHTML = `
       <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-3">
-          <div class="text-primary fs-4">
+          <div class="text-primary fs-4 banner-icon">
             <i class="bi bi-phone-vibrate"></i>
           </div>
           <div class="text-start">
