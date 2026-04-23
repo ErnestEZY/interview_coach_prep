@@ -709,7 +709,7 @@ function injectAppPopUpBanner() {
     banner.className = 'app-banner'; // Use existing CSS class
     banner.style.display = 'block';
     banner.innerHTML = `
-      <div class="container d-flex align-items-center justify-content-between">
+      <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-3">
           <div class="text-primary fs-4">
             <i class="bi bi-phone-vibrate"></i>
@@ -720,7 +720,7 @@ function injectAppPopUpBanner() {
           </div>
         </div>
         <div class="d-flex align-items-center gap-3">
-          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">Get App</button>
+          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm banner-get-btn">Get App</button>
           <button onclick="document.getElementById('app-popup-banner').remove()" class="btn-close btn-close-white small" aria-label="Close"></button>
         </div>
       </div>
@@ -758,7 +758,7 @@ function showAppModal() {
           <a href="/downloads/apk/app-release.apk" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
             <div class="d-flex align-items-center gap-3">
               <i class="bi bi-android2 fs-4 text-success"></i>
-              <div>
+              <div class="text-start">
                 <div class="fw-bold">Android APK</div>
                 <div class="smaller text-secondary">Optimized for mobile screens</div>
               </div>
@@ -768,7 +768,7 @@ function showAppModal() {
           <a href="/downloads/msi/installer" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
             <div class="d-flex align-items-center gap-3">
               <i class="bi bi-windows fs-4 text-info"></i>
-              <div>
+              <div class="text-start">
                 <div class="fw-bold">Windows Installer (MSI)</div>
                 <div class="smaller text-secondary">Native desktop experience</div>
               </div>
