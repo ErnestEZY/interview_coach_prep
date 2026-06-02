@@ -306,9 +306,8 @@ async def admin_login(
                 {"$set": {"failed_invite_attempts": current_invite_attempts}}
             )
             
-            detail_msg = "Invalid administrator invite code."
-            if current_invite_attempts >= 3:
-                detail_msg += f"\nRemaining attempts: {5 - current_invite_attempts}"
+            remaining = 5 - current_invite_attempts
+            detail_msg = f"Invalid administrator invite code. ({current_invite_attempts}/5)\nYou have {remaining} attempt{'s' if remaining > 1 else ''} remaining before your account is locked for 2 minutes."
                 
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail_msg)
 
@@ -337,9 +336,7 @@ async def admin_login(
             )
             
             remaining = 5 - current_attempts
-            detail_msg = f"Incorrect password. ({current_attempts}/5)"
-            if remaining <= 2:
-                detail_msg += f"\nYou have {remaining} attempt{'s' if remaining > 1 else ''} remaining before your account is locked for 10 minutes."
+            detail_msg = f"Incorrect password. ({current_attempts}/5)\nYou have {remaining} attempt{'s' if remaining > 1 else ''} remaining before your account is locked for 10 minutes."
             
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

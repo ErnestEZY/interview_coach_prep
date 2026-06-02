@@ -482,31 +482,38 @@
             </div>
           </div>
           
-          <form class="d-flex gap-2 align-items-end" @submit.prevent="submitAnswer">
-            <textarea 
-              class="form-control auto-expand-textarea" 
-              placeholder="Type your answer..." 
-              v-model="answer" 
-              :disabled="!sessionId || submitting" 
-              maxlength="800"
-              @input="$event.target.style.height = '45px'; $event.target.style.height = $event.target.scrollHeight + 'px'; resetInactivityTimer()"
-              @keydown.enter.prevent="!$event.shiftKey && submitAnswer()"
-            ></textarea>
-            <button type="submit" 
-                    class="btn btn-primary h-100 py-2 px-3" 
-                    :disabled="!sessionId || submitting"
-                    :class="{ 'opacity-50': !answer.trim() }"
-                    title="Send your answer">
-              <i class="bi bi-send-fill"></i>
-            </button>
-            <button type="button" class="btn h-100 py-2 px-3" 
-                    :class="recording ? 'btn-danger recording-pulse' : 'btn-outline-secondary'"
-                    @click="toggleMic()"
-                    v-if="mic"
-                    :disabled="!sessionId"
-                    title="Toggle Microphone">
-              <i class="bi" :class="recording ? 'bi-mic-fill' : 'bi-mic-mute-fill'"></i>
-            </button>
+          <form class="d-flex flex-column gap-2" @submit.prevent="submitAnswer">
+            <div class="d-flex gap-2 align-items-end">
+              <textarea 
+                class="form-control auto-expand-textarea" 
+                placeholder="Type your answer..." 
+                v-model="answer" 
+                :disabled="!sessionId || submitting" 
+                maxlength="800"
+                @input="$event.target.style.height = '45px'; $event.target.style.height = $event.target.scrollHeight + 'px'; resetInactivityTimer()"
+                @keydown.enter.prevent="!$event.shiftKey && submitAnswer()"
+              ></textarea>
+              <button type="submit" 
+                      class="btn btn-primary h-100 py-2 px-3" 
+                      :disabled="!sessionId || submitting"
+                      :class="{ 'opacity-50': !answer.trim() }"
+                      title="Send your answer">
+                <i class="bi bi-send-fill"></i>
+              </button>
+              <button type="button" class="btn h-100 py-2 px-3" 
+                      :class="recording ? 'btn-danger recording-pulse' : 'btn-outline-secondary'"
+                      @click="toggleMic()"
+                      v-if="mic"
+                      :disabled="!sessionId"
+                      title="Toggle Microphone">
+                <i class="bi" :class="recording ? 'bi-mic-fill' : 'bi-mic-mute-fill'"></i>
+              </button>
+            </div>
+            <div class="d-flex justify-content-end px-1" v-if="sessionId">
+              <span class="char-counter" :class="{'near-limit': answer.length > 700, 'at-limit': answer.length >= 800}">
+                {{ answer.length }}/800
+              </span>
+            </div>
           </form>
         </div>
       </div>

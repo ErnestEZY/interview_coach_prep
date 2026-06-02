@@ -357,19 +357,47 @@ try {
                 }
             },
             addItem(type) {
-                if (type === 'education') this.resume.education.push({ school: '', degree: '', date: '', gpa: '', location: '' });
-                if (type === 'experience') this.resume.experience.push({ company: '', position: '', date: '', bullets: [''] });
-                if (type === 'projects') this.resume.projects.push({ name: '', tech: '', bullets: [''] });
-                if (type === 'certifications') this.resume.certifications.push({ name: '' });
-                if (type === 'languages') this.resume.languages.push({ name: '' });
+                if (type === 'education') {
+                    if (this.resume.education.length >= 3) return;
+                    this.resume.education.push({ school: '', degree: '', date: '', gpa: '', location: '' });
+                }
+                if (type === 'experience') {
+                    if (this.resume.experience.length >= 3) return;
+                    this.resume.experience.push({ company: '', position: '', date: '', bullets: [''] });
+                }
+                if (type === 'projects') {
+                    if (this.resume.projects.length >= 3) return;
+                    this.resume.projects.push({ name: '', tech: '', bullets: [''] });
+                }
+                if (type === 'certifications') {
+                    if (this.resume.certifications.length >= 4) return;
+                    this.resume.certifications.push({ name: '' });
+                }
+                if (type === 'languages') {
+                    if (this.resume.languages.length >= 4) return;
+                    this.resume.languages.push({ name: '' });
+                }
                 if (type === 'extra_info') {
                     if (!Array.isArray(this.resume.extra_info)) this.resume.extra_info = [];
+                    if (this.resume.extra_info.length >= 4) return;
                     this.resume.extra_info.push({ content: '' });
                 }
-                if (type === 'skills_tech') this.resume.skills_tech.push('');
-                if (type === 'skills_tools') this.resume.skills_tools.push('');
-                if (type === 'skills_soft') this.resume.skills_soft.push('');
-                if (type === 'skills_other') this.resume.skills_other.push('');
+                if (type === 'skills_tech') {
+                    if (this.resume.skills_tech.length >= 6) return;
+                    this.resume.skills_tech.push('');
+                }
+                if (type === 'skills_tools') {
+                    if (this.resume.skills_tools.length >= 6) return;
+                    this.resume.skills_tools.push('');
+                }
+                if (type === 'skills_soft') {
+                    if (this.resume.skills_soft.length >= 6) return;
+                    this.resume.skills_soft.push('');
+                }
+                if (type === 'skills_other') {
+                    if (this.resume.skills_other.length >= 6) return;
+                    this.resume.skills_other.push('');
+                }
             },
             removeItem(type, index) {
                 this.resume[type].splice(index, 1);
@@ -378,6 +406,7 @@ try {
                 if (!this.resume[type][index].bullets) {
                     this.resume[type][index].bullets = [];
                 }
+                if (this.resume[type][index].bullets.length >= 4) return;
                 this.resume[type][index].bullets.push('');
             },
             removeBullet(type, itemIndex, bulletIndex) {
@@ -459,17 +488,17 @@ try {
                         // Clone the template but STRIP the Vue-driven transforms
                         const clone = element.cloneNode(true);
                         clone.style.transform = 'none';
-                        clone.style.padding = '0'; // Remove inner padding, let html2pdf handle margins
+                        clone.style.padding = '20mm'; // MATCH PREVIEW AND PRINT MARGINS (Changed from 15mm)
                         clone.style.margin = '0';
-                        clone.style.width = '170mm'; // 210mm - 40mm (left+right margins)
+                        clone.style.width = '210mm'; 
                         clone.style.boxShadow = 'none';
-                        clone.style.minHeight = 'auto'; 
+                        clone.style.minHeight = '297mm'; 
                         
                         captureContainer.appendChild(clone);
                         document.body.appendChild(captureContainer);
 
                         const opt = {
-                            margin: [20, 20, 20, 20], // Strict 20mm margins on all sides for EVERY page
+                            margin: 0, // Zero outer margin since we added 15mm inner padding to clone
                             filename: `${this.resume.name.replace(/\s+/g, '_')}_Resume.pdf`,
                             image: { type: 'jpeg', quality: 0.98 },
                             html2canvas: { 
@@ -477,7 +506,8 @@ try {
                                 useCORS: true, 
                                 letterRendering: true,
                                 backgroundColor: '#ffffff',
-                                scrollY: 0
+                                scrollY: 0,
+                                windowWidth: 794 // Approx width for A4 at 96 DPI
                             },
                             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }

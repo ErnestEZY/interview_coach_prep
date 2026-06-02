@@ -972,6 +972,267 @@ html {
   height: 24px;
 }
 
+/* --- Scroll to Top Button --- */
+.scroll-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 45px;
+  height: 45px;
+  background: #2563eb;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.scroll-to-top.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.scroll-to-top:hover {
+  background: #1d4ed8;
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+@media (max-width: 768px) {
+  .scroll-to-top {
+    bottom: 80px; /* Above app banner if present */
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+}
+/* --- End Scroll to Top --- */
+
+/* --- Analysis Progress Overlay --- */
+.analysis-progress-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.9);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.analysis-progress-card {
+  width: 90%;
+  max-width: 450px;
+  background: #0f172a; /* SweetAlert-like background */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border-radius: 1.5rem !important;
+  color: white;
+}
+
+.char-counter {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.char-counter.near-limit {
+  color: #f59e0b;
+}
+
+.char-counter.at-limit {
+  color: #ef4444;
+}
+
+/* For small inputs: Top right or inline */
+.char-counter-inline {
+  position: absolute;
+  top: -1.2rem;
+  right: 0; /* Reverted to 0 for Skills/Others/Extra */
+}
+
+/* For inputs in complex cards (Education/Exp/Proj) to avoid X overlap */
+.char-counter-inside {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.75rem;
+  font-size: 0.65rem;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 0 4px;
+  border-radius: 4px;
+  z-index: 5;
+}
+
+.input-container-relative {
+  position: relative;
+  width: 100%;
+}
+
+/* For textareas: Bottom right */
+.char-counter-block {
+  display: block;
+  text-align: right;
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 576px) {
+  .char-counter {
+    font-size: 0.65rem;
+  }
+  .char-counter-inline {
+    right: 30px; /* More space on mobile */
+  }
+}
+/* --- End Character Counter --- */
+
+.analysis-progress-card .progress {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.analysis-progress-card .progress-bar {
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.smaller {
+  font-size: 0.8rem;
+}
+
+/* Utility classes for moving inline styles */
+.spinner-lg {
+  width: 3rem !important;
+  height: 3rem !important;
+}
+
+.analysis-progress-container {
+  height: 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.z-index-100 {
+  z-index: 100 !important;
+}
+
+.no-right-radius {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.bullet-guidance-text {
+  font-size: 0.65rem;
+  margin-top: 0.1rem;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* --- End Analysis Progress --- */
+
+/* --- Print Styles for Resume Export --- */
+@media print {
+  /* 1. Hide ALL UI elements */
+  nav, .glass-nav, .sidebar-overlay, .mobile-sidebar, .builder-card, 
+  .resume-preview-actions, .resume-pagination, .scroll-to-top,
+  .swal2-container, #scroll-to-top, .analysis-progress-overlay {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* 2. Setup Page Margins and Size */
+  @page {
+    size: A4 portrait;
+    margin: 0; /* Let #resume-template handle internal padding */
+  }
+
+  /* 3. Reset Body for Print */
+  body, html {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* 4. Ensure Template takes full page */
+  #app, main, .container-fluid, .col-xl-8, .resume-preview-container, .resume-preview-viewport, .resume-preview-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+    transform: none !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  /* 5. Fix Side-by-Side sections in print */
+  #resume-template .row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  #resume-template .col-6 {
+    width: 50% !important;
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+    padding-left: 0 !important;
+    padding-right: 10mm !important; /* Add gap between the two columns */
+  }
+
+  #resume-template .col-6:last-child {
+    padding-right: 0 !important;
+    padding-left: 10mm !important;
+  }
+
+  #resume-template {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    transform: none !important;
+    margin: 0 auto !important;
+    padding: 20mm !important; /* MATCH PREVIEW MARGINS */
+    box-shadow: none !important;
+    border: none !important;
+    visibility: visible !important;
+    display: block !important;
+  }
+
+  /* Force background colors/images if any */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+/* --- End Print Styles --- */
+
 /* Dashboard Specific Styles */
 .dashboard-card {
   max-width: 650px;

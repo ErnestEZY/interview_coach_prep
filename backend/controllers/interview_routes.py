@@ -5,11 +5,12 @@ from ..core.db import interviews, users, resumes
 from ..core.security import get_current_user
 from ..core.config import SESSION_MAX_QUESTIONS, INTERVIEW_DEFAULT_QUESTIONS, DAILY_QUESTION_LIMIT
 from ..services.interview_engine import interview_reply
+from ..services.rag_engine import rag_engine
 from ..services.rate_limit import rate_limit
 from ..services.utils import is_gibberish, get_malaysia_time
 from ..services.daily_limit import check_daily_limit, increment_daily_limit
 
-router = APIRouter(prefix="/api/interview", tags=["interview"])
+router = APIRouter(prefix="/api/interview", tags=["interview"]) 
 
 @router.get("/limits")
 async def get_interview_limits(current=Depends(get_current_user)):
@@ -122,6 +123,13 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
     resume_feedback = s.get("resume_feedback")
     questions_limit = s.get("questions_limit", INTERVIEW_DEFAULT_QUESTIONS)
     difficulty = s.get("difficulty", "Beginner")
+
+    # --- RAG GUARDRAIL & MONITORING ---
+    # Validate user response for quality/behavior monitoring
+    guardrail = await rag_engine.validate_input(user_text[:500])
+    if not guardrail.get("safe", True) and guardrail.get("category") == "malicious":
+        raise HTTPException(status_code=400, detail=f"Invalid input detected: {guardrail.get('reason')}")
+    # --- END GUARDRAIL ---
 
     if is_gibberish(user_text, strict=False):
         msg = "I didn’t quite catch that. Please answer in clear words. Please try answering the previous question again in your own words."

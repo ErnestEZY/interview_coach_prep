@@ -31,7 +31,11 @@ const app = createApp({
       showInfoTooltip: false,
       isSubmitted: false,
       selectedFile: null,
-      _isUnmounted: false
+      _isUnmounted: false,
+      showAnalysisProgress: false,
+      analysisProgress: 0,
+      analysisStatus: 'Preparing analysis...',
+      progressInterval: null
     };
   },
   computed: {
@@ -418,6 +422,56 @@ const app = createApp({
       element.style.height = element.scrollHeight + 'px';
     },
 
+    startAnalysisProgress(isManual = false) {
+      this.showAnalysisProgress = true;
+      this.analysisProgress = 0;
+      this.analysisStatus = isManual ? 'Initializing profile builder...' : 'Uploading resume...';
+      
+      const stages = [
+        { threshold: 15, status: isManual ? 'Initializing profile builder...' : 'Uploading resume...' },
+        { threshold: 30, status: isManual ? 'Extracting profile data...' : 'Extracting resume content...' },
+        { threshold: 40, status: 'Analyzing target role requirements...' },
+        { threshold: 50, status: 'Analyzing technical skills...' },
+        { threshold: 60, status: 'Evaluating work experience...' },
+        { threshold: 70, status: 'Comparing strengths and weaknesses...' },
+        { threshold: 80, status: 'Generating improvement suggestions...' },
+        { threshold: 90, status: 'Personalizing career coaching advice...' }
+      ];
+
+      let currentStage = 0;
+      this.progressInterval = setInterval(() => {
+        if (this.analysisProgress < 95) {
+          this.analysisProgress += 1;
+          
+          if (currentStage < stages.length && this.analysisProgress >= stages[currentStage].threshold) {
+            this.analysisStatus = stages[currentStage].status;
+            currentStage++;
+          }
+          
+          if (this.analysisProgress === 95) {
+            this.analysisStatus = 'Finalizing analysis...';
+          }
+        }
+      }, 150);
+    },
+
+    stopAnalysisProgress(success = true) {
+      if (this.progressInterval) {
+        clearInterval(this.progressInterval);
+        this.progressInterval = null;
+      }
+      
+      if (success) {
+        this.analysisProgress = 100;
+        this.analysisStatus = 'Analysis complete';
+        setTimeout(() => {
+          this.showAnalysisProgress = false;
+        }, 800);
+      } else {
+        this.showAnalysisProgress = false;
+      }
+    },
+
     async uploadResume() {
       if (this.resumeAttempts <= 0) {
         Swal.fire({
@@ -498,12 +552,8 @@ const app = createApp({
         return;
       }
 
-      Swal.fire({
-        title: 'Analyzing Resume...',
-        text: 'Please wait while our AI evaluates your profile for the ' + jt + ' position.',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading() }
-      });
+      this.uploading = true;
+      this.startAnalysisProgress(false);
 
       const fd = new FormData();
       fd.append('file', file);
@@ -520,7 +570,8 @@ const app = createApp({
         });
         
         const res = r.data;
-        Swal.close();
+        this.stopAnalysisProgress(true);
+        this.uploading = false;
         
         this.persistedFileName = file.name;
         this.selectedFile = file; // Ensure selectedFile is preserved for subsequent Save Profile for Review
@@ -554,7 +605,8 @@ const app = createApp({
           throw new Error('Invalid response from server');
         }
       } catch (err) {
-        Swal.close();
+        this.stopAnalysisProgress(false);
+        this.uploading = false;
         const errorMsg = (err.response && err.response.data && err.response.data.detail) || err.message || 'Failed to analyze resume';
         const status = err.response ? err.response.status : 0;
 
@@ -693,12 +745,7 @@ const app = createApp({
       if (!confirmedConsent) return;
 
       this.uploading = true;
-      Swal.fire({
-        title: 'Generating Profile...',
-        text: 'Our AI Coach is analyzing your information.',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading() }
-      });
+      this.startAnalysisProgress(true);
 
       try {
         const response = await axios.post('/api/resume/manual-upload', {
@@ -707,7 +754,7 @@ const app = createApp({
         });
         const res = response.data;
 
-        Swal.close();
+        this.stopAnalysisProgress(true);
         const modalElement = document.getElementById('manualBuilderModal');
         const modal = bootstrap.Modal.getInstance(modalElement);
         if (modal) modal.hide();
@@ -740,7 +787,7 @@ const app = createApp({
         this.manualData = { jobTitle: '', experience: '', summary: '', skills: '', achievement: '' };
         
       } catch (err) {
-        Swal.close();
+        this.stopAnalysisProgress(false);
         const status = err.response ? err.response.status : 0;
         const detail = (err.response && err.response.data && err.response.data.detail) || err.message;
 

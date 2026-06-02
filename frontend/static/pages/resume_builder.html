@@ -113,32 +113,67 @@
                             <div class="card-body p-3">
                                 <div class="row g-3">
                                     <div class="col-12">
-                                        <label for="resume-name" class="form-label">Full Name</label>
-                                        <input id="resume-name" v-model="resume.name" type="text" class="form-control" title="Enter your full name" placeholder="Full Name" maxlength="50">
+                                        <label for="resume-name" class="form-label mb-1">Full Name</label>
+                                        <div class="input-container-relative">
+                                            <input id="resume-name" v-model="resume.name" type="text" class="form-control pe-5" title="Enter your full name" placeholder="Full Name" maxlength="50">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': resume.name.length > 40, 'at-limit': resume.name.length >= 50}">
+                                                {{ resume.name.length }}/50
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
-                                        <label for="resume-title" class="form-label">Title</label>
-                                        <input id="resume-title" v-model="resume.title" type="text" class="form-control" title="Enter your professional title" placeholder="e.g., Software Engineer" maxlength="70">
+                                        <label for="resume-title" class="form-label mb-1">Title</label>
+                                        <div class="input-container-relative">
+                                            <input id="resume-title" v-model="resume.title" type="text" class="form-control pe-5" title="Enter your professional title" placeholder="e.g., Software Engineer" maxlength="70">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': resume.title.length > 60, 'at-limit': resume.title.length >= 70}">
+                                                {{ resume.title.length }}/70
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-6">
-                                        <label for="resume-email" class="form-label">Email</label>
-                                        <input id="resume-email" v-model="resume.email" type="email" class="form-control" title="Enter your contact email" placeholder="Email Address" maxlength="50">
+                                        <label for="resume-email" class="form-label mb-1">Email</label>
+                                        <div class="input-container-relative">
+                                            <input id="resume-email" v-model="resume.email" type="email" class="form-control pe-5" title="Enter your contact email" placeholder="Email Address" maxlength="50">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': resume.email.length > 40, 'at-limit': resume.email.length >= 50}">
+                                                {{ resume.email.length }}/50
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-6">
-                                        <label for="resume-phone" class="form-label">Phone</label>
-                                        <input id="resume-phone" v-model="resume.phone" type="text" class="form-control" title="Enter your phone number" placeholder="Phone Number" maxlength="20">
+                                        <label for="resume-phone" class="form-label mb-1">Phone</label>
+                                        <div class="input-container-relative">
+                                            <input id="resume-phone" v-model="resume.phone" type="text" class="form-control pe-4" title="Enter your phone number" placeholder="Phone Number" maxlength="20">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': resume.phone.length > 15, 'at-limit': resume.phone.length >= 20}">
+                                                {{ resume.phone.length }}/20
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-6">
-                                        <label for="resume-location" class="form-label">Location</label>
-                                        <input id="resume-location" v-model="resume.location" type="text" class="form-control" title="Enter your location (City, Country)" placeholder="City, Country" maxlength="100">
+                                        <label for="resume-location" class="form-label mb-1">Location</label>
+                                        <div class="input-container-relative">
+                                            <input id="resume-location" v-model="resume.location" type="text" class="form-control pe-4" title="Enter your location (City, Country)" placeholder="City, Country" maxlength="30">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': resume.location.length > 25, 'at-limit': resume.location.length >= 30}">
+                                                {{ resume.location.length }}/30
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-6">
-                                        <label for="resume-website" class="form-label">Website</label>
-                                        <input id="resume-website" v-model="resume.website" type="text" class="form-control" title="Enter your portfolio or LinkedIn URL" placeholder="URL" maxlength="70">
+                                        <label for="resume-website" class="form-label mb-1">Website</label>
+                                        <div class="input-container-relative">
+                                            <input id="resume-website" v-model="resume.website" type="text" class="form-control pe-5" title="Enter your portfolio or LinkedIn URL" placeholder="URL" maxlength="70">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': resume.website.length > 60, 'at-limit': resume.website.length >= 70}">
+                                                {{ resume.website.length }}/70
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
-                                        <label for="resume-summary" class="form-label">Summary</label>
-                                        <textarea id="resume-summary" v-model="resume.summary" class="form-control" rows="4" title="Write a short professional summary" placeholder="Briefly describe your professional background" maxlength="250"></textarea>
+                                        <label for="resume-summary" class="form-label mb-1">Summary</label>
+                                        <div class="input-container-relative">
+                                            <textarea id="resume-summary" v-model="resume.summary" class="form-control" rows="4" title="Write a short professional summary" placeholder="Briefly describe your professional background" maxlength="250"></textarea>
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': resume.summary.length > 220, 'at-limit': resume.summary.length >= 250}">
+                                                {{ resume.summary.length }}/250
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -148,50 +183,56 @@
                     <!-- Education Tab -->
                     <div class="tab-pane fade" id="tab-edu" role="tabpanel" aria-labelledby="pills-edu-tab">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0">Education History</h6>
-                            <button @click="addItem('education')" class="btn btn-xs btn-outline-primary" title="Add new education entry">+ Add</button>
+                            <h6 class="fw-bold mb-0">Education History <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.education.length }}/3</span></h6>
+                            <button @click="addItem('education')" class="btn btn-xs btn-outline-primary" :disabled="resume.education.length >= 3" title="Add new education entry">+ Add</button>
                         </div>
                         <div v-for="(edu, index) in resume.education" :key="index" class="card mb-3 bg-dark border-secondary">
                             <div class="card-body p-3 position-relative">
                                 <button @click="removeItem('education', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this education entry"></button>
                                 <div class="row g-2">
                                     <div class="col-12">
-                                        <label :for="'edu-school-'+index" class="form-label">Institution</label>
-                                        <input :id="'edu-school-'+index" v-model="edu.school" type="text" class="form-control" title="Enter school or university name" placeholder="Institution Name" maxlength="60">
+                                        <label :for="'edu-school-'+index" class="form-label mb-1">Institution</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'edu-school-'+index" v-model="edu.school" type="text" class="form-control pe-5" title="Enter school or university name" placeholder="Institution Name" maxlength="60">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': edu.school.length > 50, 'at-limit': edu.school.length >= 60}">
+                                                {{ edu.school.length }}/60
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
-                                        <label :for="'edu-degree-'+index" class="form-label">Degree</label>
-                                        <input :id="'edu-degree-'+index" v-model="edu.degree" type="text" class="form-control" title="Enter degree or certification" placeholder="Degree / Course" maxlength="100">
+                                        <label :for="'edu-degree-'+index" class="form-label mb-1">Degree</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'edu-degree-'+index" v-model="edu.degree" type="text" class="form-control pe-5" title="Enter degree or certification" placeholder="Degree / Course" maxlength="100">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': edu.degree.length > 80, 'at-limit': edu.degree.length >= 100}">
+                                                {{ edu.degree.length }}/100
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-6">
-                                        <label :for="'edu-location-'+index" class="form-label">Location</label>
-                                        <input :id="'edu-location-'+index" v-model="edu.location" type="text" class="form-control" title="Enter school location" placeholder="e.g., City, Country" maxlength="30">
+                                        <label :for="'edu-location-'+index" class="form-label mb-1">Location</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'edu-location-'+index" v-model="edu.location" type="text" class="form-control pe-4" title="Enter school location" placeholder="e.g., City" maxlength="30">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': edu.location.length > 25, 'at-limit': edu.location.length >= 30}">
+                                                {{ edu.location.length }}/30
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-6">
-                                        <label :for="'edu-date-'+index" class="form-label">Dates</label>
-                                        <input :id="'edu-date-'+index" v-model="edu.date" type="text" class="form-control" title="Enter period of study" placeholder="e.g., 2020 - 2024" maxlength="20">
+                                        <label :for="'edu-date-'+index" class="form-label mb-1">Dates</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'edu-date-'+index" v-model="edu.date" type="text" class="form-control pe-4" title="Enter period of study" placeholder="e.g., 2020 - 2024" maxlength="20">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': edu.date.length > 15, 'at-limit': edu.date.length >= 20}">
+                                                {{ edu.date.length }}/20
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
-                                        <label :for="'edu-gpa-'+index" class="form-label">Grade</label>
-                                        <input :id="'edu-gpa-'+index" v-model="edu.gpa" type="text" class="form-control" title="Enter GPA or Grade" placeholder="Grade / GPA" maxlength="20">
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <label class="form-label mb-0">Key Achievements / Bullets</label>
-                                            <button @click="addBullet('education', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
-                                        </div>
-                                        <div v-for="(bullet, bIndex) in edu.bullets" :key="bIndex" class="bullet-input-wrapper">
-                                            <div class="input-group input-group-sm">
-                                                <textarea v-model="edu.bullets[bIndex]" class="form-control" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your education" maxlength="250"></textarea>
-                                                <button @click="removeBullet('education', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
-                                            </div>
-                                            <div v-if="getGuidance(edu.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(edu.bullets[bIndex]) }}</div>
-                                        </div>
-                                        <div class="mt-2">
-                                            <label class="form-label small">Action Verb Suggestions:</label>
-                                            <div class="action-verbs-list mb-2">
-                                                <span v-for="verb in actionVerbs" @click="addVerbToLastBullet('education', index, verb)" class="badge bg-secondary-subtle text-secondary-emphasis me-1 mb-1" role="button">{{ verb }}</span>
-                                            </div>
+                                        <label :for="'edu-gpa-'+index" class="form-label mb-1">Grade</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'edu-gpa-'+index" v-model="edu.gpa" type="text" class="form-control pe-4" title="Enter GPA or Grade" placeholder="Grade / GPA" maxlength="20">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': edu.gpa.length > 15, 'at-limit': edu.gpa.length >= 20}">
+                                                {{ edu.gpa.length }}/20
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -202,36 +243,56 @@
                     <!-- Experience Tab -->
                     <div class="tab-pane fade" id="tab-exp" role="tabpanel" aria-labelledby="pills-exp-tab">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0">Work Experience</h6>
-                            <button @click="addItem('experience')" class="btn btn-xs btn-outline-primary" title="Add new work experience entry">+ Add</button>
+                            <h6 class="fw-bold mb-0">Work Experience <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.experience.length }}/3</span></h6>
+                            <button @click="addItem('experience')" class="btn btn-xs btn-outline-primary" :disabled="resume.experience.length >= 3" title="Add new work experience entry">+ Add</button>
                         </div>
                         <div v-for="(exp, index) in resume.experience" :key="index" class="card mb-3 bg-dark border-secondary">
                             <div class="card-body p-3 position-relative">
                                 <button @click="removeItem('experience', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this work experience entry"></button>
                                 <div class="row g-2">
                                     <div class="col-12">
-                                        <label :for="'exp-company-'+index" class="form-label">Company</label>
-                                        <input :id="'exp-company-'+index" v-model="exp.company" type="text" class="form-control" title="Enter company name" placeholder="Company Name" maxlength="70">
+                                        <label :for="'exp-company-'+index" class="form-label mb-1">Company</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'exp-company-'+index" v-model="exp.company" type="text" class="form-control pe-5" title="Enter company name" placeholder="Company Name" maxlength="70">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': exp.company.length > 60, 'at-limit': exp.company.length >= 70}">
+                                                {{ exp.company.length }}/70
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
-                                        <label :for="'exp-position-'+index" class="form-label">Position</label>
-                                        <input :id="'exp-position-'+index" v-model="exp.position" type="text" class="form-control" title="Enter your job title" placeholder="Job Title" maxlength="80">
+                                        <label :for="'exp-position-'+index" class="form-label mb-1">Position</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'exp-position-'+index" v-model="exp.position" type="text" class="form-control pe-5" title="Enter your job title" placeholder="Job Title" maxlength="80">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': exp.position.length > 70, 'at-limit': exp.position.length >= 80}">
+                                                {{ exp.position.length }}/80
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
-                                        <label :for="'exp-date-'+index" class="form-label">Dates</label>
-                                        <input :id="'exp-date-'+index" v-model="exp.date" type="text" class="form-control" title="Enter employment period" placeholder="e.g., Jan 2022 - Present" maxlength="50">
+                                        <label :for="'exp-date-'+index" class="form-label mb-1">Dates</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'exp-date-'+index" v-model="exp.date" type="text" class="form-control pe-5" title="Enter employment period" placeholder="e.g., Jan 2022 - Present" maxlength="50">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': exp.date.length > 40, 'at-limit': exp.date.length >= 50}">
+                                                {{ exp.date.length }}/50
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <label class="form-label mb-0">Key Achievements / Bullets</label>
-                                            <button @click="addBullet('experience', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                            <label class="form-label mb-0">Key Achievements / Bullets <span class="badge bg-secondary smaller fw-normal ms-1">{{ exp.bullets ? exp.bullets.length : 0 }}/4</span></label>
+                                            <button @click="addBullet('experience', index)" class="btn btn-xs btn-outline-success" :disabled="exp.bullets && exp.bullets.length >= 4" title="Add a bullet point">+ Add Bullet</button>
                                         </div>
-                                        <div v-for="(bullet, bIndex) in exp.bullets" :key="bIndex" class="bullet-input-wrapper">
-                                            <div class="input-group input-group-sm">
-                                                <textarea v-model="exp.bullets[bIndex]" class="form-control" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your work experience" maxlength="250"></textarea>
+                                        <div v-for="(bullet, bIndex) in exp.bullets" :key="bIndex" class="bullet-input-wrapper mb-1">
+                                            <div class="input-group input-group-sm flex-nowrap">
+                                                <div class="input-container-relative flex-grow-1">
+                                                    <textarea v-model="exp.bullets[bIndex]" class="form-control no-right-radius" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your work experience" maxlength="250"></textarea>
+                                                    <span class="char-counter char-counter-inside" :class="{'near-limit': exp.bullets[bIndex].length > 220, 'at-limit': exp.bullets[bIndex].length >= 250}">
+                                                        {{ exp.bullets[bIndex].length }}/250
+                                                    </span>
+                                                </div>
                                                 <button @click="removeBullet('experience', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
                                             </div>
-                                            <div v-if="getGuidance(exp.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(exp.bullets[bIndex]) }}</div>
+                                            <div v-if="getGuidance(exp.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1 bullet-guidance-text">{{ getGuidance(exp.bullets[bIndex]) }}</div>
                                         </div>
                                         <div class="mt-2">
                                             <label class="form-label small">Action Verb Suggestions:</label>
@@ -252,32 +313,47 @@
                     <!-- Projects Tab -->
                     <div class="tab-pane fade" id="tab-projects" role="tabpanel" aria-labelledby="pills-projects-tab">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0">Key Projects</h6>
-                            <button @click="addItem('projects')" class="btn btn-xs btn-outline-primary" title="Add new project entry">+ Add</button>
+                            <h6 class="fw-bold mb-0">Key Projects <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.projects.length }}/3</span></h6>
+                            <button @click="addItem('projects')" class="btn btn-xs btn-outline-primary" :disabled="resume.projects.length >= 3" title="Add new project entry">+ Add</button>
                         </div>
                         <div v-for="(proj, index) in resume.projects" :key="index" class="card mb-3 bg-dark border-secondary">
                             <div class="card-body p-3 position-relative">
                                 <button @click="removeItem('projects', index)" class="btn-close btn-close-white position-absolute top-0 end-0 m-2" title="Remove this project entry"></button>
                                 <div class="row g-2">
                                     <div class="col-12">
-                                        <label :for="'proj-name-'+index" class="form-label">Project Name</label>
-                                        <input :id="'proj-name-'+index" v-model="proj.name" type="text" class="form-control" title="Enter project name" placeholder="Project Name" maxlength="100">
+                                        <label :for="'proj-name-'+index" class="form-label mb-1">Project Name</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'proj-name-'+index" v-model="proj.name" type="text" class="form-control pe-5" title="Enter project name" placeholder="Project Name" maxlength="100">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': proj.name.length > 80, 'at-limit': proj.name.length >= 100}">
+                                                {{ proj.name.length }}/100
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
-                                        <label :for="'proj-tech-'+index" class="form-label">Tech Stack</label>
-                                        <input :id="'proj-tech-'+index" v-model="proj.tech" type="text" class="form-control" title="Enter technologies used" placeholder="e.g., Vue.js, Python, MongoDB" maxlength="100">
+                                        <label :for="'proj-tech-'+index" class="form-label mb-1">Tech Stack</label>
+                                        <div class="input-container-relative">
+                                            <input :id="'proj-tech-'+index" v-model="proj.tech" type="text" class="form-control pe-5" title="Enter technologies used" placeholder="e.g., Vue.js, Python, MongoDB" maxlength="100">
+                                            <span class="char-counter char-counter-inside" :class="{'near-limit': proj.tech.length > 80, 'at-limit': proj.tech.length >= 100}">
+                                                {{ proj.tech.length }}/100
+                                            </span>
+                                        </div>
                                     </div>
                                     <div class="col-12">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <label class="form-label mb-0">Description / Bullets</label>
-                                            <button @click="addBullet('projects', index)" class="btn btn-xs btn-outline-success" title="Add a bullet point">+ Add Bullet</button>
+                                            <label class="form-label mb-0">Description / Bullets <span class="badge bg-secondary smaller fw-normal ms-1">{{ proj.bullets ? proj.bullets.length : 0 }}/4</span></label>
+                                            <button @click="addBullet('projects', index)" class="btn btn-xs btn-outline-success" :disabled="proj.bullets && proj.bullets.length >= 4" title="Add a bullet point">+ Add Bullet</button>
                                         </div>
-                                        <div v-for="(bullet, bIndex) in proj.bullets" :key="bIndex" class="bullet-input-wrapper">
-                                            <div class="input-group input-group-sm">
-                                                <textarea v-model="proj.bullets[bIndex]" class="form-control" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your project" maxlength="250"></textarea>
+                                        <div v-for="(bullet, bIndex) in proj.bullets" :key="bIndex" class="bullet-input-wrapper mb-1">
+                                            <div class="input-group input-group-sm flex-nowrap">
+                                                <div class="input-container-relative flex-grow-1">
+                                                    <textarea v-model="proj.bullets[bIndex]" class="form-control no-right-radius" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your project" maxlength="250"></textarea>
+                                                    <span class="char-counter char-counter-inside" :class="{'near-limit': proj.bullets[bIndex].length > 220, 'at-limit': proj.bullets[bIndex].length >= 250}">
+                                                        {{ proj.bullets[bIndex].length }}/250
+                                                    </span>
+                                                </div>
                                                 <button @click="removeBullet('projects', index, bIndex)" class="btn btn-outline-danger" title="Remove bullet"><i class="bi bi-trash"></i></button>
                                             </div>
-                                            <div v-if="getGuidance(proj.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1">{{ getGuidance(proj.bullets[bIndex]) }}</div>
+                                            <div v-if="getGuidance(proj.bullets[bIndex])" class="form-text text-muted bullet-guidance ps-1 bullet-guidance-text">{{ getGuidance(proj.bullets[bIndex]) }}</div>
                                         </div>
                                         <div class="mt-2">
                                              <label class="form-label small">Action Verb Suggestions:</label>
@@ -299,41 +375,61 @@
                     <div class="tab-pane fade" id="tab-skills" role="tabpanel" aria-labelledby="pills-skills-tab">
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold mb-0">Languages & Frameworks</h6>
-                                <button @click="addItem('skills_tech')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                                <h6 class="fw-bold mb-0">Languages & Frameworks <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.skills_tech.length }}/6</span></h6>
+                                <button @click="addItem('skills_tech')" class="btn btn-xs btn-outline-primary" :disabled="resume.skills_tech.length >= 6" title="Add new skill">+ Add</button>
                             </div>
-                            <div v-for="(skill, index) in resume.skills_tech" :key="index" class="input-group mb-2">
-                                <input v-model="resume.skills_tech[index]" type="text" class="form-control" placeholder="e.g., Python, JavaScript, React">
+                            <div v-for="(skill, index) in resume.skills_tech" :key="index" class="input-group mb-2 flex-nowrap">
+                                <div class="input-container-relative flex-grow-1">
+                                    <input v-model="resume.skills_tech[index]" type="text" class="form-control pe-5 no-right-radius" placeholder="e.g., Python, JavaScript, React" maxlength="50">
+                                    <span class="char-counter char-counter-inside" :class="{'near-limit': resume.skills_tech[index].length > 40, 'at-limit': resume.skills_tech[index].length >= 50}">
+                                        {{ resume.skills_tech[index].length }}/50
+                                    </span>
+                                </div>
                                 <button @click="removeItem('skills_tech', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold mb-0">Tools & Platforms</h6>
-                                <button @click="addItem('skills_tools')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                                <h6 class="fw-bold mb-0">Tools & Platforms <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.skills_tools.length }}/6</span></h6>
+                                <button @click="addItem('skills_tools')" class="btn btn-xs btn-outline-primary" :disabled="resume.skills_tools.length >= 6" title="Add new skill">+ Add</button>
                             </div>
-                            <div v-for="(skill, index) in resume.skills_tools" :key="index" class="input-group mb-2">
-                                <input v-model="resume.skills_tools[index]" type="text" class="form-control" placeholder="e.g., Docker, Git, AWS">
+                            <div v-for="(skill, index) in resume.skills_tools" :key="index" class="input-group mb-2 flex-nowrap">
+                                <div class="input-container-relative flex-grow-1">
+                                    <input v-model="resume.skills_tools[index]" type="text" class="form-control pe-5 no-right-radius" placeholder="e.g., Docker, Git, AWS" maxlength="50">
+                                    <span class="char-counter char-counter-inside" :class="{'near-limit': resume.skills_tools[index].length > 40, 'at-limit': resume.skills_tools[index].length >= 50}">
+                                        {{ resume.skills_tools[index].length }}/50
+                                    </span>
+                                </div>
                                 <button @click="removeItem('skills_tools', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold mb-0">Soft Skills</h6>
-                                <button @click="addItem('skills_soft')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                                <h6 class="fw-bold mb-0">Soft Skills <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.skills_soft.length }}/6</span></h6>
+                                <button @click="addItem('skills_soft')" class="btn btn-xs btn-outline-primary" :disabled="resume.skills_soft.length >= 6" title="Add new skill">+ Add</button>
                             </div>
-                            <div v-for="(skill, index) in resume.skills_soft" :key="index" class="input-group mb-2">
-                                <input v-model="resume.skills_soft[index]" type="text" class="form-control" placeholder="e.g., Leadership, Communication">
+                            <div v-for="(skill, index) in resume.skills_soft" :key="index" class="input-group mb-2 flex-nowrap">
+                                <div class="input-container-relative flex-grow-1">
+                                    <input v-model="resume.skills_soft[index]" type="text" class="form-control pe-5 no-right-radius" placeholder="e.g., Leadership, Communication" maxlength="50">
+                                    <span class="char-counter char-counter-inside" :class="{'near-limit': resume.skills_soft[index].length > 40, 'at-limit': resume.skills_soft[index].length >= 50}">
+                                        {{ resume.skills_soft[index].length }}/50
+                                    </span>
+                                </div>
                                 <button @click="removeItem('skills_soft', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold mb-0">Other Related Skills</h6>
-                                <button @click="addItem('skills_other')" class="btn btn-xs btn-outline-primary" title="Add new skill">+ Add</button>
+                                <h6 class="fw-bold mb-0">Other Related Skills <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.skills_other.length }}/6</span></h6>
+                                <button @click="addItem('skills_other')" class="btn btn-xs btn-outline-primary" :disabled="resume.skills_other.length >= 6" title="Add new skill">+ Add</button>
                             </div>
-                            <div v-for="(skill, index) in resume.skills_other" :key="index" class="input-group mb-2">
-                                <input v-model="resume.skills_other[index]" type="text" class="form-control" placeholder="e.g., Agile Methodologies">
+                            <div v-for="(skill, index) in resume.skills_other" :key="index" class="input-group mb-2 flex-nowrap">
+                                <div class="input-container-relative flex-grow-1">
+                                    <input v-model="resume.skills_other[index]" type="text" class="form-control pe-5 no-right-radius" placeholder="e.g., Agile Methodologies" maxlength="50">
+                                    <span class="char-counter char-counter-inside" :class="{'near-limit': resume.skills_other[index].length > 40, 'at-limit': resume.skills_other[index].length >= 50}">
+                                        {{ resume.skills_other[index].length }}/50
+                                    </span>
+                                </div>
                                 <button @click="removeItem('skills_other', index)" class="btn btn-outline-danger" title="Remove skill"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
@@ -343,21 +439,31 @@
                     <div class="tab-pane fade" id="tab-others" role="tabpanel" aria-labelledby="pills-others-tab">
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="fw-bold mb-0">Certifications</h6>
-                                <button @click="addItem('certifications')" class="btn btn-xs btn-outline-primary" title="Add new certification">+ Add</button>
+                                <h6 class="fw-bold mb-0">Certifications <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.certifications.length }}/4</span></h6>
+                                <button @click="addItem('certifications')" class="btn btn-xs btn-outline-primary" :disabled="resume.certifications.length >= 4" title="Add new certification">+ Add</button>
                             </div>
-                            <div v-for="(cert, index) in resume.certifications" :key="index" class="input-group mb-2">
-                                <input v-model="cert.name" type="text" class="form-control" title="Enter certification name" placeholder="Certification Name" maxlength="100">
+                            <div v-for="(cert, index) in resume.certifications" :key="index" class="input-group mb-2 flex-nowrap">
+                                <div class="input-container-relative flex-grow-1">
+                                    <input v-model="cert.name" type="text" class="form-control pe-5 no-right-radius" title="Enter certification name" placeholder="Certification Name" maxlength="100">
+                                    <span class="char-counter char-counter-inside" :class="{'near-limit': cert.name.length > 80, 'at-limit': cert.name.length >= 100}">
+                                        {{ cert.name.length }}/100
+                                    </span>
+                                </div>
                                 <button @click="removeItem('certifications', index)" class="btn btn-outline-danger" title="Remove certification"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="fw-bold mb-0">Languages</h6>
-                                <button @click="addItem('languages')" class="btn btn-xs btn-outline-primary" title="Add new language">+ Add</button>
+                                <h6 class="fw-bold mb-0">Languages <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.languages.length }}/4</span></h6>
+                                <button @click="addItem('languages')" class="btn btn-xs btn-outline-primary" :disabled="resume.languages.length >= 4" title="Add new language">+ Add</button>
                             </div>
-                            <div v-for="(lang, index) in resume.languages" :key="index" class="input-group mb-2">
-                                <input v-model="lang.name" type="text" class="form-control" title="Enter language and proficiency" placeholder="e.g., English (Fluent)" maxlength="60">
+                            <div v-for="(lang, index) in resume.languages" :key="index" class="input-group mb-2 flex-nowrap">
+                                <div class="input-container-relative flex-grow-1">
+                                    <input v-model="lang.name" type="text" class="form-control pe-5 no-right-radius" title="Enter language and proficiency" placeholder="e.g., English (Fluent)" maxlength="60">
+                                    <span class="char-counter char-counter-inside" :class="{'near-limit': lang.name.length > 50, 'at-limit': lang.name.length >= 60}">
+                                        {{ lang.name.length }}/60
+                                    </span>
+                                </div>
                                 <button @click="removeItem('languages', index)" class="btn btn-outline-danger" title="Remove language"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
@@ -366,11 +472,16 @@
                     <!-- Extra Tab -->
                     <div class="tab-pane fade" id="tab-extra" role="tabpanel" aria-labelledby="pills-extra-tab">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="fw-bold mb-0">Additional Information</h6>
-                            <button @click="addItem('extra_info')" class="btn btn-xs btn-outline-primary" title="Add new entry">+ Add</button>
+                            <h6 class="fw-bold mb-0">Additional Information <span class="badge bg-secondary smaller fw-normal ms-1">{{ resume.extra_info.length }}/4</span></h6>
+                            <button @click="addItem('extra_info')" class="btn btn-xs btn-outline-primary" :disabled="resume.extra_info.length >= 4" title="Add new entry">+ Add</button>
                         </div>
-                        <div v-for="(info, index) in resume.extra_info" :key="index" class="input-group mb-2">
-                            <input v-model="info.content" type="text" class="form-control" title="Enter additional information" placeholder="e.g., Available for relocation" maxlength="150">
+                        <div v-for="(info, index) in resume.extra_info" :key="index" class="input-group mb-2 flex-nowrap">
+                            <div class="input-container-relative flex-grow-1">
+                                <input v-model="info.content" type="text" class="form-control pe-5 no-right-radius" title="Enter additional information" placeholder="e.g., Available for relocation" maxlength="150">
+                                <span class="char-counter char-counter-inside" :class="{'near-limit': info.content.length > 130, 'at-limit': info.content.length >= 150}">
+                                    {{ info.content.length }}/150
+                                </span>
+                            </div>
                             <button @click="removeItem('extra_info', index)" class="btn btn-outline-danger" title="Remove entry"><i class="bi bi-trash"></i></button>
                         </div>
                     </div>

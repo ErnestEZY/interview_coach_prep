@@ -899,5 +899,43 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 3. Setup Tauri Navigation
   setupTauriNavigation();
+
+  // 4. Setup Scroll to Top Button
+  setupScrollToTop();
 });
+
+/**
+ * Handles the Scroll to Top button logic
+ */
+function setupScrollToTop() {
+  if (document.getElementById('scroll-to-top')) return;
+
+  const scrollBtn = document.createElement('div');
+  scrollBtn.id = 'scroll-to-top';
+  scrollBtn.className = 'scroll-to-top';
+  scrollBtn.innerHTML = '<i class="bi bi-arrow-up"></i>';
+  scrollBtn.title = 'Scroll to top';
+  document.body.appendChild(scrollBtn);
+
+  const handleScroll = () => {
+    const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const scrollPos = window.scrollY;
+    
+    // Show button when scrolled 50% of the page
+    if (scrollHeight > 0 && scrollPos > scrollHeight * 0.5) {
+      scrollBtn.classList.add('show');
+    } else {
+      scrollBtn.classList.remove('show');
+    }
+  };
+
+  scrollBtn.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+
+  window.addEventListener('scroll', handleScroll);
+}
 

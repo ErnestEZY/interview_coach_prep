@@ -52,7 +52,7 @@
               <div class="mb-4">
                 <label class="form-label text-secondary small text-uppercase fw-bold">Password <span class="text-danger">*</span></label>
                 <div class="input-group input-group-lg">
-                  <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="form-control" placeholder="Create your Password" title="New Password" required maxlength="12">
+                  <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="form-control" placeholder="Create your Password" title="New Password" required maxlength="16">
                   <button class="btn password-toggle-btn" type="button" @click="showPassword = !showPassword" title="Toggle password visibility">
                     <i class="bi" :class="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
                   </button>
@@ -65,6 +65,7 @@
                   </div>
                   <div class="progress password-strength-progress">
                     <div class="progress-bar transition-all" role="progressbar" 
+                         aria-label="Password strength progress"
                          :title="'Password Strength: ' + passwordStrength.label"
                          :style="'width: ' + passwordStrength.width" :class="passwordStrength.class"></div>
                   </div>
@@ -109,7 +110,7 @@
               <div class="mb-4">
                 <label class="form-label text-secondary small text-uppercase fw-bold">Confirm Password <span class="text-danger">*</span></label>
                 <div class="input-group input-group-lg">
-                  <input v-model="form.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="form-control" placeholder="Re-enter your password" title="Confirm Password" required maxlength="12">
+                  <input v-model="form.confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" class="form-control" placeholder="Re-enter your password" title="Confirm Password" required maxlength="16">
                   <button class="btn password-toggle-btn" type="button" @click="showConfirmPassword = !showConfirmPassword" title="Toggle password visibility">
                     <i class="bi" :class="showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
                   </button>

@@ -24,10 +24,11 @@ def clean_text(text: str) -> str:
     text = re.sub(r' +', ' ', text)
     return text.strip()
 
-def extract_resume_text(path: str) -> Tuple[str, str]:
+def extract_resume_text(path: str) -> Tuple[str, str, bool]:
     name = os.path.basename(path)
     text = ""
     mime = ""
+    ocr_used = False
 
     if is_pdf(name):
         mime = "application/pdf"
@@ -62,14 +63,14 @@ def extract_resume_text(path: str) -> Tuple[str, str]:
 
         # Check if PDF is likely image-based (no selectable text)
         if not text or len(text) < 100:
-            raise ValueError(
-                "This PDF appears to be a scanned image or lacks selectable text. "
-                "Image-based PDFs are not compatible with ATS systems. "
-                "Please upload a standard PDF with selectable text, or a Word (.docx) file."
-            )
+            # This is definitely an image-based PDF
+            ocr_used = True
+            # For now we still raise error or we can try OCR here
+            # But based on your code, we proceed to OCR below
 
         # 4. Optimized OCR (Only for borderline cases to keep speed high)
         if len(text) < 800: # Only run OCR if text is very sparse
+            ocr_used = True
             try:
                 with pdfplumber.open(path) as pdf:
                     ocr_additions = ""
@@ -97,8 +98,15 @@ def extract_resume_text(path: str) -> Tuple[str, str]:
                         print(f"Captured additional visual text: {len(ocr_additions)} characters.")
             except Exception as e:
                 print(f"Visual OCR extraction failed: {e}")
+        
+        if ocr_used and len(text) < 100:
+             raise ValueError(
+                "This PDF appears to be a scanned image or lacks selectable text. "
+                "Image-based PDFs are not compatible with ATS systems. "
+                "Please upload a standard PDF with selectable text, or a Word (.docx) file."
+            )
 
-        return clean_text(text), mime
+        return clean_text(text), mime, ocr_used
 
     if name.lower().endswith(".doc"):
         raise ValueError("Please convert .doc to .docx or pdf")
@@ -116,6 +124,8 @@ def extract_resume_text(path: str) -> Tuple[str, str]:
         
         if not text.strip():
              raise ValueError("The Word document appears to be empty.")
-        return clean_text(text), mime
+        return clean_text(text), mime, False # Docx is always text-based
+    
+    raise ValueError(f"Unsupported file type: {name}. Please upload a PDF or DOCX file.")
     
     raise ValueError(f"Unsupported file type: {name}. Please upload a PDF or DOCX file.")

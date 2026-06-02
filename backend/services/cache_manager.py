@@ -9,10 +9,10 @@ os.makedirs(cache_dir, exist_ok=True)
 
 cache = diskcache.Cache(cache_dir, size_limit=500 * 1024 * 1024)
 
-def memoize(expire=3600):
+def memoize(expire=86400):
     """
     Decorator to cache function results on disk.
-    Defaults to 1 hour expiration.
+    Defaults to 24 hours (86400 seconds) expiration.
     """
     return cache.memoize(expire=expire)
 
