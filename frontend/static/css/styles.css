@@ -629,6 +629,66 @@ html {
 @keyframes pulse { 0%{opacity:.6}50%{opacity:1}100%{opacity:.6}}
 @keyframes talk { 0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
 
+/* Score Circle & Breakdown Styling */
+.score-container {
+  width: 100%;
+}
+
+.score-breakdown-side {
+  min-width: 200px;
+}
+
+.score-progress-mini {
+  width: 100px;
+  height: 6px;
+}
+
+.score-progress-mini-rtl {
+  direction: rtl;
+}
+
+.score-progress-mini-interview {
+  width: 80px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.score-progress-mini-interview-rtl {
+  direction: rtl;
+}
+
+/* Mobile Specific Breakdown Styling */
+.mobile-breakdown-card {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.mobile-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-breakdown-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-progress-bar {
+  height: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
 /* Resume Score Circle Styles */
 .score-circle {
   width: 160px;
@@ -1074,10 +1134,11 @@ html {
   bottom: 0.5rem;
   right: 0.75rem;
   font-size: 0.65rem;
-  background: rgba(15, 23, 42, 0.6);
-  padding: 0 4px;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 0 6px;
   border-radius: 4px;
   z-index: 5;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .input-container-relative {
@@ -1094,10 +1155,24 @@ html {
 
 @media (max-width: 576px) {
   .char-counter {
-    font-size: 0.65rem;
+    font-size: 0.6rem; /* Slightly smaller for mobile */
   }
   .char-counter-inline {
-    right: 30px; /* More space on mobile */
+    right: 10px; /* Closer to edge on mobile */
+    top: -1rem;
+  }
+  .char-counter-inside {
+    right: 0.4rem;
+    bottom: 0.3rem;
+    padding: 0 3px;
+    background: rgba(15, 23, 42, 0.95); /* More opaque on mobile for visibility */
+    font-size: 0.55rem;
+  }
+  .form-control.pe-5 {
+    padding-right: 2.5rem !important;
+  }
+  .form-control.pe-4 {
+    padding-right: 2rem !important;
   }
 }
 /* --- End Character Counter --- */
@@ -1740,11 +1815,14 @@ html {
 /* Mobile View Scaling */
 @media (max-width: 991.98px) {
     .resume-preview-container {
-        height: 500px;
-        margin-top: 20px;
+        height: 550px; /* Slightly taller for better view */
+        margin-top: 30px; /* Increased margin */
+        margin-bottom: 30px;
+        width: 100% !important;
+        max-width: 100% !important;
     }
     .resume-preview-viewport {
-        transform: scale(0.35);
+        transform: scale(0.32); /* Slightly smaller to fit mobile screens better */
     }
 }
 

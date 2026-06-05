@@ -37,6 +37,7 @@ const app = createApp({
             interviewAttempts: 0,
             maxInterviewAttempts: 3,
             readinessScore: null,
+            readinessBreakdown: null,
             feedbackExplanation: "",
             
             // Timers
@@ -664,12 +665,29 @@ const app = createApp({
                     this.sessionId = null;
                     this.interviewAttempts = Math.max(0, this.interviewAttempts - 1);
                     
-                    // Extract score and feedback for display
-                    const match = /Interview Readiness Score:\s*(\d+)\/100/i.exec(msg);
-                    this.readinessScore = match ? parseInt(match[1]) : null;
-                    
-                    // The feedback explanation should be everything except the score line
-                    this.feedbackExplanation = msg.replace(/Interview Readiness Score:\s*\d+\/100/i, '').trim();
+                    // Extract score and feedback for display - use structured data if available
+                    if (response.data.score !== undefined) {
+                        this.readinessScore = response.data.score;
+                        this.readinessBreakdown = response.data.breakdown || null;
+                        this.feedbackExplanation = response.data.feedback || msg;
+                    } else {
+                        // Fallback to extraction if not provided as structured data
+                        const match = /Interview Readiness Score:\s*(\d+)\/100/i.exec(msg);
+                        this.readinessScore = match ? parseInt(match[1]) : null;
+                        
+                        const breakdownMatch = /Breakdown:\s*Technical:\s*(\d+),\s*Communication:\s*(\d+),\s*Alignment:\s*(\d+),\s*Relevance:\s*(\d+)/i.exec(msg);
+                        this.readinessBreakdown = breakdownMatch ? {
+                            TechnicalScore: parseInt(breakdownMatch[1]),
+                            CommunicationScore: parseInt(breakdownMatch[2]),
+                            AlignmentScore: parseInt(breakdownMatch[3]),
+                            RelevanceScore: parseInt(breakdownMatch[4])
+                        } : null;
+
+                        this.feedbackExplanation = msg.replace(/Interview Readiness Score:\s*\d+\/100/i, '')
+                                                     .replace(/Breakdown:\s*Technical:\s*\d+,\s*Communication:\s*\d+,\s*Alignment:\s*\d+,\s*Relevance:\s*\d+/i, '')
+                                                     .replace(/safety filtering|rejected|rejection|guardrail|check failed/gi, '')
+                                                     .trim();
+                    }
                     
                     if (this.speaker) this.speak(msg); // Speak the whole concluding message
                     this.resetUIState();
@@ -742,6 +760,7 @@ const app = createApp({
             if (this.interviewTimerId) clearInterval(this.interviewTimerId);
             this.sessionId = null;
             this.readinessScore = results.score;
+            this.readinessBreakdown = results.breakdown;
             this.feedbackExplanation = results.feedback;
         },
 

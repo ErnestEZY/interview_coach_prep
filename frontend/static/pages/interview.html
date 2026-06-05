@@ -356,13 +356,114 @@
                 <!-- Readiness Score Section -->
                 <div v-if="readinessScore" class="mb-3 animate-fade-in">
                   <div class="d-flex flex-column align-items-center">
-                    <div class="readiness-display mb-3">
-                      <div class="readiness-circle" :class="scoreColorClass">
-                        <span class="fs-1 fw-bold">{{ readinessScore }}</span>
-                        <span class="fs-6 opacity-50">/100</span>
+                    
+                    <div class="score-container d-flex flex-column flex-md-row align-items-center justify-content-center gap-4 gap-md-5 mb-4 w-100">
+                      
+                      <!-- Left Breakdown (Desktop) -->
+                      <div class="score-breakdown-side d-none d-md-flex flex-column gap-3 text-end">
+                        <div class="breakdown-item">
+                          <div class="breakdown-label small text-secondary fw-bold text-uppercase">Technical Accuracy</div>
+                          <div class="breakdown-value-container d-flex align-items-center justify-content-end gap-2">
+                            <div class="progress flex-grow-1 score-progress-mini-interview score-progress-mini-interview-rtl">
+                              <div class="progress-bar bg-primary" :style="{ width: (readinessBreakdown ? (readinessBreakdown.TechnicalScore / 30 * 100) : 0) + '%' }"></div>
+                            </div>
+                            <span class="fw-bold text-primary small">{{ readinessBreakdown ? readinessBreakdown.TechnicalScore : 0 }}<small class="text-secondary">/30</small></span>
+                          </div>
+                        </div>
+                        <div class="breakdown-item">
+                          <div class="breakdown-label small text-secondary fw-bold text-uppercase">Communication Depth</div>
+                          <div class="breakdown-value-container d-flex align-items-center justify-content-end gap-2">
+                            <div class="progress flex-grow-1 score-progress-mini-interview score-progress-mini-interview-rtl">
+                              <div class="progress-bar bg-success" :style="{ width: (readinessBreakdown ? (readinessBreakdown.CommunicationScore / 30 * 100) : 0) + '%' }"></div>
+                            </div>
+                            <span class="fw-bold text-success small">{{ readinessBreakdown ? readinessBreakdown.CommunicationScore : 0 }}<small class="text-secondary">/30</small></span>
+                          </div>
+                        </div>
                       </div>
-                      <div class="readiness-label">READINESS SCORE</div>
+
+                      <!-- Main Score Circle -->
+                      <div class="readiness-display">
+                        <div class="readiness-circle" :class="scoreColorClass">
+                          <span class="fs-1 fw-bold">{{ readinessScore }}</span>
+                          <span class="fs-6 opacity-50">/100</span>
+                        </div>
+                        <div class="readiness-label">READINESS SCORE</div>
+                      </div>
+
+                      <!-- Right Breakdown (Desktop) -->
+                      <div class="score-breakdown-side d-none d-md-flex flex-column gap-3 text-start">
+                        <div class="breakdown-item">
+                          <div class="breakdown-label small text-secondary fw-bold text-uppercase">Role Alignment</div>
+                          <div class="breakdown-value-container d-flex align-items-center justify-content-start gap-2">
+                            <span class="fw-bold text-info small">{{ readinessBreakdown ? readinessBreakdown.AlignmentScore : 0 }}<small class="text-secondary">/20</small></span>
+                            <div class="progress flex-grow-1 score-progress-mini-interview">
+                              <div class="progress-bar bg-info" :style="{ width: (readinessBreakdown ? (readinessBreakdown.AlignmentScore / 20 * 100) : 0) + '%' }"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="breakdown-item">
+                          <div class="breakdown-label small text-secondary fw-bold text-uppercase">Response Relevance</div>
+                          <div class="breakdown-value-container d-flex align-items-center justify-content-start gap-2">
+                            <span class="fw-bold text-warning small">{{ readinessBreakdown ? readinessBreakdown.RelevanceScore : 0 }}<small class="text-secondary">/20</small></span>
+                            <div class="progress flex-grow-1 score-progress-mini-interview">
+                              <div class="progress-bar bg-warning" :style="{ width: (readinessBreakdown ? (readinessBreakdown.RelevanceScore / 20 * 100) : 0) + '%' }"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Mobile Breakdown (Mock Interview) -->
+                      <div class="col-12 d-md-none mt-1 mb-3">
+                        <div class="card mobile-breakdown-card p-3 rounded-4 shadow-sm">
+                          <h6 class="small fw-bold text-secondary text-uppercase mb-3 tracking-wider text-center">Score Breakdown</h6>
+                          <div class="mobile-breakdown-list text-start">
+                            
+                            <div class="mobile-breakdown-item">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-bold text-uppercase">Technical Accuracy</span>
+                                <span class="fw-bold text-primary small">{{ readinessBreakdown ? readinessBreakdown.TechnicalScore : 0 }}<small class="text-secondary">/30</small></span>
+                              </div>
+                              <div class="progress mobile-progress-bar">
+                                <div class="progress-bar bg-primary" :style="{ width: (readinessBreakdown ? (readinessBreakdown.TechnicalScore / 30 * 100) : 0) + '%' }"></div>
+                              </div>
+                            </div>
+
+                            <div class="mobile-breakdown-item">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-bold text-uppercase">Communication Depth</span>
+                                <span class="fw-bold text-success small">{{ readinessBreakdown ? readinessBreakdown.CommunicationScore : 0 }}<small class="text-secondary">/30</small></span>
+                              </div>
+                              <div class="progress mobile-progress-bar">
+                                <div class="progress-bar bg-success" :style="{ width: (readinessBreakdown ? (readinessBreakdown.CommunicationScore / 30 * 100) : 0) + '%' }"></div>
+                              </div>
+                            </div>
+
+                            <div class="mobile-breakdown-item">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-bold text-uppercase">Role Alignment</span>
+                                <span class="fw-bold text-info small">{{ readinessBreakdown ? readinessBreakdown.AlignmentScore : 0 }}<small class="text-secondary">/20</small></span>
+                              </div>
+                              <div class="progress mobile-progress-bar">
+                                <div class="progress-bar bg-info" :style="{ width: (readinessBreakdown ? (readinessBreakdown.AlignmentScore / 20 * 100) : 0) + '%' }"></div>
+                              </div>
+                            </div>
+
+                            <div class="mobile-breakdown-item">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-bold text-uppercase">Response Relevance</span>
+                                <span class="fw-bold text-warning small">{{ readinessBreakdown ? readinessBreakdown.RelevanceScore : 0 }}<small class="text-secondary">/20</small></span>
+                              </div>
+                              <div class="progress mobile-progress-bar">
+                                <div class="progress-bar bg-warning" :style="{ width: (readinessBreakdown ? (readinessBreakdown.RelevanceScore / 20 * 100) : 0) + '%' }"></div>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
+
                     <div class="p-4 rounded-4 feedback-box shadow-lg feedback-box-max w-100 max-w-600">
                       <h6 class="text-primary small fw-bold text-uppercase mb-2 tracking-widest">Constructive Feedback</h6>
                       <p class="small text-light mb-0 feedback-text">{{ feedbackExplanation }}</p>

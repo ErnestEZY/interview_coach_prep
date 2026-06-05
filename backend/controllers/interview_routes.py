@@ -216,19 +216,27 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
             import re
             # Extract readiness score and feedback from the AI message
             # Format expected: "Interview Readiness Score: XX/100"
+            # Breakdown expected: "Breakdown: Technical: XX, Communication: XX, Alignment: XX, Relevance: XX"
             score_match = re.search(r"Interview Readiness Score:\s*(\d+)/100", ai, re.IGNORECASE)
             readiness_score = int(score_match.group(1)) if score_match else None
             
-            # The feedback is usually the rest of the text around the score
-            # We'll store the whole concluding message as feedback for now, 
-            # or try to extract the specific part if possible.
-            # For simplicity, let's store the message and the extracted score.
-            
-            # Clean up the feedback text to remove the score line and [FINISH] tag
+            # Extract breakdown
+            breakdown = {}
+            breakdown_match = re.search(r"Breakdown:\s*Technical:\s*(\d+),\s*Communication:\s*(\d+),\s*Alignment:\s*(\d+),\s*Relevance:\s*(\d+)", ai, re.IGNORECASE)
+            if breakdown_match:
+                breakdown = {
+                    "TechnicalScore": int(breakdown_match.group(1)),
+                    "CommunicationScore": int(breakdown_match.group(2)),
+                    "AlignmentScore": int(breakdown_match.group(3)),
+                    "RelevanceScore": int(breakdown_match.group(4))
+                }
+
+            # Clean up the feedback text to remove the score and breakdown lines
             feedback_text = ai.replace("[FINISH]", "").strip()
             if score_match:
-                # Remove the "Interview Readiness Score: XX/100" part from the feedback text
                 feedback_text = re.sub(r"Interview Readiness Score:\s*\d+/100", "", feedback_text, flags=re.IGNORECASE).strip()
+            if breakdown_match:
+                feedback_text = re.sub(r"Breakdown:\s*Technical:\s*\d+,\s*Communication:\s*\d+,\s*Alignment:\s*\d+,\s*Relevance:\s*\d+", "", feedback_text, flags=re.IGNORECASE).strip()
             
             await increment_daily_limit(current["id"], "daily_interview_count")
             await interviews.update_one(
@@ -237,11 +245,12 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
                     "$set": {
                         "ended_at": get_malaysia_time(),
                         "readiness_score": readiness_score,
+                        "readiness_breakdown": breakdown,
                         "readiness_feedback": feedback_text,
                     }
                 }
             )
-        return {"message": ai, "ended": True, "asked_count": asked_now, "questions_limit": limit}
+        return {"message": ai, "ended": True, "asked_count": asked_now, "questions_limit": limit, "score": readiness_score, "breakdown": breakdown, "feedback": feedback_text}
     return {"message": ai, "asked_count": asked_now, "questions_limit": limit}
 
 @router.post("/{session_id}/end")

@@ -321,13 +321,114 @@
          </div>
       </div>
 
-      <!-- Score Circle -->
-      <div class="col-12 text-center">
-        <div class="score-circle" :style="'--score: ' + (feedback ? feedback.Score : 0) + '%'">
-          <div class="score-content">
-            <span class="score-value">{{ feedback ? feedback.Score : 0 }}</span>
-            <span class="score-label">Score</span>
+      <!-- Score Circle & Breakdown -->
+      <div class="col-12 text-center mb-5">
+        <div class="score-container d-flex flex-column flex-md-row align-items-center justify-content-center gap-4 gap-md-5">
+          
+          <!-- Left Breakdown (Desktop) -->
+          <div class="score-breakdown-side d-none d-md-flex flex-column gap-3 text-end">
+            <div class="breakdown-item">
+              <div class="breakdown-label small text-secondary fw-bold text-uppercase">Structure & Presentation</div>
+              <div class="breakdown-value-container d-flex align-items-center justify-content-end gap-2">
+                <div class="progress flex-grow-1 score-progress-mini score-progress-mini-rtl">
+                  <div class="progress-bar bg-info" :style="{ width: (feedback && feedback.ScoreBreakdown ? (feedback.ScoreBreakdown.StructureScore / 20 * 100) : 0) + '%' }"></div>
+                </div>
+                <span class="fw-bold text-info">{{ feedback && feedback.ScoreBreakdown ? feedback.ScoreBreakdown.StructureScore : 0 }}<small class="text-secondary">/20</small></span>
+              </div>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-label small text-secondary fw-bold text-uppercase">ATS Compatibility</div>
+              <div class="breakdown-value-container d-flex align-items-center justify-content-end gap-2">
+                <div class="progress flex-grow-1 score-progress-mini score-progress-mini-rtl">
+                  <div class="progress-bar bg-warning" :style="{ width: (feedback && feedback.ScoreBreakdown ? (feedback.ScoreBreakdown.ATSScore / 10 * 100) : 0) + '%' }"></div>
+                </div>
+                <span class="fw-bold text-warning">{{ feedback && feedback.ScoreBreakdown ? feedback.ScoreBreakdown.ATSScore : 0 }}<small class="text-secondary">/10</small></span>
+              </div>
+            </div>
           </div>
+
+          <!-- Main Score Circle -->
+          <div class="score-circle-wrapper">
+            <div class="score-circle" :style="'--score: ' + (feedback ? feedback.Score : 0) + '%'">
+              <div class="score-content">
+                <span class="score-value">{{ feedback ? feedback.Score : 0 }}</span>
+                <span class="score-label">Overall</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Breakdown (Desktop) -->
+          <div class="score-breakdown-side d-none d-md-flex flex-column gap-3 text-start">
+            <div class="breakdown-item">
+              <div class="breakdown-label small text-secondary fw-bold text-uppercase">Impact & Achievement</div>
+              <div class="breakdown-value-container d-flex align-items-center justify-content-start gap-2">
+                <span class="fw-bold text-primary">{{ feedback && feedback.ScoreBreakdown ? feedback.ScoreBreakdown.ImpactScore : 0 }}<small class="text-secondary">/40</small></span>
+                <div class="progress flex-grow-1 score-progress-mini">
+                  <div class="progress-bar bg-primary" :style="{ width: (feedback && feedback.ScoreBreakdown ? (feedback.ScoreBreakdown.ImpactScore / 40 * 100) : 0) + '%' }"></div>
+                </div>
+              </div>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-label small text-secondary fw-bold text-uppercase">Skill Alignment</div>
+              <div class="breakdown-value-container d-flex align-items-center justify-content-start gap-2">
+                <span class="fw-bold text-success">{{ feedback && feedback.ScoreBreakdown ? feedback.ScoreBreakdown.SkillScore : 0 }}<small class="text-secondary">/30</small></span>
+                <div class="progress flex-grow-1 score-progress-mini">
+                  <div class="progress-bar bg-success" :style="{ width: (feedback && feedback.ScoreBreakdown ? (feedback.ScoreBreakdown.SkillScore / 30 * 100) : 0) + '%' }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile Breakdown -->
+          <div class="col-12 d-md-none mt-2 mb-4">
+            <div class="card mobile-breakdown-card p-3 rounded-4 shadow-sm">
+              <h6 class="small fw-bold text-secondary text-uppercase mb-3 tracking-wider text-center">Score Breakdown</h6>
+              <div class="mobile-breakdown-list text-start">
+                
+                <div class="mobile-breakdown-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="small text-secondary fw-bold text-uppercase">Impact & Achievement</span>
+                    <span class="fw-bold text-primary">{{ feedback && feedback.ScoreBreakdown ? feedback.ScoreBreakdown.ImpactScore : 0 }}<small class="text-secondary">/40</small></span>
+                  </div>
+                  <div class="progress mobile-progress-bar">
+                    <div class="progress-bar bg-primary" :style="{ width: (feedback && feedback.ScoreBreakdown ? (feedback.ScoreBreakdown.ImpactScore / 40 * 100) : 0) + '%' }"></div>
+                  </div>
+                </div>
+
+                <div class="mobile-breakdown-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="small text-secondary fw-bold text-uppercase">Skill Alignment</span>
+                    <span class="fw-bold text-success">{{ feedback && feedback.ScoreBreakdown ? feedback.ScoreBreakdown.SkillScore : 0 }}<small class="text-secondary">/30</small></span>
+                  </div>
+                  <div class="progress mobile-progress-bar">
+                    <div class="progress-bar bg-success" :style="{ width: (feedback && feedback.ScoreBreakdown ? (feedback.ScoreBreakdown.SkillScore / 30 * 100) : 0) + '%' }"></div>
+                  </div>
+                </div>
+
+                <div class="mobile-breakdown-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="small text-secondary fw-bold text-uppercase">Structure & Presentation</span>
+                    <span class="fw-bold text-info">{{ feedback && feedback.ScoreBreakdown ? feedback.ScoreBreakdown.StructureScore : 0 }}<small class="text-secondary">/20</small></span>
+                  </div>
+                  <div class="progress mobile-progress-bar">
+                    <div class="progress-bar bg-info" :style="{ width: (feedback && feedback.ScoreBreakdown ? (feedback.ScoreBreakdown.StructureScore / 20 * 100) : 0) + '%' }"></div>
+                  </div>
+                </div>
+
+                <div class="mobile-breakdown-item">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="small text-secondary fw-bold text-uppercase">ATS Compatibility</span>
+                    <span class="fw-bold text-warning">{{ feedback && feedback.ScoreBreakdown ? feedback.ScoreBreakdown.ATSScore : 0 }}<small class="text-secondary">/10</small></span>
+                  </div>
+                  <div class="progress mobile-progress-bar">
+                    <div class="progress-bar bg-warning" :style="{ width: (feedback && feedback.ScoreBreakdown ? (feedback.ScoreBreakdown.ATSScore / 10 * 100) : 0) + '%' }"></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 

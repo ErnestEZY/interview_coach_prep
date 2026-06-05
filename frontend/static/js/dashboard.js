@@ -428,31 +428,43 @@ const app = createApp({
       this.analysisStatus = isManual ? 'Initializing profile builder...' : 'Uploading resume...';
       
       const stages = [
-        { threshold: 15, status: isManual ? 'Initializing profile builder...' : 'Uploading resume...' },
-        { threshold: 30, status: isManual ? 'Extracting profile data...' : 'Extracting resume content...' },
+        { threshold: 10, status: isManual ? 'Initializing profile builder...' : 'Uploading resume...' },
+        { threshold: 25, status: isManual ? 'Extracting profile data...' : 'Extracting resume content...' },
         { threshold: 40, status: 'Analyzing target role requirements...' },
-        { threshold: 50, status: 'Analyzing technical skills...' },
-        { threshold: 60, status: 'Evaluating work experience...' },
-        { threshold: 70, status: 'Comparing strengths and weaknesses...' },
-        { threshold: 80, status: 'Generating improvement suggestions...' },
-        { threshold: 90, status: 'Personalizing career coaching advice...' }
+        { threshold: 55, status: 'Analyzing technical skills...' },
+        { threshold: 65, status: 'Evaluating work experience...' },
+        { threshold: 75, status: 'Comparing strengths and weaknesses...' },
+        { threshold: 85, status: 'Generating improvement suggestions...' },
+        { threshold: 92, status: 'Personalizing career coaching advice...' }
+      ];
+
+      const holdingMessages = [
+        'Finalizing analysis...',
+        'Almost there...',
+        'Polishing your feedback...',
+        'Organizing results...'
       ];
 
       let currentStage = 0;
+      let holdingIndex = 0;
       this.progressInterval = setInterval(() => {
         if (this.analysisProgress < 95) {
+          // Slower increment: 1% every 300ms
           this.analysisProgress += 1;
           
           if (currentStage < stages.length && this.analysisProgress >= stages[currentStage].threshold) {
             this.analysisStatus = stages[currentStage].status;
             currentStage++;
           }
-          
-          if (this.analysisProgress === 95) {
-            this.analysisStatus = 'Finalizing analysis...';
+        } else {
+          // Hold at 95% and rotate messages every 2 seconds
+          this.analysisProgress = 95;
+          if (Math.random() > 0.95) { // Slow rotation
+             this.analysisStatus = holdingMessages[holdingIndex % holdingMessages.length];
+             holdingIndex++;
           }
         }
-      }, 150);
+      }, 300);
     },
 
     stopAnalysisProgress(success = true) {
@@ -462,13 +474,26 @@ const app = createApp({
       }
       
       if (success) {
-        this.analysisProgress = 100;
-        this.analysisStatus = 'Analysis complete';
-        setTimeout(() => {
-          this.showAnalysisProgress = false;
-        }, 800);
+        // Return a promise that resolves when the progress hits 100% and overlay is hidden
+        return new Promise(resolve => {
+          this.analysisStatus = 'Analysis complete';
+          
+          // Increment from current position to 100% smoothly
+          const finalInterval = setInterval(() => {
+            if (this.analysisProgress < 100) {
+              this.analysisProgress += 1;
+            } else {
+              clearInterval(finalInterval);
+              setTimeout(() => {
+                this.showAnalysisProgress = false;
+                resolve();
+              }, 600);
+            }
+          }, 50); // Fast completion at the end
+        });
       } else {
         this.showAnalysisProgress = false;
+        return Promise.resolve();
       }
     },
 
@@ -570,9 +595,25 @@ const app = createApp({
         });
         
         const res = r.data;
-        this.stopAnalysisProgress(true);
+        
+        // Wait for progress bar to hit 100% and overlay to hide
+        await this.stopAnalysisProgress(true);
         this.uploading = false;
         
+        // Handle Rejection (Not a resume)
+        if (res && res.feedback && res.feedback.IsResume === false) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Document',
+                text: res.feedback.Disadvantages?.[0] || 'The uploaded file does not appear to be a valid professional resume. Please upload a real resume to get an analysis.',
+                confirmButtonColor: '#8b5cf6'
+            });
+            // Do not show the feedback section if rejected
+            this.hasAnalyzed = false;
+            this.feedback = null;
+            return;
+        }
+
         this.persistedFileName = file.name;
         this.selectedFile = file; // Ensure selectedFile is preserved for subsequent Save Profile for Review
         localStorage.setItem('resume_filename', this.persistedFileName);
@@ -580,6 +621,15 @@ const app = createApp({
         if (fileInput) fileInput.value = '';
 
         if (res && res.feedback) {
+          // Clean feedback lists of any "rejection" or "safety" messages
+          const cleanList = (list) => (list || []).filter(item => 
+            !/safety|rejected|rejection|guardrail|check failed|invalid document/i.test(item)
+          );
+          
+          res.feedback.Advantages = cleanList(res.feedback.Advantages);
+          res.feedback.Disadvantages = cleanList(res.feedback.Disadvantages);
+          res.feedback.Suggestions = cleanList(res.feedback.Suggestions);
+
           this.feedback = res.feedback;
           this.hasAnalyzed = true;
           localStorage.setItem('resume_feedback', JSON.stringify(res.feedback));
@@ -605,7 +655,7 @@ const app = createApp({
           throw new Error('Invalid response from server');
         }
       } catch (err) {
-        this.stopAnalysisProgress(false);
+        await this.stopAnalysisProgress(false);
         this.uploading = false;
         const errorMsg = (err.response && err.response.data && err.response.data.detail) || err.message || 'Failed to analyze resume';
         const status = err.response ? err.response.status : 0;
@@ -754,10 +804,33 @@ const app = createApp({
         });
         const res = response.data;
 
-        this.stopAnalysisProgress(true);
+        await this.stopAnalysisProgress(true);
+        this.uploading = false;
+
         const modalElement = document.getElementById('manualBuilderModal');
         const modal = bootstrap.Modal.getInstance(modalElement);
         if (modal) modal.hide();
+
+        if (res && res.feedback && res.feedback.IsResume === false) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Analysis Failed',
+                text: res.feedback.Disadvantages?.[0] || 'The AI could not generate a professional profile from the provided details. Please ensure the information is realistic.',
+                confirmButtonColor: '#8b5cf6'
+            });
+            this.hasAnalyzed = false;
+            this.feedback = null;
+            return;
+        }
+
+        // Clean feedback lists of any "rejection" or "safety" messages
+        const cleanList = (list) => (list || []).filter(item => 
+          !/safety|rejected|rejection|guardrail|check failed|invalid document/i.test(item)
+        );
+        
+        res.feedback.Advantages = cleanList(res.feedback.Advantages);
+        res.feedback.Disadvantages = cleanList(res.feedback.Disadvantages);
+        res.feedback.Suggestions = cleanList(res.feedback.Suggestions);
 
         this.feedback = res.feedback;
         this.hasAnalyzed = true;
