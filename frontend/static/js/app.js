@@ -688,20 +688,17 @@ function handleAppPromotion() {
           <div class="row align-items-center g-3">
             <div class="col-lg-6 text-lg-start">
               <h5 class="fw-bold mb-1">Take ICP with you!</h5>
-              <p class="text-secondary small mb-lg-0">Get the official apps for your devices. <span class="opacity-50">(iOS & MacOS in development)</span></p>
+              <p class="text-secondary small mb-lg-0">Experience Interview Coach Prep on any device.</p>
             </div>
             <div class="col-lg-6 text-lg-end">
               <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-3">
-                <div class="w-100 d-lg-none"></div>
-                <button onclick="installPWA()" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+                <button onclick="showAppModal()" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
                   <i class="bi bi-phone-fill fs-5"></i> 
                   <div class="text-center" style="line-height: 1.1;">
-                    <span class="smaller d-block opacity-75 fw-normal">Install</span>
+                    <span class="smaller d-block opacity-75 fw-normal">Get the</span>
                     <span>Official App</span>
                   </div>
                 </button>
-                <div class="w-100 d-lg-none"></div>
-                <button onclick="showAppModal()" class="btn btn-link text-secondary text-decoration-none small px-0">Other Options?</button>
               </div>
             </div>
           </div>
