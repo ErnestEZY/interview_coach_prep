@@ -695,7 +695,7 @@ function handleAppPromotion() {
                 <div class="w-100 d-lg-none"></div>
                 <button onclick="installPWA()" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
                   <i class="bi bi-phone-fill fs-5"></i> 
-                  <div class="text-start" style="line-height: 1.1;">
+                  <div class="text-center" style="line-height: 1.1;">
                     <span class="smaller d-block opacity-75 fw-normal">Install</span>
                     <span>Official App</span>
                   </div>
