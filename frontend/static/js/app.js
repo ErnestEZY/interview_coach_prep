@@ -692,20 +692,21 @@ function handleAppPromotion() {
             </div>
             <div class="col-lg-6 text-lg-end">
               <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-3">
-                <a href="/downloads/apk/app-release.apk" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
-                  <i class="bi bi-android2 fs-5"></i> 
-                  <div class="text-start" style="line-height: 1.1;">
-                    <span class="smaller d-block opacity-75 fw-normal">Download</span>
-                    <span>Android APK</span>
-                  </div>
-                </a>
                 <a href="/downloads/msi/installer" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #0078d4, #005a9e); border: none;">
                   <i class="bi bi-windows fs-5"></i> 
                   <div class="text-start" style="line-height: 1.1;">
                     <span class="smaller d-block opacity-75 fw-normal">Download</span>
-                    <span>Windows MSI</span>
+                    <span>Windows App</span>
                   </div>
                 </a>
+                <div class="w-100 d-lg-none"></div>
+                <button onclick="installPWA()" class="btn btn-outline-light rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+                  <i class="bi bi-phone-fill fs-5 text-primary"></i> 
+                  <div class="text-start" style="line-height: 1.1;">
+                    <span class="smaller d-block opacity-75 fw-normal">Install</span>
+                    <span>Mobile Web App</span>
+                  </div>
+                </button>
                 <div class="w-100 d-lg-none"></div>
                 <button onclick="showAppModal()" class="btn btn-link text-secondary text-decoration-none small px-0">Other OS?</button>
               </div>
@@ -749,7 +750,7 @@ function injectAppPopUpBanner() {
           </div>
           <div class="text-start">
             <div class="fw-bold text-white small">Experience ICP Everywhere</div>
-            <div class="smaller text-secondary">Download our official apps for Windows and Android. <span class="opacity-50">iOS/Mac coming soon.</span></div>
+            <div class="smaller text-secondary">Install our official Web App or download for Windows. <span class="opacity-50">Mobile apps coming soon to stores.</span></div>
           </div>
         </div>
         <div class="d-flex align-items-center gap-3">
@@ -798,22 +799,12 @@ function showAppModal() {
             </div>
             <i class="bi bi-plus-circle"></i>
           </button>
-          <a href="/downloads/apk/app-release.apk" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
-            <div class="d-flex align-items-center gap-3">
-              <i class="bi bi-android2 fs-4 text-success"></i>
-              <div class="text-start">
-                <div class="fw-bold">Android APK</div>
-                <div class="smaller text-secondary">Optimized for mobile screens</div>
-              </div>
-            </div>
-            <i class="bi bi-download"></i>
-          </a>
           <a href="/downloads/msi/installer" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
             <div class="d-flex align-items-center gap-3">
-              <i class="bi bi-windows fs-4 text-info"></i>
+              <i class="bi bi-windows fs-4 text-primary"></i>
               <div class="text-start">
-                <div class="fw-bold">Windows Installer (MSI)</div>
-                <div class="smaller text-secondary">Native desktop experience</div>
+                <div class="fw-bold">Desktop App</div>
+                <div class="smaller text-secondary">Windows Installer (.msi)</div>
               </div>
             </div>
             <i class="bi bi-download"></i>
