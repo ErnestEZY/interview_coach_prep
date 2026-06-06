@@ -1826,6 +1826,48 @@ html {
     }
 }
 
+/* Mobile Specific Fixes for Resume Builder */
+@media (max-width: 767.98px) {
+    body, html {
+        overflow-x: hidden;
+        width: 100%;
+    }
+
+    .container-fluid.px-3.px-md-5 {
+        padding-left: 3rem !important; /* Exact same margin from PC (px-5 = 3rem) */
+        padding-right: 3rem !important;
+    }
+
+    .builder-card {
+        height: auto;
+        max-height: 70vh;
+        margin-bottom: 20px;
+        width: 100%;
+        /* Scaling down the builder card slightly to ensure it fits the same margins */
+        transform: scale(0.98);
+        transform-origin: top center;
+    }
+
+    .builder-card .nav-pills {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        justify-content: flex-start !important;
+        padding: 10px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .builder-card .nav-pills .nav-link {
+        white-space: nowrap;
+        font-size: 0.75rem;
+        padding: 5px 10px;
+    }
+
+    .resume-preview-viewport {
+        transform: scale(0.28) !important; /* Shrink down further to fit safe margins */
+        transform-origin: top center;
+    }
+}
+
 /* Pagination Styling */
 .resume-pagination {
     display: flex;
