@@ -598,7 +598,6 @@ window.addEventListener('offline', () => {
 window.addEventListener('online', () => {
   hideOfflineToast();
   hideOfflineOverlay();
-  // Attempt to reload if they were on a blank page or just to refresh
   window.location.reload();
 });
 
@@ -609,6 +608,40 @@ if (!navigator.onLine) {
 }
 
 // --- PWA & App Download Banner ---
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent the mini-infobar from appearing on mobile
+  e.preventDefault();
+  // Stash the event so it can be triggered later.
+  deferredPrompt = e;
+  console.log('[PWA] beforeinstallprompt event fired');
+  
+  // Optionally show a custom install button/popup here
+  // For now we'll just have it ready for showAppModal or a specific PWA button
+});
+
+/**
+ * Trigger the PWA installation prompt
+ */
+window.installPWA = async () => {
+  if (!deferredPrompt) {
+    Swal.fire({
+      icon: 'info',
+      title: 'App Already Installed',
+      text: 'You have already installed ICP on your home screen or your browser does not support this feature.',
+      confirmButtonColor: '#8b5cf6'
+    });
+    return;
+  }
+  // Show the install prompt
+  deferredPrompt.prompt();
+  // Wait for the user to respond to the prompt
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log(`[PWA] User response to install prompt: ${outcome}`);
+  // We've used the prompt, and can't use it again, throw it away
+  deferredPrompt = null;
+};
 
 /**
  * Injects the App Download Banner and handle visibility logic
@@ -755,6 +788,16 @@ function showAppModal() {
       <div class="mb-4">
         <h6 class="fw-bold text-primary mb-2">Available Now</h6>
         <div class="d-grid gap-2">
+          <button onclick="installPWA()" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-phone-fill fs-4 text-primary"></i>
+              <div class="text-start">
+                <div class="fw-bold">Web App (PWA)</div>
+                <div class="smaller text-secondary">Install directly to your Home Screen</div>
+              </div>
+            </div>
+            <i class="bi bi-plus-circle"></i>
+          </button>
           <a href="/downloads/apk/app-release.apk" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
             <div class="d-flex align-items-center gap-3">
               <i class="bi bi-android2 fs-4 text-success"></i>
