@@ -1,14 +1,14 @@
-const CACHE_NAME = 'icp-cache-v4';
+const CACHE_NAME = 'icp-cache-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json?v=2',
   '/static/css/styles.css',
   '/static/js/app.js',
-  '/static/images/favicon-32x32.png',
-  '/static/images/favicon.ico',
-  '/static/images/icon-192x192.png',
-  '/static/images/icon-512x512.png',
-  '/static/images/apple-touch-icon.png',
+  '/static/images/favicon-32x32.png?v=2',
+  '/static/images/favicon.ico?v=2',
+  '/static/images/icon-192x192.png?v=2',
+  '/static/images/icon-512x512.png?v=2',
+  '/static/images/apple-touch-icon.png?v=2',
   '/static/pages/dashboard.html',
   '/static/pages/resume_builder.html',
   '/static/pages/find-jobs.html',

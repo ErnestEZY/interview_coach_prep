@@ -881,8 +881,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 1. Register Service Worker for PWA (with versioning to force update)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=3').then(reg => {
-      console.log('ICP Service Worker registered (v3)');
+    navigator.serviceWorker.register('/sw.js?v=4').then(reg => {
+      console.log('ICP Service Worker registered (v4)');
       
       // Check for updates
       reg.onupdatefound = () => {
