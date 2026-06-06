@@ -66,6 +66,7 @@ src-tauri/bin/
 node_modules/
 package.json
 package-lock.json
+DESKTOP_APP.md
 
 # Flutter
 mobile_app/
@@ -97,6 +98,7 @@ mobile_app/android/*.keystore
 *.app
 
 # App release binaries (tracked in git for Render deployment)
+apps/
 !apps/
 !apps/apk/
 !apps/msi/
