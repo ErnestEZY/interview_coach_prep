@@ -63,6 +63,9 @@ src-tauri/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/bin/
+node_modules/
+package.json
+package-lock.json
 
 # Flutter
 mobile_app/
