@@ -692,23 +692,16 @@ function handleAppPromotion() {
             </div>
             <div class="col-lg-6 text-lg-end">
               <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-3">
-                <a href="/downloads/msi/installer" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" style="background: linear-gradient(135deg, #0078d4, #005a9e); border: none;">
-                  <i class="bi bi-windows fs-5"></i> 
-                  <div class="text-start" style="line-height: 1.1;">
-                    <span class="smaller d-block opacity-75 fw-normal">Download</span>
-                    <span>Windows App</span>
-                  </div>
-                </a>
                 <div class="w-100 d-lg-none"></div>
-                <button onclick="installPWA()" class="btn btn-outline-light rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
-                  <i class="bi bi-phone-fill fs-5 text-primary"></i> 
+                <button onclick="installPWA()" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+                  <i class="bi bi-phone-fill fs-5"></i> 
                   <div class="text-start" style="line-height: 1.1;">
                     <span class="smaller d-block opacity-75 fw-normal">Install</span>
-                    <span>Mobile Web App</span>
+                    <span>Official App</span>
                   </div>
                 </button>
                 <div class="w-100 d-lg-none"></div>
-                <button onclick="showAppModal()" class="btn btn-link text-secondary text-decoration-none small px-0">Other OS?</button>
+                <button onclick="showAppModal()" class="btn btn-link text-secondary text-decoration-none small px-0">Other Options?</button>
               </div>
             </div>
           </div>
@@ -750,7 +743,7 @@ function injectAppPopUpBanner() {
           </div>
           <div class="text-start">
             <div class="fw-bold text-white small">Experience ICP Everywhere</div>
-            <div class="smaller text-secondary">Install our official Web App or download for Windows. <span class="opacity-50">Mobile apps coming soon to stores.</span></div>
+            <div class="smaller text-secondary">Install the official Interview Coach Prep app on your home screen.</div>
           </div>
         </div>
         <div class="d-flex align-items-center gap-3">
@@ -786,53 +779,35 @@ function injectAppPopUpBanner() {
 function showAppModal() {
   const content = `
     <div class="text-start">
-      <div class="mb-4">
-        <h6 class="fw-bold text-primary mb-2">Available Now</h6>
-        <div class="d-grid gap-2">
-          <button onclick="installPWA()" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
+      <div class="mb-2">
+        <h6 class="fw-bold text-primary mb-3">Install Official App</h6>
+        <div class="d-grid gap-3">
+          <button onclick="installPWA()" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow">
             <div class="d-flex align-items-center gap-3">
-              <i class="bi bi-phone-fill fs-4 text-primary"></i>
+              <i class="bi bi-phone-fill fs-3 text-primary"></i>
               <div class="text-start">
                 <div class="fw-bold">Web App (PWA)</div>
-                <div class="smaller text-secondary">Install directly to your Home Screen</div>
+                <div class="smaller text-secondary">Install Interview Coach Prep directly to your Home Screen. Works on Android, iOS, and Desktop.</div>
               </div>
             </div>
-            <i class="bi bi-plus-circle"></i>
+            <i class="bi bi-plus-circle fs-5"></i>
           </button>
-          <a href="/downloads/msi/installer" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4">
-            <div class="d-flex align-items-center gap-3">
-              <i class="bi bi-windows fs-4 text-primary"></i>
-              <div class="text-start">
-                <div class="fw-bold">Desktop App</div>
-                <div class="smaller text-secondary">Windows Installer (.msi)</div>
-              </div>
-            </div>
-            <i class="bi bi-download"></i>
-          </a>
-        </div>
-      </div>
-
-      <div>
-        <h6 class="fw-bold text-secondary mb-2 opacity-50">Coming Soon</h6>
-        <div class="p-3 border border-secondary border-opacity-10 rounded-4 bg-light shadow-sm">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <i class="bi bi-apple fs-4 text-dark"></i>
-            <div class="fw-bold text-dark">iOS & MacOS</div>
-          </div>
-          <p class="smaller text-dark mb-0 fw-medium">We are currently developing native apps for Apple devices. For now, please use the <strong>Web Version</strong> or <strong>Add to Home Screen</strong> on Safari.</p>
         </div>
       </div>
     </div>
   `;
 
   Swal.fire({
-    title: 'Download ICP App',
+    title: 'Experience ICP Anywhere',
     html: content,
     showConfirmButton: false,
     showCloseButton: true,
     background: '#0f172a',
     color: '#fff',
-    width: '450px'
+    width: '450px',
+    customClass: {
+      popup: 'rounded-5'
+    }
   });
 }
 
