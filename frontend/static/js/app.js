@@ -875,14 +875,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!document.querySelector('link[rel="manifest"]')) {
     const link = document.createElement('link');
     link.rel = 'manifest';
-    link.href = '/manifest.json';
+    link.href = '/manifest.json?v=2';
     document.head.appendChild(link);
   }
 
   // 1. Register Service Worker for PWA (with versioning to force update)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=2').then(reg => {
-      console.log('ICP Service Worker registered (v2)');
+    navigator.serviceWorker.register('/sw.js?v=3').then(reg => {
+      console.log('ICP Service Worker registered (v3)');
       
       // Check for updates
       reg.onupdatefound = () => {
