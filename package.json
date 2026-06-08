@@ -1,0 +1,17 @@
+{
+  "name": "interview-coach-prep",
+  "version": "0.1.0",
+  "description": "AI-powered career preparation platform",
+  "main": "index.js",
+  "scripts": {
+    "tauri": "tauri",
+    "dev:desktop": "tauri dev",
+    "build:desktop": "tauri build"
+  },
+  "keywords": [],
+  "author": "ErnestEZY",
+  "license": "MIT",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

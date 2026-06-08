@@ -686,18 +686,28 @@ function handleAppPromotion() {
         <div class="card border-0 glass-card p-4 text-center overflow-hidden position-relative shadow-lg rounded-4">
           <div class="position-absolute top-0 start-0 w-100 h-100 bg-primary opacity-5" style="z-index: -1;"></div>
           <div class="row align-items-center g-3">
-            <div class="col-lg-6 text-lg-start">
+            <div class="col-lg-5 text-lg-start">
               <h5 class="fw-bold mb-1">Take ICP with you!</h5>
-              <p class="text-secondary small mb-lg-0">Experience Interview Coach Prep on any device.</p>
+              <p class="text-secondary small mb-lg-0">Experience Interview Coach Prep on any device with our official apps.</p>
             </div>
-            <div class="col-lg-6 text-lg-end">
-              <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-3">
-                <button onclick="showAppModal()" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
-                  <i class="bi bi-phone-fill fs-5"></i> 
-                  <div class="text-center" style="line-height: 1.1;">
-                    <span class="smaller d-block opacity-75 fw-normal">Get the</span>
-                    <span>Official App</span>
-                  </div>
+            <div class="col-lg-7 text-lg-end">
+              <div class="d-flex flex-wrap justify-content-center justify-content-lg-end gap-2">
+                <!-- PWA Primary -->
+                <button onclick="installPWA()" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+                  <i class="bi bi-phone-fill"></i> 
+                  <span>Web App (PWA)</span>
+                </button>
+                
+                <!-- MSI Primary -->
+                <a href="/apps/msi/Interview Coach Prep_0.1.0_x64_en-US.msi" class="btn btn-info rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 text-white text-decoration-none">
+                  <i class="bi bi-windows"></i> 
+                  <span>Windows App</span>
+                </a>
+
+                <!-- Others Secondary -->
+                <button onclick="showAppModal()" class="btn btn-outline-light rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2">
+                  <i class="bi bi-three-dots"></i> 
+                  <span>More Options</span>
                 </button>
               </div>
             </div>
@@ -735,17 +745,19 @@ function injectAppPopUpBanner() {
     banner.innerHTML = `
       <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-3">
-          <div class="text-white fs-4 banner-icon">
+          <div class="text-white fs-4 banner-icon d-none d-sm-block">
             <i class="bi bi-phone-vibrate"></i>
           </div>
           <div class="text-start">
             <div class="fw-bold text-white small">Experience ICP Everywhere</div>
-            <div class="smaller text-secondary">Install the official Interview Coach Prep app on your home screen.</div>
+            <div class="smaller text-secondary d-none d-md-block">Install the official PWA or download for Windows.</div>
           </div>
         </div>
-        <div class="d-flex align-items-center gap-3">
-          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm banner-get-btn">Get App</button>
-          <button onclick="document.getElementById('app-popup-banner').remove()" class="btn-close btn-close-white small" aria-label="Close"></button>
+        <div class="d-flex align-items-center gap-2">
+          <button onclick="installPWA()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">PWA</button>
+          <a href="/apps/msi/Interview Coach Prep_0.1.0_x64_en-US.msi" class="btn btn-info btn-sm rounded-pill px-3 fw-bold shadow-sm text-white text-decoration-none">Windows</a>
+          <button onclick="showAppModal()" class="btn btn-outline-light btn-sm rounded-pill px-2 fw-bold shadow-sm d-none d-sm-block">More</button>
+          <button onclick="document.getElementById('app-popup-banner').remove()" class="btn-close btn-close-white ms-2" aria-label="Close" style="font-size: 0.6rem;"></button>
         </div>
       </div>
     `;
@@ -776,19 +788,49 @@ function injectAppPopUpBanner() {
 function showAppModal() {
   const content = `
     <div class="text-start">
-      <div class="mb-2">
-        <h6 class="fw-bold text-primary mb-3">Install Official App</h6>
+      <div class="mb-4">
+        <h6 class="fw-bold text-primary mb-3">Recommended Options</h6>
         <div class="d-grid gap-3">
-          <button onclick="installPWA()" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow">
+          <!-- PWA Option -->
+          <button onclick="installPWA()" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow text-start">
             <div class="d-flex align-items-center gap-3">
               <i class="bi bi-phone-fill fs-3 text-primary"></i>
-              <div class="text-start">
-                <div class="fw-bold">Web App (PWA)</div>
-                <div class="smaller text-secondary">Install Interview Coach Prep directly to your Home Screen. Works on Android, iOS, and Desktop.</div>
+              <div>
+                <div class="fw-bold text-white">Web App (PWA)</div>
+                <div class="smaller text-secondary">Install directly to your Home Screen. Works on Android, iOS, and Desktop.</div>
               </div>
             </div>
-            <i class="bi bi-plus-circle fs-5"></i>
+            <i class="bi bi-plus-circle fs-5 text-primary"></i>
           </button>
+
+          <!-- Windows MSI Option -->
+          <a href="/apps/msi/Interview Coach Prep_0.1.0_x64_en-US.msi" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow text-decoration-none text-start">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-windows fs-3 text-info"></i>
+              <div>
+                <div class="fw-bold text-white">Windows Desktop App</div>
+                <div class="smaller text-secondary">Official .msi installer for Windows. Best for desktop productivity.</div>
+              </div>
+            </div>
+            <i class="bi bi-download fs-5 text-info"></i>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <h6 class="fw-bold text-secondary mb-3">Other Options</h6>
+        <div class="d-grid gap-3">
+          <!-- Android APK Option -->
+          <a href="/apps/apk/app-release.apk" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow text-decoration-none text-start">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-android2 fs-3 text-success"></i>
+              <div>
+                <div class="fw-bold text-white">Android App (APK)</div>
+                <div class="smaller text-secondary">Direct download for Android devices. Manual installation required.</div>
+              </div>
+            </div>
+            <i class="bi bi-download fs-5 text-success"></i>
+          </a>
         </div>
       </div>
     </div>
@@ -801,7 +843,7 @@ function showAppModal() {
     showCloseButton: true,
     background: '#0f172a',
     color: '#fff',
-    width: '450px',
+    width: '500px',
     customClass: {
       popup: 'rounded-5'
     }
