@@ -754,11 +754,11 @@ function injectAppPopUpBanner() {
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2">
+          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-2">
             <i class="bi bi-download"></i>
             <span>Get App</span>
           </button>
-          <button onclick="document.getElementById('app-popup-banner').remove()" class="btn-close btn-close-white ms-2" aria-label="Close" style="font-size: 0.6rem;"></button>
+          <button onclick="document.getElementById('app-popup-banner').remove()" class="btn-close btn-close-white" aria-label="Close" style="font-size: 0.6rem;"></button>
         </div>
       </div>
     `;
