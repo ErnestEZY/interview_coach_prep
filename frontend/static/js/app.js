@@ -754,7 +754,7 @@ function injectAppPopUpBanner() {
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-2">
+          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm d-flex align-items-center gap-2 banner-get-btn">
             <i class="bi bi-download"></i>
             <span>Get App</span>
           </button>
@@ -774,7 +774,7 @@ function injectAppPopUpBanner() {
       }
       @media (max-width: 768px) {
         #app-popup-banner .smaller {
-          display: none;
+          display: block;
         }
       }
     `;
