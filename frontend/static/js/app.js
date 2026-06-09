@@ -699,9 +699,9 @@ function handleAppPromotion() {
                 </button>
                 
                 <!-- MSI Primary -->
-                <a href="/apps/msi/Interview Coach Prep_0.1.0_x64_en-US.msi" class="btn btn-info rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 text-white text-decoration-none">
+                <a href="/downloads/msi/installer" class="btn btn-info rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 text-white text-decoration-none">
                   <i class="bi bi-windows"></i> 
-                  <span>Windows App</span>
+                  <span>Windows MSI File</span>
                 </a>
 
                 <!-- Others Secondary -->
@@ -750,13 +750,14 @@ function injectAppPopUpBanner() {
           </div>
           <div class="text-start">
             <div class="fw-bold text-white small">Experience ICP Everywhere</div>
-            <div class="smaller text-secondary d-none d-md-block">Install the official PWA or download for Windows.</div>
+            <div class="smaller text-secondary d-none d-md-block">Download the official app for your device.</div>
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <button onclick="installPWA()" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">PWA</button>
-          <a href="/apps/msi/Interview Coach Prep_0.1.0_x64_en-US.msi" class="btn btn-info btn-sm rounded-pill px-3 fw-bold shadow-sm text-white text-decoration-none">Windows</a>
-          <button onclick="showAppModal()" class="btn btn-outline-light btn-sm rounded-pill px-2 fw-bold shadow-sm d-none d-sm-block">More</button>
+          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2">
+            <i class="bi bi-download"></i>
+            <span>Get App</span>
+          </button>
           <button onclick="document.getElementById('app-popup-banner').remove()" class="btn-close btn-close-white ms-2" aria-label="Close" style="font-size: 0.6rem;"></button>
         </div>
       </div>
@@ -789,7 +790,7 @@ function showAppModal() {
   const content = `
     <div class="text-start">
       <div class="mb-4">
-        <h6 class="fw-bold text-primary mb-3">Recommended Options</h6>
+        <h6 class="fw-bold text-primary mb-3">Available Options</h6>
         <div class="d-grid gap-3">
           <!-- PWA Option -->
           <button onclick="installPWA()" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow text-start">
@@ -804,24 +805,19 @@ function showAppModal() {
           </button>
 
           <!-- Windows MSI Option -->
-          <a href="/apps/msi/Interview Coach Prep_0.1.0_x64_en-US.msi" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow text-decoration-none text-start">
+          <a href="/downloads/msi/installer" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow text-decoration-none text-start">
             <div class="d-flex align-items-center gap-3">
               <i class="bi bi-windows fs-3 text-info"></i>
               <div>
-                <div class="fw-bold text-white">Windows Desktop App</div>
+                <div class="fw-bold text-white">Windows MSI File</div>
                 <div class="smaller text-secondary">Official .msi installer for Windows. Best for desktop productivity.</div>
               </div>
             </div>
             <i class="bi bi-download fs-5 text-info"></i>
           </a>
-        </div>
-      </div>
 
-      <div>
-        <h6 class="fw-bold text-secondary mb-3">Other Options</h6>
-        <div class="d-grid gap-3">
           <!-- Android APK Option -->
-          <a href="/apps/apk/app-release.apk" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow text-decoration-none text-start">
+          <a href="/downloads/apk/app-release.apk" class="btn btn-outline-light d-flex align-items-center justify-content-between p-3 rounded-4 border-opacity-25 hover-glow text-decoration-none text-start">
             <div class="d-flex align-items-center gap-3">
               <i class="bi bi-android2 fs-3 text-success"></i>
               <div>
@@ -831,6 +827,16 @@ function showAppModal() {
             </div>
             <i class="bi bi-download fs-5 text-success"></i>
           </a>
+        </div>
+      </div>
+
+      <div class="mt-4 p-3 rounded-4 bg-primary bg-opacity-10 border border-primary border-opacity-25">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-apple fs-4 text-secondary"></i>
+          <div>
+            <div class="fw-bold text-white small">iOS & macOS Version</div>
+            <div class="smaller text-secondary">Our native Apple versions are coming soon! Stay tuned.</div>
+          </div>
         </div>
       </div>
     </div>
