@@ -158,20 +158,11 @@
             </li>
             <li><hr class="dropdown-divider"></li>
             <li class="px-3 pb-2">
-                        <div class="fw-bold text-primary small text-uppercase mb-2">Download App</div>
                         <div class="d-grid gap-2">
-                          <button onclick="installPWA()" class="btn btn-primary btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
-                            <i class="bi bi-phone-fill"></i>
-                            <span>Web App (PWA)</span>
+                          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                            <i class="bi bi-download"></i>
+                            <span>Download</span>
                           </button>
-                          <a href="/downloads/msi/installer" class="btn btn-outline-info btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm text-decoration-none">
-                            <i class="bi bi-windows"></i>
-                            <span>Windows MSI File</span>
-                          </a>
-                          <a href="/downloads/apk/app-release.apk" class="btn btn-outline-success btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm text-decoration-none">
-                            <i class="bi bi-android2"></i>
-                            <span>Android APK</span>
-                          </a>
                         </div>
                       </li>
           </ul>
@@ -495,21 +486,109 @@
                 </div>
                 
                 <!-- Early End: N/A Score -->
-                <div v-if="!readinessScore && feedbackExplanation && !sessionId" class="mb-3 animate-fade-in">
+                <div v-if="!readinessScore && feedbackExplanation && !sessionId" class="mb-3 animate-fade-in w-100">
                   <div class="d-flex flex-column align-items-center">
-                    <div class="readiness-display mb-3">
-                      <div class="readiness-circle">
-                        <span class="fs-4 fw-bold">N/A</span>
+                    
+                    <div class="score-container d-flex flex-column flex-md-row align-items-center justify-content-center gap-4 gap-md-5 mb-4 w-100">
+                      
+                      <!-- Left Breakdown (Desktop - N/A) -->
+                      <div class="score-breakdown-side d-none d-md-flex flex-column gap-3 text-end">
+                        <div class="breakdown-item">
+                          <div class="breakdown-label small text-secondary fw-bold text-uppercase">Technical Accuracy</div>
+                          <div class="breakdown-value-container d-flex align-items-center justify-content-end gap-2">
+                            <div class="progress flex-grow-1 score-progress-mini-interview score-progress-mini-interview-rtl">
+                              <div class="progress-bar bg-primary opacity-25" style="width: 0%"></div>
+                            </div>
+                            <span class="fw-bold text-secondary small">N/A</span>
+                          </div>
+                        </div>
+                        <div class="breakdown-item">
+                          <div class="breakdown-label small text-secondary fw-bold text-uppercase">Communication Depth</div>
+                          <div class="breakdown-value-container d-flex align-items-center justify-content-end gap-2">
+                            <div class="progress flex-grow-1 score-progress-mini-interview score-progress-mini-interview-rtl">
+                              <div class="progress-bar bg-success opacity-25" style="width: 0%"></div>
+                            </div>
+                            <span class="fw-bold text-secondary small">N/A</span>
+                          </div>
+                        </div>
                       </div>
-                      <div class="readiness-label">READINESS SCORE</div>
+
+                      <!-- Main Score Circle (N/A) -->
+                      <div class="readiness-display">
+                        <div class="readiness-circle score-low">
+                          <span class="fs-4 fw-bold">N/A</span>
+                        </div>
+                        <div class="readiness-label">READINESS SCORE</div>
+                      </div>
+
+                      <!-- Right Breakdown (Desktop - N/A) -->
+                      <div class="score-breakdown-side d-none d-md-flex flex-column gap-3 text-start">
+                        <div class="breakdown-item">
+                          <div class="breakdown-label small text-secondary fw-bold text-uppercase">Role Alignment</div>
+                          <div class="breakdown-value-container d-flex align-items-center justify-content-start gap-2">
+                            <span class="fw-bold text-secondary small">N/A</span>
+                            <div class="progress flex-grow-1 score-progress-mini-interview">
+                              <div class="progress-bar bg-info opacity-25" style="width: 0%"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="breakdown-item">
+                          <div class="breakdown-label small text-secondary fw-bold text-uppercase">Response Relevance</div>
+                          <div class="breakdown-value-container d-flex align-items-center justify-content-start gap-2">
+                            <span class="fw-bold text-secondary small">N/A</span>
+                            <div class="progress flex-grow-1 score-progress-mini-interview">
+                              <div class="progress-bar bg-warning opacity-25" style="width: 0%"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Mobile Breakdown (N/A) -->
+                      <div class="col-12 d-md-none mt-1 mb-3">
+                        <div class="card mobile-breakdown-card p-3 rounded-4 shadow-sm">
+                          <h6 class="small fw-bold text-secondary text-uppercase mb-3 tracking-wider text-center">Score Breakdown</h6>
+                          <div class="mobile-breakdown-list text-start">
+                            <div class="mobile-breakdown-item">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-bold text-uppercase">Technical Accuracy</span>
+                                <span class="fw-bold text-secondary small">N/A</span>
+                              </div>
+                              <div class="progress mobile-progress-bar"><div class="progress-bar bg-primary opacity-25" style="width: 0%"></div></div>
+                            </div>
+                            <div class="mobile-breakdown-item">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-bold text-uppercase">Communication Depth</span>
+                                <span class="fw-bold text-secondary small">N/A</span>
+                              </div>
+                              <div class="progress mobile-progress-bar"><div class="progress-bar bg-success opacity-25" style="width: 0%"></div></div>
+                            </div>
+                            <div class="mobile-breakdown-item">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-bold text-uppercase">Role Alignment</span>
+                                <span class="fw-bold text-secondary small">N/A</span>
+                              </div>
+                              <div class="progress mobile-progress-bar"><div class="progress-bar bg-info opacity-25" style="width: 0%"></div></div>
+                            </div>
+                            <div class="mobile-breakdown-item">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary fw-bold text-uppercase">Response Relevance</span>
+                                <span class="fw-bold text-secondary small">N/A</span>
+                              </div>
+                              <div class="progress mobile-progress-bar"><div class="progress-bar bg-warning opacity-25" style="width: 0%"></div></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
+
                     <div class="p-4 rounded-4 feedback-box shadow-lg feedback-box-max w-100 max-w-600">
                       <h6 class="text-primary small fw-bold text-uppercase mb-2 tracking-widest">Session Feedback</h6>
                       <p class="small text-light mb-0 feedback-text">{{ feedbackExplanation }}</p>
                     </div>
                     <p class="text-secondary small mt-3 mb-0 ai-disclaimer">
                       <i class="bi bi-info-circle me-1"></i>
-                      Session ended early. No score generated.
+                      Session ended early. No numerical score generated.
                     </p>
                   </div>
                 </div>

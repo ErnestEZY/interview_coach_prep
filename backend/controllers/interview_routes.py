@@ -329,6 +329,7 @@ async def history(current=Depends(get_current_user)):
             "created_at": s["created_at"], 
             "ended_at": s.get("ended_at"),
             "readiness_score": s.get("readiness_score"),
+            "readiness_breakdown": s.get("readiness_breakdown"),
             "readiness_feedback": s.get("readiness_feedback")
         })
     return items

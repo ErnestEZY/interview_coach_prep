@@ -118,6 +118,8 @@ async def upload_resume(
             "text": text,
             "job_title": final_job_title,
             "feedback": feedback,
+            "readiness_score": feedback.get("Score", 0),
+            "readiness_breakdown": feedback.get("Breakdown", {}),
             "status": "pending",
             "tags": feedback.get("Keywords", []),
             "notes": "",
@@ -196,6 +198,8 @@ async def manual_upload_profile(
             "text": text,
             "job_title": final_job_title,
             "feedback": feedback,
+            "readiness_score": feedback.get("Score", 0),
+            "readiness_breakdown": feedback.get("Breakdown", {}),
             "status": "pending",
             "tags": feedback.get("Keywords", []),
             "notes": "Generated via Guided Profile Builder",
@@ -260,6 +264,8 @@ async def my_resumes(current=Depends(get_current_user)):
                 "created_at": r.get("created_at"),
                 "tags": r.get("tags", []),
                 "feedback": r.get("feedback"),
+                "readiness_score": r.get("readiness_score"),
+                "readiness_breakdown": r.get("readiness_breakdown"),
                 "job_title": r.get("job_title", ""),
             }
         )

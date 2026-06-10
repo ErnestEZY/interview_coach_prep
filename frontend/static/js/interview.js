@@ -1198,7 +1198,7 @@ const app = createApp({
             // --- Male Voice Selection Logic ---
             if (isMale) {
                 // 1. Prioritize specific, high-quality male voices by common names
-                const maleNames = ['David', 'Mark', 'Daniel', 'James', 'Richard', 'George', 'Oliver', 'Microsoft Stefan', 'Google US English Male', 'Microsoft Ravi', 'Microsoft Girish'];
+                const maleNames = ['David', 'Mark', 'Daniel', 'James', 'Richard', 'George', 'Oliver', 'Microsoft Stefan', 'Google US English Male', 'Microsoft Ravi', 'Microsoft Girish', 'Male'];
                 for (const name of maleNames) {
                     const voice = englishVoices.find(v => v.name.includes(name));
                     if (voice) return voice;
@@ -1210,7 +1210,7 @@ const app = createApp({
 
                 // 3. As a last resort, find any voice that is NOT explicitly female
                 // We add more common female names to the exclusion list to be safe
-                const femaleExclusions = /female|zira|susan|hazel|heera|claire|linda|heather|samantha|victoria|google uk english female|microsoft zira|microsoft hazel|microsoft susan|microsoft heera/i;
+                const femaleExclusions = /female|woman|zira|susan|hazel|heera|claire|linda|heather|samantha|victoria|google uk english female|microsoft zira|microsoft hazel|microsoft susan|microsoft heera|microsoft zira/i;
                 const nonFemale = englishVoices.find(v => !femaleExclusions.test(v.name));
                 if (nonFemale) return nonFemale;
             } else {

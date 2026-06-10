@@ -430,12 +430,14 @@ const app = createApp({
       const stages = [
         { threshold: 10, status: isManual ? 'Initializing profile builder...' : 'Uploading resume...' },
         { threshold: 25, status: isManual ? 'Extracting profile data...' : 'Extracting resume content...' },
-        { threshold: 40, status: 'Analyzing target role requirements...' },
+        { threshold: 35, status: 'Scanning document structure...' },
+        { threshold: 45, status: 'Analyzing target role requirements...' },
         { threshold: 55, status: 'Analyzing technical skills...' },
         { threshold: 65, status: 'Evaluating work experience...' },
-        { threshold: 75, status: 'Comparing strengths and weaknesses...' },
-        { threshold: 85, status: 'Generating improvement suggestions...' },
-        { threshold: 92, status: 'Personalizing career coaching advice...' }
+        { threshold: 72, status: 'Reviewing academic background...' },
+        { threshold: 80, status: 'Comparing strengths and weaknesses...' },
+        { threshold: 88, status: 'Generating improvement suggestions...' },
+        { threshold: 94, status: 'Personalizing career coaching advice...' }
       ];
 
       const holdingMessages = [
@@ -449,7 +451,7 @@ const app = createApp({
       let holdingIndex = 0;
       this.progressInterval = setInterval(() => {
         if (this.analysisProgress < 95) {
-          // Slower increment: 1% every 300ms
+          // Slower increment: 1% every 270ms
           this.analysisProgress += 1;
           
           if (currentStage < stages.length && this.analysisProgress >= stages[currentStage].threshold) {
@@ -464,7 +466,7 @@ const app = createApp({
              holdingIndex++;
           }
         }
-      }, 300);
+      }, 270);
     },
 
     stopAnalysisProgress(success = true) {
@@ -476,12 +478,22 @@ const app = createApp({
       if (success) {
         // Return a promise that resolves when the progress hits 100% and overlay is hidden
         return new Promise(resolve => {
-          this.analysisStatus = 'Analysis complete';
-          
+          // If we haven't reached the final stage yet, give it a neutral "finishing" status
+          if (this.analysisProgress < 99) {
+            this.analysisStatus = 'Finalizing your professional analysis...';
+          }
+
           // Increment from current position to 100% smoothly
           const finalInterval = setInterval(() => {
             if (this.analysisProgress < 100) {
               this.analysisProgress += 1;
+              
+              // Only show 'Analysis complete' when hitting 99% or 100%
+              if (this.analysisProgress >= 99) {
+                this.analysisStatus = 'Analysis complete';
+              } else if (this.analysisProgress === 97) {
+                this.analysisStatus = 'Preparing your career insights...';
+              }
             } else {
               clearInterval(finalInterval);
               setTimeout(() => {
@@ -489,7 +501,7 @@ const app = createApp({
                 resolve();
               }, 600);
             }
-          }, 50); // Fast completion at the end
+          }, 270); // Same speed until 100%
         });
       } else {
         this.showAnalysisProgress = false;

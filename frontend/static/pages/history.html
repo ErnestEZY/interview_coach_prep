@@ -79,20 +79,11 @@
             </li>
             <li><hr class="dropdown-divider"></li>
             <li class="px-3 pb-2">
-                        <div class="fw-bold text-primary small text-uppercase mb-2">Download App</div>
                         <div class="d-grid gap-2">
-                          <button onclick="installPWA()" class="btn btn-primary btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
-                            <i class="bi bi-phone-fill"></i>
-                            <span>Web App (PWA)</span>
+                          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                            <i class="bi bi-download"></i>
+                            <span>Download</span>
                           </button>
-                          <a href="/downloads/msi/installer" class="btn btn-outline-info btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm text-decoration-none">
-                            <i class="bi bi-windows"></i>
-                            <span>Windows MSI File</span>
-                          </a>
-                          <a href="/downloads/apk/app-release.apk" class="btn btn-outline-success btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm text-decoration-none">
-                            <i class="bi bi-android2"></i>
-                            <span>Android APK</span>
-                          </a>
                         </div>
                       </li>
           </ul>
@@ -223,14 +214,40 @@
                         </div>
                       </div>
                       <div class="fw-bold fs-5 mb-1">{{ Math.min(it.asked_count, it.questions_limit || 10) }} Questions Asked</div>
+                      
                       <div class="text-secondary small">Started: {{ toMalaysiaTime(it.created_at) }}</div>
                       <div class="text-secondary small" v-if="it.ended_at">Ended: {{ toMalaysiaTime(it.ended_at) }}</div>
                     </div>
-                    <div class="bg-dark p-3 rounded-3 history-panel-bg">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="text-primary" viewBox="0 0 16 16">
-                        <path d="M12.5 3a.5.5 0 0 1 0 1h-5a.5.5 0 0 1 0-1h5zm0 3a.5.5 0 0 1 0 1h-5a.5.5 0 0 1 0-1h5zm.5 3.5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5zm-.5 2.5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1 0-1h5z"/>
-                        <path d="M16 2a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2zM4 1v14H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h2zm1 0h9a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5V1z"/>
-                      </svg>
+                    <div class="d-flex align-items-center gap-3 gap-md-4">
+                      <!-- Desktop Score Display (Left of icon) -->
+                      <div v-if="it.ended_at" class="d-none d-md-flex align-items-center gap-3">
+                        <div class="text-end">
+                          <div class="fw-bold fs-4 text-info" v-if="it.readiness_score !== null && it.readiness_score !== undefined">
+                            {{ it.readiness_score }}<span class="text-secondary fs-6 opacity-50">/100</span>
+                          </div>
+                          <div class="fw-bold fs-4 text-secondary" v-else>N/A</div>
+                          <div class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 1px;">Score</div>
+                        </div>
+                        <div class="vr bg-secondary opacity-25" style="height: 35px;"></div>
+                      </div>
+
+                      <div class="d-flex flex-column align-items-center">
+                        <!-- Icon Panel -->
+                        <div class="bg-dark p-3 rounded-3 history-panel-bg shadow-sm mb-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="text-primary" viewBox="0 0 16 16">
+                            <path d="M12.5 3a.5.5 0 0 1 0 1h-5a.5.5 0 0 1 0-1h5zm0 3a.5.5 0 0 1 0 1h-5a.5.5 0 0 1 0-1h5zm.5 3.5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 .5-.5zm-.5 2.5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1 0-1h5z"/>
+                            <path d="M16 2a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2zM4 1v14H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h2zm1 0h9a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5V1z"/>
+                          </svg>
+                        </div>
+
+                        <div v-if="it.ended_at" class="d-md-none text-center">
+                          <div class="fw-bold text-info" style="font-size: 1.1rem; line-height: 1;" v-if="it.readiness_score !== null && it.readiness_score !== undefined">
+                            {{ it.readiness_score }}<span class="text-secondary opacity-50" style="font-size: 0.7rem;">/100</span>
+                          </div>
+                          <div class="fw-bold text-secondary" style="font-size: 1.1rem; line-height: 1;" v-else>N/A</div>
+                          <div class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem; letter-spacing: 0.5px;">Score</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
@@ -268,13 +285,85 @@
                             </div>
                           </div>
                           
-                          <!-- Readiness Score -->
+                          <!-- Readiness Score & Breakdown Section -->
                           <div class="mt-3 pt-3 border-top border-white border-opacity-10" v-if="expandedDetails.readiness_score !== null && expandedDetails.readiness_score !== undefined">
-                              <div class="p-3 rounded-3 mb-2 readiness-box-primary">
-                                <div class="small fw-bold text-info text-uppercase tracking-wider mb-1 readiness-mini-label">Readiness Score</div>
-                                <div class="d-flex align-items-baseline gap-1">
-                                  <span class="fs-3 fw-bold text-info readiness-score-glow">{{ expandedDetails.readiness_score }}</span>
-                                  <span class="fs-6 text-info opacity-50">/ 100</span>
+                              <div class="p-3 rounded-4 readiness-box-primary border border-info border-opacity-10">
+                                <div class="row g-4 align-items-center">
+                                  <!-- Main Score Section -->
+                                <div class="col-md-4 border-md-end border-white border-opacity-10 mb-3 mb-md-0">
+                                  <div class="text-center h-100 d-flex flex-column justify-content-center py-2">
+                                    <div class="small fw-bold text-info text-uppercase tracking-wider mb-2" style="font-size: 0.65rem;">Readiness Score</div>
+                                    <div class="d-flex align-items-baseline justify-content-center gap-1">
+                                      <span class="fs-1 fw-bold text-info readiness-score-glow">{{ expandedDetails.readiness_score }}</span>
+                                      <span class="fs-5 text-info opacity-50">/ 100</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <!-- Detailed Breakdown Section -->
+                                <div class="col-md-8">
+                                  <div class="p-3 rounded-3 h-100 readiness-box-primary d-flex flex-column justify-content-center">
+                                    <div class="small fw-bold text-info text-uppercase tracking-wider mb-3 text-center text-md-start" style="font-size: 0.65rem;">Score Breakdown</div>
+                                    
+                                    <!-- Show Breakdown if exists -->
+                                    <div class="row g-2" v-if="expandedDetails.readiness_breakdown">
+                                      <div class="col-12 col-sm-6">
+                                        <div class="d-flex flex-column gap-1 bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
+                                          <div class="d-flex justify-content-between align-items-center">
+                                            <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">Technical</span>
+                                            <span class="small fw-bold text-primary">{{ expandedDetails.readiness_breakdown.TechnicalScore || 0 }}/30</span>
+                                          </div>
+                                          <div class="progress" style="height: 3px; background: rgba(255,255,255,0.05);">
+                                            <div class="progress-bar bg-primary" :style="{ width: ((expandedDetails.readiness_breakdown.TechnicalScore || 0)/30 * 100) + '%' }"></div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div class="col-12 col-sm-6">
+                                        <div class="d-flex flex-column gap-1 bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
+                                          <div class="d-flex justify-content-between align-items-center">
+                                            <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">Communication</span>
+                                            <span class="small fw-bold text-success">{{ expandedDetails.readiness_breakdown.CommunicationScore || 0 }}/30</span>
+                                          </div>
+                                          <div class="progress" style="height: 3px; background: rgba(255,255,255,0.05);">
+                                            <div class="progress-bar bg-success" :style="{ width: ((expandedDetails.readiness_breakdown.CommunicationScore || 0)/30 * 100) + '%' }"></div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div class="col-12 col-sm-6">
+                                        <div class="d-flex flex-column gap-1 bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
+                                          <div class="d-flex justify-content-between align-items-center">
+                                            <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">Alignment</span>
+                                            <span class="small fw-bold text-info">{{ expandedDetails.readiness_breakdown.AlignmentScore || 0 }}/20</span>
+                                          </div>
+                                          <div class="progress" style="height: 3px; background: rgba(255,255,255,0.05);">
+                                            <div class="progress-bar bg-info" :style="{ width: ((expandedDetails.readiness_breakdown.AlignmentScore || 0)/20 * 100) + '%' }"></div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div class="col-12 col-sm-6">
+                                        <div class="d-flex flex-column gap-1 bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
+                                          <div class="d-flex justify-content-between align-items-center">
+                                            <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">Relevance</span>
+                                            <span class="small fw-bold text-warning">{{ expandedDetails.readiness_breakdown.RelevanceScore || 0 }}/20</span>
+                                          </div>
+                                          <div class="progress" style="height: 3px; background: rgba(255,255,255,0.05);">
+                                            <div class="progress-bar bg-warning" :style="{ width: ((expandedDetails.readiness_breakdown.RelevanceScore || 0)/20 * 100) + '%' }"></div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <!-- Fallback to N/A for old records -->
+                                    <div class="row g-2" v-else>
+                                      <div class="col-12 col-sm-6" v-for="label in ['Technical', 'Communication', 'Alignment', 'Relevance']" :key="label">
+                                        <div class="d-flex justify-content-between align-items-center bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
+                                          <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">{{ label }}</span>
+                                          <span class="small fw-bold text-secondary">N/A</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
                                 </div>
                               </div>
                           </div>
