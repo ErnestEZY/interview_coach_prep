@@ -103,3 +103,4 @@ apps/
 # Local-only files (not for git)
 docs/
 start.ps1
+PROJECT_AGENT_GUIDE.md
