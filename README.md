@@ -5,7 +5,11 @@ ICP is an AI-powered career preparation platform designed to help job seekers ma
 ## 🌟 Key Features 
 
 ### 1. AI Resume Analysis & Builder
-*   **Intelligent Scoring**: Get a 0-100 score based on industry standards.
+*   **Intelligent Scoring**: Get a 0-100 score based on industry standards, with a detailed breakdown of:
+    *   **Technical Skills (0-30 points)**: Evaluation of technical skills relevant to your target role
+    *   **Communication (0-30 points)**: Assessment of how well your resume communicates your experience
+    *   **Role Alignment (0-20 points)**: How well your profile matches your target job title
+    *   **Relevance (0-20 points)**: Relevance of your experience and skills
 *   **Resume Builder**: Dynamic form with auto-expanding fields (Professional Summary, Achievements, Skills) for easy editing.
 *   **Semantic Validation**: Ensures only valid professional resumes are processed.
 *   **Structured Feedback**: Detailed breakdown of Advantages, Disadvantages, and actionable Suggestions.
