@@ -196,28 +196,18 @@ class RAGEngine:
             if not candidates:
                 return []
 
-            # Mistral Reranking
-            try:
-                rerank_resp = self.mistral_client.rerank.rerank(
-                    model="mistral-rerank-latest",
-                    query=query,
-                    documents=candidates,
-                    top_n=top_k
-                )
-                results = [candidates[hit.index] for hit in rerank_resp.data]
-                
-                await self.log_behavior("retrieval", query, {
-                    "latency": time.time() - start_time,
-                    "num_candidates": len(candidates),
-                    "num_retrieved": len(results)
-                })
-                # Cache results for 24 hours
-                cache_key = f"rag_retrieve_{query}_{top_k}"
-                cache.set(cache_key, results, expire=86400)
-                return results
-            except Exception as e:
-                print(f"Reranking error: {e}")
-                return candidates[:top_k]
+            # Skip reranking for now since Mistral API doesn't support it
+            # Just return top candidates from hybrid search
+            results = candidates[:top_k]
+            await self.log_behavior("retrieval", query, {
+                "latency": time.time() - start_time,
+                "num_candidates": len(candidates),
+                "num_retrieved": len(results)
+            })
+            # Cache results for 24 hours
+            cache_key = f"rag_retrieve_{query}_{top_k}"
+            cache.set(cache_key, results, expire=86400)
+            return results
 
         except Exception as e:
             print(f"Error during RAG retrieval: {e}")
@@ -236,9 +226,12 @@ class RAGEngine:
             docs_summary = "\n\n".join([f"DOC {i+1}: {doc[:400]}..." for i, doc in enumerate(retrieved_docs)])
             
             prompt = (
-                f"Evaluate these documents for the query: '{query}'.\n\n"
+                f"Evaluate these {len(retrieved_docs)} documents for the query: '{query}'.\n\n"
                 f"Documents:\n{docs_summary}\n\n"
-                "Return JSON: {'relevance': [bool], 'quality_score': float (0-1), 'needs_external_search': bool}"
+                "Return ONLY a JSON object with these fields:\n"
+                "- 'relevance': array of booleans, one for each document in order (e.g., [true, false, true])\n"
+                "- 'quality_score': float between 0 and 1 (overall quality)\n"
+                "- 'needs_external_search': boolean (whether more info is needed)"
             )
             
             eval_resp = self.mistral_client.chat.complete(
@@ -251,9 +244,18 @@ class RAGEngine:
             eval_data = json.loads(eval_resp.choices[0].message.content)
             relevance_list = eval_data.get("relevance", [])
             
+            # Validate relevance list is an array of booleans
+            if not isinstance(relevance_list, list):
+                relevance_list = [True] * len(retrieved_docs)
+            
+            # Ensure length matches
+            if len(relevance_list) < len(retrieved_docs):
+                relevance_list.extend([True] * (len(retrieved_docs) - len(relevance_list)))
+            
             verified_docs = []
             for i, is_relevant in enumerate(relevance_list):
-                if is_relevant and i < len(retrieved_docs):
+                is_relevant_bool = bool(is_relevant)
+                if is_relevant_bool and i < len(retrieved_docs):
                     verified_docs.append(retrieved_docs[i])
             
             status = "high_quality" if eval_data.get("quality_score", 0) > 0.7 else "low_quality"

@@ -224,12 +224,56 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
             breakdown = {}
             breakdown_match = re.search(r"Breakdown:\s*Technical:\s*(\d+),\s*Communication:\s*(\d+),\s*Alignment:\s*(\d+),\s*Relevance:\s*(\d+)", ai, re.IGNORECASE)
             if breakdown_match:
+                technical = int(breakdown_match.group(1))
+                communication = int(breakdown_match.group(2))
+                alignment = int(breakdown_match.group(3))
+                relevance = int(breakdown_match.group(4))
+                
+                # Validate and clamp each score
+                technical = max(0, min(30, technical))
+                communication = max(0, min(30, communication))
+                alignment = max(0, min(20, alignment))
+                relevance = max(0, min(20, relevance))
+                
+                total = technical + communication + alignment + relevance
+                
+                # If total doesn't match score, adjust
+                if readiness_score is not None and total != readiness_score:
+                    ratio = readiness_score / total if total != 0 else 1
+                    technical = int(technical * ratio)
+                    communication = int(communication * ratio)
+                    alignment = int(alignment * ratio)
+                    relevance = readiness_score - technical - communication - alignment
+                    
+                    # Re-clamp after adjustment
+                    technical = max(0, min(30, technical))
+                    communication = max(0, min(30, communication))
+                    alignment = max(0, min(20, alignment))
+                    relevance = max(0, min(20, relevance))
+                
                 breakdown = {
-                    "TechnicalScore": int(breakdown_match.group(1)),
-                    "CommunicationScore": int(breakdown_match.group(2)),
-                    "AlignmentScore": int(breakdown_match.group(3)),
-                    "RelevanceScore": int(breakdown_match.group(4))
+                    "TechnicalScore": technical,
+                    "CommunicationScore": communication,
+                    "AlignmentScore": alignment,
+                    "RelevanceScore": relevance
                 }
+            else:
+                # Fallback breakdown if AI didn't provide it
+                if readiness_score is not None:
+                    # Distribute score proportionally
+                    breakdown = {
+                        "TechnicalScore": int(readiness_score * 0.3),
+                        "CommunicationScore": int(readiness_score * 0.3),
+                        "AlignmentScore": int(readiness_score * 0.2),
+                        "RelevanceScore": readiness_score - int(readiness_score * 0.3) - int(readiness_score * 0.3) - int(readiness_score * 0.2)
+                    }
+                else:
+                    breakdown = {
+                        "TechnicalScore": 0,
+                        "CommunicationScore": 0,
+                        "AlignmentScore": 0,
+                        "RelevanceScore": 0
+                    }
 
             # Clean up the feedback text to remove the score and breakdown lines
             feedback_text = ai.replace("[FINISH]", "").strip()

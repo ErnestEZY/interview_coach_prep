@@ -389,6 +389,10 @@ const app = createApp({
       fd.append('file', file);
       fd.append('job_title', jt);
       fd.append('consent', 'true');
+      fd.append('skip_analysis', 'true');
+      if (this.feedback) {
+        fd.append('existing_feedback', JSON.stringify(this.feedback));
+      }
 
       try {
         await axios.post('/api/resume/upload', fd, {

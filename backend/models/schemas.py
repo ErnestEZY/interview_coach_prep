@@ -15,6 +15,12 @@ class ManualProfileIn(BaseModel):
     achievement: str
     consent: Optional[bool] = False
 
+class SaveExistingProfileIn(BaseModel):
+    filename: str
+    job_title: str
+    text: str
+    feedback: Dict[str, Any]
+
 class User(BaseModel):
     id: str
     email: EmailStr
