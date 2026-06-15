@@ -57,6 +57,7 @@ resets_quota.py
 create_admin_cli.py
 scripts/seed_sample_data.py
 scripts/download_models.py
+backend/migrate_resume_breakdown.py
 
 # Tauri
 src-tauri/target/
