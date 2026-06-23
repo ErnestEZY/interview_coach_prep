@@ -1,4 +1,4 @@
-import os
+﻿import os
 from fastapi import APIRouter, HTTPException, Depends, status, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timezone, timedelta
@@ -85,6 +85,46 @@ async def register(payload: UserIn, request: Request):
         "email": email
     }
 
+@router.post("/resend-otp", dependencies=[Depends(rate_limit)])
+async def resend_otp(payload: dict, request: Request):
+    email = payload.get("email", "").strip().lower()
+
+    pending_user = await pending_users.find_one({"email": email})
+    if not pending_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Registration session not found. Please register again."
+        )
+
+    # Enforce a 30-second server-side cooldown on resends
+    now = get_malaysia_time()
+    otp_time = pending_user.get("otp_created_at")
+    if otp_time:
+        if otp_time.tzinfo is None:
+            otp_time = otp_time.replace(tzinfo=timezone.utc)
+        elapsed = (now.astimezone(timezone.utc) - otp_time.astimezone(timezone.utc)).total_seconds()
+        if elapsed < 30:
+            remaining = int(30 - elapsed)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Please wait {remaining} second{'s' if remaining != 1 else ''} before requesting a new code."
+            )
+
+    import random
+    otp = str(random.randint(100000, 999999))
+    await pending_users.update_one(
+        {"email": email},
+        {"$set": {"verification_otp": otp, "otp_created_at": now}}
+    )
+
+    return {
+        "message": "A new verification code has been sent.",
+        "otp": otp,
+        "email": email
+    }
+
+
+
 @router.post("/verify-email")
 async def verify_email(payload: dict):
     email = payload.get("email", "").strip().lower()
@@ -100,8 +140,27 @@ async def verify_email(payload: dict):
             return {"message": "Email already verified. You can now login."}
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration session not found. Please register again.")
     
+    # Track failed OTP attempts (max 3)
+    failed_attempts = pending_user.get("failed_otp_attempts", 0)
+
     if pending_user.get("verification_otp") != otp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP")
+        failed_attempts += 1
+        if failed_attempts >= 3:
+            # Wipe the pending record ΓÇö force them to register again
+            await pending_users.delete_one({"email": email})
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Too many incorrect attempts. Please register again."
+            )
+        remaining = 3 - failed_attempts
+        await pending_users.update_one(
+            {"email": email},
+            {"$set": {"failed_otp_attempts": failed_attempts}}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid OTP. {remaining} attempt{'s' if remaining != 1 else ''} remaining."
+        )
     
     # Check if OTP is expired (15 minutes)
     otp_time = pending_user.get("otp_created_at")

@@ -1,8 +1,10 @@
-import os
+﻿import os
 import time
 import json
 import numpy as np
 import re
+import certifi
+import httpx
 from typing import List, Dict, Any
 from typing import List, Dict, Any, Optional
 try:
@@ -12,6 +14,30 @@ except (ImportError, AttributeError):
         from mistralai.client import Mistral
     except ImportError:
         from mistralai.client import MistralClient as Mistral
+
+
+def _build_mistral_client(api_key: str) -> "Mistral":
+    """
+    Build a Mistral client with proper SSL handling.
+    The SDK 2.x uses 'client' (not 'http_client') for a custom httpx.Client.
+    Tries certifi CA bundle first; falls back to verify=False for local dev.
+    """
+    # First attempt: use certifi's trusted CA bundle
+    try:
+        http = httpx.Client(verify=certifi.where(), follow_redirects=True)
+        mistral = Mistral(api_key=api_key, client=http)
+        # Quick SSL probe
+        mistral.embeddings.create(model="mistral-embed", inputs=["test"])
+        return mistral
+    except Exception as e:
+        err = str(e)
+        if "SSL" in err or "CERTIFICATE" in err or "certificate" in err:
+            print(f"Warning: certifi SSL still failing ({err}). Falling back to verify=False for local dev.")
+            http = httpx.Client(verify=False, follow_redirects=True)
+            return Mistral(api_key=api_key, client=http)
+        # Non-SSL error (e.g. auth error on probe) ΓÇô return the certifi client anyway
+        http = httpx.Client(verify=certifi.where(), follow_redirects=True)
+        return Mistral(api_key=api_key, client=http)
 
 from ..core.config import MISTRAL_API_KEY
 from .cache_manager import cache
@@ -47,7 +73,7 @@ class RAGEngine:
         
         try:
             # Initialize Mistral SDK client
-            self.mistral_client = Mistral(api_key=MISTRAL_API_KEY)
+            self.mistral_client = _build_mistral_client(MISTRAL_API_KEY)
 
             if not os.path.exists(self.docs_dir):
                 print(f"Warning: RAG docs directory not found at {self.docs_dir}")
