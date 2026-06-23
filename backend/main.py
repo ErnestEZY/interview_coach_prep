@@ -168,17 +168,28 @@ async def startup_id():
 async def favicon():
     return Response(status_code=204)
 
+# Careerjet widget redirects the iframe to /find-jobs/?s=...&l=... when
+# showing results or "no results". This route serves the find-jobs page so
+# the widget gets a valid response instead of 404ing.
+@app.get("/find-jobs/", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/find-jobs", response_class=HTMLResponse, include_in_schema=False)
+async def find_jobs_page():
+    page = os.path.join("frontend", "static", "pages", "find-jobs.html")
+    if os.path.exists(page):
+        return FileResponse(page)
+    index_path = os.path.join("frontend", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return HTMLResponse("Not Found", status_code=404)
+
 # Catch-all to serve the appropriate HTML file for any unknown routes
 @app.get("/{full_path:path}", response_class=HTMLResponse)
 async def catch_all(request: Request, full_path: str):
-    # Construct the full path to the requested file
     file_path = os.path.join("frontend", full_path)
 
-    # If the requested path points to an existing file, serve it with proper MIME type
     if os.path.isfile(file_path):
         return FileResponse(file_path)
 
-    # Otherwise, serve the main index.html for SPA routing
     index_path = os.path.join("frontend", "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)

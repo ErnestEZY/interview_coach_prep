@@ -114,6 +114,40 @@ const app = createApp({
             await new Promise(r => setTimeout(r, 900));
             this.isLoading = false;
         },
+        // Expand common Malaysian location abbreviations before passing to
+        // the widget so "KL" → "Kuala Lumpur" and results actually appear.
+        normalizeLocation(raw) {
+            const aliases = {
+                'kl':           'Kuala Lumpur',
+                'k.l':          'Kuala Lumpur',
+                'k.l.':         'Kuala Lumpur',
+                'kl city':      'Kuala Lumpur',
+                'klang valley': 'Kuala Lumpur',
+                'bangsar':      'Kuala Lumpur',
+                'mont kiara':   'Kuala Lumpur',
+                "mont'kiara":   'Kuala Lumpur',
+                'pj':           'Petaling Jaya',
+                'p.j':          'Petaling Jaya',
+                'p.j.':         'Petaling Jaya',
+                'jb':           'Johor Bahru',
+                'j.b':          'Johor Bahru',
+                'j.b.':         'Johor Bahru',
+                'pg':           'Penang',
+                'kk':           'Kota Kinabalu',
+                'kb':           'Kota Bharu',
+                'kch':          'Kuching',
+                'sbh':          'Sabah',
+                'swk':          'Sarawak',
+                'ns':           'Negeri Sembilan',
+                'subang':       'Subang Jaya',
+                'cyberjaya':    'Cyberjaya',
+                'putrajaya':    'Putrajaya',
+            };
+            if (!raw) return raw;
+            const key = raw.trim().toLowerCase();
+            return aliases[key] || raw;
+        },
+
         updateSearchBox() {
             this.isLoading = true;
             this.hasSearched = true;
@@ -122,7 +156,8 @@ const app = createApp({
             this.$nextTick(() => {
                 const container = document.getElementById('search-box-container');
                 const query = localStorage.getItem('target_job_title') || '';
-                const location = localStorage.getItem('target_location') || '';
+                const rawLocation = localStorage.getItem('target_location') || '';
+                const location = this.normalizeLocation(rawLocation);
 
                 if (container) {
                     container.innerHTML = '';
@@ -153,7 +188,10 @@ const app = createApp({
                     script.id = 'cj-search-box-script';
                     script.async = true;
                     script.src = 'https://static.careerjet.org/js/all_widget_search_box_3rd_party.min.js';
-                    script.onload = () => { this.isLoading = false; };
+                    script.onload = () => { 
+                        this.isLoading = false;
+                        this.watchForEmptyResults(container);
+                    };
                     script.onerror = () => { this.isLoading = false; };
                     container.appendChild(script);
                 }
@@ -164,7 +202,8 @@ const app = createApp({
         },
         syncFields() {
             const query = localStorage.getItem('target_job_title') || '';
-            const location = localStorage.getItem('target_location') || '';
+            const rawLocation = localStorage.getItem('target_location') || '';
+            const location = this.normalizeLocation(rawLocation);
             
             if (!query && !location) return;
             console.log('[JobSearch] Starting persistent sync...', { query, location });
@@ -253,6 +292,116 @@ const app = createApp({
                 }
             }, 500); 
         },
+        watchForEmptyResults(container) {
+            const removeBanner = () => {
+                const el = document.getElementById('cj-no-results-msg');
+                if (el) el.remove();
+            };
+
+            const showNoResultsBanner = () => {
+                if (document.getElementById('cj-no-results-msg')) return;
+                const banner = document.createElement('div');
+                banner.id = 'cj-no-results-msg';
+                banner.style.cssText = 'display:flex;align-items:flex-start;gap:12px;margin-top:12px;background:rgba(239,68,68,0.08);border-left:3px solid rgba(239,68,68,0.6);border-radius:8px;padding:12px 14px;';
+                banner.innerHTML = `
+                    <i class="bi bi-emoji-frown" style="color:#f87171;font-size:1.1rem;flex-shrink:0;margin-top:2px;"></i>
+                    <div style="font-size:0.85rem;">
+                        <div style="font-weight:600;margin-bottom:4px;color:#fff;">No jobs found for your search</div>
+                        <div style="color:#94a3b8;">
+                            Try a broader keyword, or spell out the full city name —
+                            e.g. <em>Kuala Lumpur</em> instead of <em>KL</em>.
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('cj-no-results-msg').remove()"
+                        style="margin-left:auto;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1rem;flex-shrink:0;line-height:1;"
+                        aria-label="Dismiss">&#x2715;</button>
+                `;
+                container.after(banner);
+            };
+
+            // The widget iframe resizes itself via postMessage / inline style.
+            // A frame with job results is tall; a "no results" page is short.
+            // We poll the iframe height every 500ms for up to 10s after each
+            // load event, which is the only cross-origin signal we can read.
+            let pollTimer = null;
+            let userHasSearched = !!(
+                localStorage.getItem('target_job_title') ||
+                localStorage.getItem('target_location')
+            );
+
+            const getIframe = () => container.querySelector('iframe');
+
+            const pollHeight = () => {
+                clearInterval(pollTimer);
+                let ticks = 0;
+                pollTimer = setInterval(() => {
+                    ticks++;
+                    const iframe = getIframe();
+                    if (!iframe) { if (ticks > 20) clearInterval(pollTimer); return; }
+
+                    const h = iframe.offsetHeight || iframe.clientHeight ||
+                              parseInt(iframe.style.height || '0');
+
+                    // Once we see a definitive height, decide and stop polling
+                    if (h > 50) {
+                        clearInterval(pollTimer);
+                        if (h < 300) {
+                            // Short iframe = no results page
+                            showNoResultsBanner();
+                        } else {
+                            // Tall iframe = results present
+                            removeBanner();
+                        }
+                    }
+                    if (ticks > 20) clearInterval(pollTimer); // 10s max
+                }, 500);
+            };
+
+            // Watch for the iframe being injected by the widget script
+            const observer = new MutationObserver(() => {
+                const iframe = getIframe();
+                if (!iframe || iframe._cjWatched) return;
+                iframe._cjWatched = true;
+
+                iframe.addEventListener('load', () => {
+                    if (!userHasSearched) return;
+                    removeBanner();
+                    pollHeight();
+                });
+
+                // Widget may already be loaded by the time observer fires
+                if (iframe.src && userHasSearched) pollHeight();
+            });
+            observer.observe(container, { childList: true, subtree: true });
+
+            // Also catch an iframe that was already there before observer attached
+            const existing = getIframe();
+            if (existing && !existing._cjWatched) {
+                existing._cjWatched = true;
+                existing.addEventListener('load', () => {
+                    if (!userHasSearched) return;
+                    removeBanner();
+                    pollHeight();
+                });
+            }
+
+            // Since we can't click inside the cross-origin iframe,
+            // we use a document-level click + keydown listener.
+            // Any click/Enter anywhere on the page after the widget loaded
+            // counts as "user has searched" — safe because the widget is the
+            // only interactive element on the page.
+            const onUserAction = () => { userHasSearched = true; };
+            document.addEventListener('click', onUserAction, { once: true });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') userHasSearched = true;
+            }, { once: true });
+
+            window.addEventListener('beforeunload', () => {
+                observer.disconnect();
+                clearInterval(pollTimer);
+            }, { once: true });
+        },
+
         logout() {
             window.icp.logout();
         },

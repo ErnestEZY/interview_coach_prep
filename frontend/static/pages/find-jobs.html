@@ -177,6 +177,18 @@
                         <div id="search-box-container"></div>
                     </div>
                 </div>
+
+                <!-- Search tips — always visible, helpful for idle and no-result states -->
+                <div class="d-flex align-items-start gap-3 mt-3 px-1" style="background:rgba(251,191,36,0.07);border-left:3px solid rgba(251,191,36,0.5);border-radius:8px;padding:12px 14px;">
+                    <i class="bi bi-lightbulb fs-5 mt-1" style="color:#fbbf24;flex-shrink:0;"></i>
+                    <div class="small text-secondary">
+                        <span class="fw-semibold text-white">Search tips:</span>
+                        use full city names (e.g. <em>Kuala Lumpur</em> not <em>KL</em>),
+                        try broader keywords (e.g. <em>Developer</em> instead of <em>Python Developer</em>),
+                        double-check your spelling,
+                        or leave the location empty to search nationwide.
+                    </div>
+                </div>
                 
                 <div class="text-center mt-4" v-if="hasAnalyzed">
                     <p class="text-secondary small">
