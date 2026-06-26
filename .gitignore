@@ -105,6 +105,3 @@ apps/
 docs/
 start.ps1
 PROJECT_AGENT_GUIDE.md
-
-# Test suite (local only — not for git)
-tests/
