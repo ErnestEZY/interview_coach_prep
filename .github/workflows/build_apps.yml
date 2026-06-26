@@ -116,24 +116,7 @@ jobs:
           name: dependency-audit
           path: audit.json
 
-  # ── Job 4: Deploy to Render ─────────────────────────────────────────────────
-  # Only runs on push to main, only after all three jobs above pass.
-  # Render auto-deploy must be DISABLED in the Render dashboard so that
-  # this job is the only thing that triggers production deployments.
-  deploy:
-    name: Deploy to Render
-    runs-on: ubuntu-latest
-    needs: [test-backend, lint, security-scan]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - name: Trigger Render deploy hook
-        run: |
-          echo "All checks passed - deploying to Render..."
-          curl --fail-with-body \
-            "https://api.render.com/deploy/srv-d6dmvgp4tr6s73cv3uh0?key=${{ secrets.RENDER_DEPLOY_KEY }}"
-          echo "Deployment triggered."
-
-  # ── Job 5: Android APK Build (manual only) ──────────────────────────────────
+  # ── Job 4: Android APK Build (manual only) ──────────────────────────────────
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -158,7 +141,7 @@ jobs:
           name: android-release-apk
           path: mobile_app/build/app/outputs/flutter-apk/app-release.apk
 
-  # ── Job 6: Windows Desktop Build (manual only) ──────────────────────────────
+  # ── Job 5: Windows Desktop Build (manual only) ──────────────────────────────
   build-windows:
     name: Build Windows Desktop (Tauri)
     runs-on: windows-latest
