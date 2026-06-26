@@ -170,7 +170,7 @@ async def manual_upload_profile(
     KEY ACHIEVEMENT: {data.achievement}
     """
     
-    feedback = get_feedback(text)
+    feedback = await get_feedback(text)
 
     # Increment daily count
     await increment_daily_limit(current["id"], "daily_resume_count")

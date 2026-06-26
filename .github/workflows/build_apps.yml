@@ -1,75 +1,208 @@
-name: Build Multi-Platform Apps
+name: ICP — CI/CD Pipeline
 
 on:
-  workflow_dispatch: # Manual trigger
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:   # keep manual trigger for app builds
 
 jobs:
-  # 1. Android Build (APK)
-  build-android:
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 1 — Backend Tests (runs on every push / PR)
+  # Blocks deployment if any test fails.
+  # ────────────────────────────────────────────────────────────────────────────
+  test-backend:
+    name: Backend Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Run Unit Tests
+        run: |
+          python -m pytest tests/unit/ -v --tb=short \
+            --junitxml=test-results/unit.xml
+        env:
+          JWT_SECRET:             pytest-secret-key
+          MONGO_URI:              mongodb://localhost:27017
+          DB_NAME:                icp_test
+          MISTRAL_API_KEY:        fake-key
+          RATE_LIMIT_PER_MINUTE:  9999
+          ADMIN_INVITE_CODE:      test-invite-123
+
+      - name: Run Smoke Tests
+        run: |
+          python -m pytest tests/smoke/ -v --tb=short \
+            --junitxml=test-results/smoke.xml
+        env:
+          JWT_SECRET:             pytest-secret-key
+          MONGO_URI:              mongodb://localhost:27017
+          DB_NAME:                icp_test
+          MISTRAL_API_KEY:        fake-key
+          RATE_LIMIT_PER_MINUTE:  9999
+          ADMIN_INVITE_CODE:      test-invite-123
+
+      - name: Run Integration Tests
+        run: |
+          python -m pytest tests/integration/ -v --tb=short \
+            --junitxml=test-results/integration.xml
+        env:
+          JWT_SECRET:             pytest-secret-key
+          MONGO_URI:              mongodb://localhost:27017
+          DB_NAME:                icp_test
+          MISTRAL_API_KEY:        fake-key
+          RATE_LIMIT_PER_MINUTE:  9999
+          ADMIN_INVITE_CODE:      test-invite-123
+
+      - name: Run Security Tests
+        run: |
+          python -m pytest tests/security/ -v --tb=short \
+            --junitxml=test-results/security.xml
+        env:
+          JWT_SECRET:             pytest-secret-key
+          MONGO_URI:              mongodb://localhost:27017
+          DB_NAME:                icp_test
+          MISTRAL_API_KEY:        fake-key
+          RATE_LIMIT_PER_MINUTE:  9999
+          ADMIN_INVITE_CODE:      test-invite-123
+
+      - name: Run Functional Tests
+        run: |
+          python -m pytest tests/functional/ -v --tb=short \
+            --junitxml=test-results/functional.xml
+        env:
+          JWT_SECRET:             pytest-secret-key
+          MONGO_URI:              mongodb://localhost:27017
+          DB_NAME:                icp_test
+          MISTRAL_API_KEY:        fake-key
+          RATE_LIMIT_PER_MINUTE:  9999
+          ADMIN_INVITE_CODE:      test-invite-123
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results/
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 2 — Lint / Static Analysis (runs on every push / PR)
+  # ────────────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install linting tools
+        run: pip install ruff
+
+      - name: Run Ruff linter
+        # Warn only — don't block deployment on style issues for now
+        run: ruff check backend/ --output-format=github || true
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 3 — Security Scan (runs on every push to main)
+  # Scans dependencies for known vulnerabilities.
+  # ────────────────────────────────────────────────────────────────────────────
+  security-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit dependencies
+        # Warn only — don't block on transitive vulns outside our control
+        run: pip-audit -r backend/requirements.txt --output json > audit.json || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit
+          path: audit.json
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 4 — Android APK Build (manual trigger only)
+  # ────────────────────────────────────────────────────────────────────────────
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
           cache: true
+
       - name: Build APK
         working-directory: mobile_app
         run: |
           flutter pub get
           flutter build apk --release
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
           path: mobile_app/build/app/outputs/flutter-apk/app-release.apk
 
-  # 2. iOS Simulator Build (for Appetize.io)
-  build-ios-simulator:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-      - name: Build iOS Simulator
-        working-directory: mobile_app
-        run: |
-          flutter pub get
-          flutter build ios --simulator --debug
-      - name: Zip for Appetize
-        working-directory: mobile_app
-        run: |
-          cd build/ios/iphonesimulator
-          zip -r Runner.zip Runner.app
-      - name: Upload Simulator Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-simulator-app
-          path: mobile_app/build/ios/iphonesimulator/Runner.zip
-
-  # 3. Windows Desktop Build (Tauri EXE)
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 5 — Windows Desktop Build (manual trigger only)
+  # ────────────────────────────────────────────────────────────────────────────
   build-windows:
+    name: Build Windows Desktop (Tauri)
     runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Install Dependencies
+
+      - name: Install dependencies
         run: npm install
+
       - name: Build Tauri App
         run: npm run build:desktop
+
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
