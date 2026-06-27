@@ -40,7 +40,8 @@ const app = createApp({
   },
   computed: {
     hasResume() {
-      return !!this.feedback || !!this.hasAnalyzed;
+      // Both conditions must be true: backend flag AND actual feedback data present
+      return !!this.feedback && !!this.hasAnalyzed;
     }
   },
   mounted() {
@@ -200,6 +201,27 @@ const app = createApp({
     async initDashboard() {
       try {
         this.isLoading = true;
+
+        // Check if user actually has resume records on the server.
+        // has_analyzed is now re-synced with the resumes collection on every login,
+        // so we can trust it as the authoritative flag.
+        try {
+          const meRes = await axios.get(window.icp ? window.icp.apiUrl('/api/auth/me') : '/api/auth/me');
+          const serverHasAnalyzed = !!(meRes.data && meRes.data.has_analyzed);
+          this.hasAnalyzed = serverHasAnalyzed;
+          if (!serverHasAnalyzed) {
+            try {
+              ['resume_feedback','resume_filename','resume_score',
+               'target_job_title','target_location',
+               'resume_builder_session','resume_builder_hide_import_prompt',
+               'resume_submitted'].forEach(k => localStorage.removeItem(k));
+            } catch (_) {}
+            this.feedback = null;
+            this.persistedFileName = '';
+            this.targetJobTitle = '';
+          }
+        } catch (_) {}
+
         const autoloadDisabled = localStorage.getItem('resume_autoload_disabled') === 'true';
         if (autoloadDisabled) {
           try {
@@ -223,8 +245,9 @@ const app = createApp({
         this.persistedFileName = localStorage.getItem('resume_filename') || '';
         this.isSubmitted = localStorage.getItem('resume_submitted') === 'true';
         
-        // If no local feedback but logged in, fetch from server
-        if (!autoloadDisabled && !this.feedback && this.logged) {
+        // If no local feedback but logged in AND backend confirms user has analysed,
+        // fetch the latest resume from the server to restore the session.
+        if (!autoloadDisabled && !this.feedback && this.logged && this.hasAnalyzed) {
           try {
             const r = await axios.get('/api/resume/my');
             const items = r.data || [];
@@ -709,7 +732,7 @@ const app = createApp({
             localStorage.setItem('target_location', res.feedback.Location);
           }
           try { localStorage.removeItem('resume_autoload_disabled'); } catch (_) {}
-          this.resumeAttempts = Math.max(0, this.resumeAttempts - 1);
+          try { localStorage.removeItem('resume_builder_hide_import_prompt'); } catch (_) {}
 
           Swal.fire({
             icon: 'success',
@@ -906,6 +929,7 @@ const app = createApp({
         
         localStorage.setItem('resume_feedback', JSON.stringify(res.feedback));
         try { localStorage.removeItem('resume_autoload_disabled'); } catch (_) {}
+        try { localStorage.removeItem('resume_builder_hide_import_prompt'); } catch (_) {}
         localStorage.setItem('resume_filename', 'Guided Profile Builder');
         localStorage.setItem('target_job_title', this.targetJobTitle);
         

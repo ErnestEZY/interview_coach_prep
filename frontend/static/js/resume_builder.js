@@ -7,6 +7,7 @@ try {
                 userName: '',
                 userEmail: '',
                 logged: false,
+                hasAnalyzed: false,
                 isMobileMenuOpen: false,
                 sessionTime: 0,
                 timerId: null,
@@ -118,7 +119,47 @@ try {
                 return;
             }
 
-            // Load session data if available
+            // Check has_analyzed FIRST before restoring any cached data,
+            // so a user who hasn't analysed yet doesn't see stale data
+            // from a previous session or a different account.
+            try {
+                const apiUrl = (window.icp && window.icp.apiUrl) ? window.icp.apiUrl('/api/auth/me') : '/api/auth/me';
+                const meRes = await axios.get(apiUrl);
+                const me = meRes.data || {};
+                this.hasAnalyzed = !!me.has_analyzed;
+                this.userName = me.name || 'Guest';
+                this.userEmail = me.email || '';
+
+                if (!this.hasAnalyzed) {
+                    // Wipe every resume-related key so nothing stale bleeds through
+                    ['resume_feedback', 'resume_filename', 'resume_score',
+                     'target_job_title', 'target_location',
+                     'resume_builder_session', 'resume_builder_hide_import_prompt',
+                     'resume_submitted', 'resume_autoload_disabled'].forEach(k => {
+                        try { localStorage.removeItem(k); } catch (_) {}
+                    });
+                }
+            } catch (_) {
+                // Fallback — decode token for name/email only; treat as not analysed to be safe
+                try {
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const payload = JSON.parse(atob(base64));
+                    this.userName = payload.name || 'Guest';
+                    this.userEmail = payload.email || '';
+                    this.hasAnalyzed = !!payload.has_analyzed;
+                    if (!this.hasAnalyzed) {
+                        ['resume_feedback', 'resume_filename', 'resume_score',
+                         'target_job_title', 'target_location',
+                         'resume_builder_session', 'resume_builder_hide_import_prompt',
+                         'resume_submitted', 'resume_autoload_disabled'].forEach(k => {
+                            try { localStorage.removeItem(k); } catch (_) {}
+                        });
+                    }
+                } catch (e) { console.error("Token decode failed:", e); }
+            }
+
+            // Load session data AFTER the has_analyzed check and potential clear
             const savedResume = localStorage.getItem('resume_builder_session');
             if (savedResume) {
                 try {
@@ -128,9 +169,6 @@ try {
                     console.error("Error restoring session:", e);
                 }
             }
-
-            // Load user info
-            await this.setUserFromToken();
             
             // Setup session timer if app.js is loaded
             if (window.setupSessionTimer) {
@@ -169,7 +207,27 @@ try {
                 }
             },
             async checkAnalysisImport() {
+                // Only offer import if the server confirms there are actual resume records.
+                // hasAnalyzed is a permanent flag that never resets, so we check the real state.
+                try {
+                    const apiUrl = (window.icp && window.icp.apiUrl) ? window.icp.apiUrl('/api/resume/my') : '/api/resume/my';
+                    const rCheck = await axios.get(apiUrl);
+                    const hasServerResume = Array.isArray(rCheck.data) && rCheck.data.length > 0;
+                    if (!hasServerResume) return;
+                } catch (_) {
+                    // If we can't check, fall back to hasAnalyzed flag
+                    if (!this.hasAnalyzed) return;
+                }
+
+                // JS double-check: localStorage feedback must be valid structured data
                 const feedbackStr = localStorage.getItem('resume_feedback');
+                if (!feedbackStr || feedbackStr === 'null' || feedbackStr === 'undefined') return;
+                try {
+                    const parsed = JSON.parse(feedbackStr);
+                    // Must have Score to be a real analysis result
+                    if (!parsed || typeof parsed.Score === 'undefined') return;
+                } catch (_) { return; }
+
                 const hidePrompt = localStorage.getItem('resume_builder_hide_import_prompt') === 'true';
                 
                 if (feedbackStr && !hidePrompt) {
@@ -330,6 +388,21 @@ try {
                     const me = response.data || {};
                     this.userName = me.name || 'Guest';
                     this.userEmail = me.email || '';
+                    this.hasAnalyzed = !!me.has_analyzed;
+
+                    // If the backend says this user has NOT analysed yet, wipe any
+                    // stale resume data left over from a previous session or account.
+                    if (!this.hasAnalyzed) {
+                        try {
+                            localStorage.removeItem('resume_feedback');
+                            localStorage.removeItem('resume_filename');
+                            localStorage.removeItem('resume_score');
+                            localStorage.removeItem('target_job_title');
+                            localStorage.removeItem('target_location');
+                            localStorage.removeItem('resume_builder_hide_import_prompt');
+                        } catch (_) {}
+                    }
+
                     // Update resume name if it was default
                     if (this.resume.name === 'FULL NAME') {
                         this.resume.name = this.userName;
@@ -345,6 +418,17 @@ try {
                         const payload = JSON.parse(atob(base64));
                         this.userName = payload.name || 'Guest';
                         this.userEmail = payload.email || '';
+                        this.hasAnalyzed = !!payload.has_analyzed;
+                        if (!this.hasAnalyzed) {
+                            try {
+                                localStorage.removeItem('resume_feedback');
+                                localStorage.removeItem('resume_filename');
+                                localStorage.removeItem('resume_score');
+                                localStorage.removeItem('target_job_title');
+                                localStorage.removeItem('target_location');
+                                localStorage.removeItem('resume_builder_hide_import_prompt');
+                            } catch (_) {}
+                        }
                         if (this.resume.name === 'FULL NAME') {
                             this.resume.name = this.userName;
                         }
@@ -448,25 +532,98 @@ try {
                 const originalPage = this.currentPage;
                 
                 if (result.isConfirmed) {
-                    // RESET TO PAGE 1 BEFORE PRINTING (Fixes "Blank Page" issue)
+                    // RESET TO PAGE 1 BEFORE PRINTING
                     this.currentPage = 1;
-                    
-                    // Wait for Vue to update the DOM
                     await this.$nextTick();
-                    
-                    // Remove inline transform entirely before printing so the browser
-                    // does not wrap the template in a graphics object (which makes
-                    // the output image-based and breaks ATS scanning).
-                    const tmpl = document.getElementById('resume-template');
-                    const savedTransform = tmpl ? tmpl.style.transform : '';
-                    if (tmpl) tmpl.style.transform = 'none';
 
-                    setTimeout(() => {
+                    const tmpl = document.getElementById('resume-template');
+                    if (!tmpl) return;
+
+                    // Collect ONLY the resume-specific stylesheet (styles.css)
+                    // Skip Bootstrap and other UI stylesheets that have transforms/overrides
+                    const resumeStyles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+                        .filter(el => el.href && el.href.includes('styles.css'))
+                        .map(el => `<link rel="stylesheet" href="${el.href}">`)
+                        .join('\n');
+
+                    const resumeHtml = tmpl.innerHTML;
+                    const themeCls   = tmpl.className;
+
+                    const printWin = window.open('', '_blank', 'width=850,height=1100');
+                    if (!printWin) {
+                        // Popup blocked — fall back to original window.print()
                         window.print();
-                        // Restore transform after print dialog closes
-                        if (tmpl) tmpl.style.transform = savedTransform;
                         this.currentPage = originalPage;
-                    }, 500);
+                        return;
+                    }
+
+                    printWin.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Resume</title>
+  ${resumeStyles}
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: white;
+    }
+    /* Kill every container rule that could offset or clip the template */
+    .resume-preview-viewport,
+    .resume-preview-container,
+    .resume-preview-wrapper {
+      transform: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      position: static !important;
+      overflow: visible !important;
+      width: auto !important;
+      height: auto !important;
+      background: white !important;
+    }
+    /* Hide the safe-margin guide pseudo-element that shows in preview only */
+    .resume-preview-container .resume-content-wrapper::after,
+    .resume-preview-viewport::before,
+    #resume-template::after {
+      display: none !important;
+      content: none !important;
+    }
+    #resume-template {
+      width: 210mm !important;
+      min-height: 297mm;
+      margin: 0 auto !important;
+      padding: 20mm !important;
+      background: white !important;
+      transform: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      position: static !important;
+    }
+    @page { size: A4 portrait; margin: 0; }
+    @media print {
+      html, body { margin: 0; padding: 0; }
+      #resume-template { margin: 0 auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="resume-template" class="${themeCls}">${resumeHtml}</div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+        window.onafterprint = function() { window.close(); };
+        setTimeout(function() { window.close(); }, 4000);
+      }, 400);
+    };
+  <\/script>
+</body>
+</html>`);
+                    printWin.document.close();
+
+                    this.currentPage = originalPage;
                     return;
                 }
 
@@ -483,46 +640,61 @@ try {
                     });
 
                     try {
-                        // Create a COMPLETELY NEW element for capture to avoid transform/pagination issues
+                        // Build a completely isolated capture element — NOT a clone of the
+                        // live DOM node (which carries preview container offsets and pseudo-elements).
+                        // Instead create a fresh div, copy the inner HTML, and apply only the
+                        // styles needed for an A4 resume.
+                        const element = document.getElementById('resume-template');
+                        if (!element) { Swal.close(); return; }
+
                         const captureContainer = document.createElement('div');
-                        captureContainer.id = 'temp-capture-container';
-                        captureContainer.style.position = 'absolute';
-                        captureContainer.style.left = '-9999px';
-                        captureContainer.style.top = '0';
-                        captureContainer.style.width = '210mm';
-                        captureContainer.style.background = 'white';
-                        
-                        // Clone the template but STRIP the Vue-driven transforms
-                        const clone = element.cloneNode(true);
-                        clone.style.transform = 'none';
-                        clone.style.padding = '20mm'; // MATCH PREVIEW AND PRINT MARGINS (Changed from 15mm)
-                        clone.style.margin = '0';
-                        clone.style.width = '210mm'; 
-                        clone.style.boxShadow = 'none';
-                        clone.style.minHeight = '297mm'; 
-                        
-                        captureContainer.appendChild(clone);
+                        captureContainer.style.cssText = [
+                            'position:absolute', 'left:-9999px', 'top:0',
+                            'width:210mm', 'background:white', 'overflow:hidden'
+                        ].join(';');
+
+                        const fresh = document.createElement('div');
+                        fresh.id = 'resume-print-target';
+                        fresh.className = element.className;   // carry theme class
+                        fresh.innerHTML = element.innerHTML;
+                        fresh.style.cssText = [
+                            'width:210mm', 'min-height:297mm',
+                            'padding:20mm', 'margin:0',
+                            'background:white', 'transform:none',
+                            'box-shadow:none', 'border:none',
+                            'position:static', 'float:none',
+                            'overflow:visible'
+                        ].join(';');
+
+                        // Inject a style to suppress preview-only pseudo-elements
+                        const suppressStyle = document.createElement('style');
+                        suppressStyle.textContent =
+                            '#resume-print-target::after,' +
+                            '#resume-print-target::before { display:none !important; content:none !important; }';
+                        fresh.appendChild(suppressStyle);
+
+                        captureContainer.appendChild(fresh);
                         document.body.appendChild(captureContainer);
 
                         const opt = {
-                            margin: 0, // Zero outer margin since we added 15mm inner padding to clone
+                            margin: 0,
                             filename: `${this.resume.name.replace(/\s+/g, '_')}_Resume.pdf`,
                             image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { 
-                                scale: 2, 
-                                useCORS: true, 
+                            html2canvas: {
+                                scale: 2,
+                                useCORS: true,
                                 letterRendering: true,
                                 backgroundColor: '#ffffff',
                                 scrollY: 0,
-                                windowWidth: 794 // Approx width for A4 at 96 DPI
+                                windowWidth: 794
                             },
                             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                         };
 
-                        await html2pdf().set(opt).from(clone).save();
-                        
-                        if (document.getElementById('temp-capture-container')) {
+                        await html2pdf().set(opt).from(fresh).save();
+
+                        if (document.body.contains(captureContainer)) {
                             document.body.removeChild(captureContainer);
                         }
                         Swal.close();

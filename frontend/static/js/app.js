@@ -121,6 +121,7 @@ const icpState = {
       localStorage.removeItem('resume_builder_session');
       localStorage.removeItem('resume_builder_imported');
       localStorage.removeItem('resume_builder_hide_import_prompt');
+      localStorage.removeItem('resume_submitted');
       
       // Also clear everything else just to be safe, except startup_id
       const keys = Object.keys(localStorage);
@@ -200,9 +201,21 @@ if (window.axios) {
 function logout() {
   const currentPath = window.location.pathname;
   const is_admin_page = currentPath.includes('icp-admin-');
+
+  // Call backend logout to reset has_analyzed in MongoDB before clearing local state.
+  // Fire-and-forget — don't wait for it to avoid blocking the redirect.
+  try {
+    const token = icpState.token || localStorage.getItem('token');
+    if (token) {
+      fetch(icpState.apiBase + '/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).catch(() => {});  // silent fail — logout must always succeed client-side
+    }
+  } catch (_) {}
+
   icpState.clearToken();
   if (is_admin_page) {
-    // Encoded auth path: /static/pages/icp-admin-auth-9f2d8b4e.html
     window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
   } else {
     window.location.href = "/";

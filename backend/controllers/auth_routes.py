@@ -278,7 +278,22 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     
     # Update last login info
     await users.update_one({"_id": user["_id"]}, {"$set": {"last_login_ip": ip_address}})
-    
+
+    # Root fix: re-sync has_analyzed with the actual resumes collection.
+    # has_analyzed is set to True when a resume is uploaded but never reset on logout.
+    # On login, verify the user actually has resume records — if not, reset the flag
+    # so the frontend correctly shows "no resume" state.
+    try:
+        from ..core.db import resumes
+        resume_count = await resumes.count_documents({"user_id": str(user["_id"])})
+        if resume_count == 0 and user.get("has_analyzed"):
+            await users.update_one(
+                {"_id": user["_id"]},
+                {"$set": {"has_analyzed": False}}
+            )
+    except Exception:
+        pass  # Non-critical — don't block login if this fails
+
     token = create_access_token(str(user["_id"]), user.get("role", "user"))
     return Token(access_token=token)
 
@@ -469,6 +484,23 @@ async def admin_login(
 @router.get("/me")
 async def me(current=Depends(get_current_user)):
     return current
+
+@router.post("/logout")
+async def logout(current=Depends(get_current_user)):
+    """
+    Resets has_analyzed to False on logout so the frontend
+    starts fresh on the next login without stale resume state.
+    """
+    from bson import ObjectId
+    try:
+        oid = ObjectId(current["id"])
+        await users.update_one(
+            {"_id": oid},
+            {"$set": {"has_analyzed": False, "target_job_title": None, "target_location": None}}
+        )
+    except Exception:
+        pass
+    return {"message": "Logged out successfully."}
 
 @router.post("/forgot-password", dependencies=[Depends(rate_limit)])
 async def forgot_password(payload: ForgotPasswordRequest, request: Request):

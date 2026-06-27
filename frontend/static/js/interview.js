@@ -278,17 +278,28 @@ const app = createApp({
                     await this.setUserFromToken();
                     if (this._isUnmounted) return;
                     this.startTimer();
+
+                    // Pure JS check: validate localStorage resume data is real and complete.
+                    // If has_analyzed is false from the backend, wipe everything regardless
+                    // of what's in localStorage — this handles stale data from previous accounts.
+                    if (!this.hasAnalyzed) {
+                        ['resume_feedback','resume_filename','resume_score',
+                         'target_job_title','target_location'].forEach(k => {
+                            try { localStorage.removeItem(k); } catch (_) {}
+                        });
+                    }
+
                     this.computeResumeStatus();
 
-                    // Robust resume check: if not found locally, try fetching once from server
-                    if (!this.hasResume) {
+                    // Only do background fetch if has_analyzed AND no local data yet
+                    if (!this.hasResume && this.hasAnalyzed) {
                         try {
                             const r = await axios.get(window.icp.apiUrl('/api/resume/my'));
                             if (this._isUnmounted) return;
                             const items = r.data || [];
                             if (items && items.length > 0) {
                                 const latest = items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-                                if (latest && latest.feedback) {
+                                if (latest && latest.feedback && typeof latest.feedback.Score !== 'undefined') {
                                     localStorage.setItem('resume_feedback', JSON.stringify(latest.feedback));
                                     localStorage.setItem('resume_filename', latest.filename || '');
                                     this.computeResumeStatus();
@@ -413,12 +424,35 @@ const app = createApp({
             const localFeedbackStr = localStorage.getItem('resume_feedback');
             const localFilename = localStorage.getItem('resume_filename');
             const storedJobTitle = localStorage.getItem('target_job_title');
-            
+
+            // GATE 1 — Backend flag: has_analyzed must be true.
+            // This is reset to false by the logout endpoint in MongoDB,
+            // so a fresh login after logout always starts as false.
+            if (!this.hasAnalyzed) {
+                try {
+                    ['resume_feedback','resume_filename','resume_score',
+                     'target_job_title','target_location'].forEach(k => localStorage.removeItem(k));
+                } catch (_) {}
+                this.hasResume = false;
+                this.jobTitle = '';
+                this.resumeFeedback = null;
+                return;
+            }
+
+            // GATE 2 — JS validation: localStorage feedback must be real structured data.
+            // Rejects empty strings, "null", and incomplete objects without a Score field.
             let parsedFeedback = null;
             if (localFeedbackStr && localFeedbackStr !== 'null' && localFeedbackStr !== 'undefined') {
-                try { parsedFeedback = JSON.parse(localFeedbackStr); } catch (_) { parsedFeedback = null; }
+                try {
+                    const parsed = JSON.parse(localFeedbackStr);
+                    // Must have Score field to be considered a real analysis result
+                    if (parsed && typeof parsed.Score !== 'undefined') {
+                        parsedFeedback = parsed;
+                    }
+                } catch (_) {}
             }
-            
+
+            // Both gates passed — show resume info
             if (parsedFeedback || localFilename || storedJobTitle) {
                 this.hasResume = true;
                 this.resumeFeedback = parsedFeedback || this.resumeFeedback;
