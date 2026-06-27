@@ -601,6 +601,20 @@ try {
       border: none !important;
       position: static !important;
     }
+    /* Bootstrap text-align utilities not loaded in print window — apply manually */
+    .text-center { text-align: center !important; }
+    .text-start  { text-align: left !important; }
+    .text-end    { text-align: right !important; }
+    /* Ensure header is centred */
+    .resume-header { text-align: center !important; }
+    /* Bootstrap column gutters — normalise for print */
+    .row { display: flex !important; flex-wrap: wrap !important; margin: 0 !important; }
+    .col-6 { flex: 0 0 50% !important; max-width: 50% !important; padding: 0 !important; }
+    .g-0 > .col-6 { padding: 0 !important; }
+    .pe-3 { padding-right: 12px !important; }
+    /* Project/experience bullet list — prevent double indent */
+    ul.list-unstyled { padding: 0 !important; margin: 0 !important; list-style: none !important; }
+    ul.list-unstyled li { padding-left: 0 !important; margin-left: 0 !important; }
     @page { size: A4 portrait; margin: 0; }
     @media print {
       html, body { margin: 0; padding: 0; }
@@ -640,41 +654,42 @@ try {
                     });
 
                     try {
-                        // Build a completely isolated capture element — NOT a clone of the
-                        // live DOM node (which carries preview container offsets and pseudo-elements).
-                        // Instead create a fresh div, copy the inner HTML, and apply only the
-                        // styles needed for an A4 resume.
                         const element = document.getElementById('resume-template');
                         if (!element) { Swal.close(); return; }
 
-                        const captureContainer = document.createElement('div');
-                        captureContainer.style.cssText = [
-                            'position:absolute', 'left:-9999px', 'top:0',
-                            'width:210mm', 'background:white', 'overflow:hidden'
-                        ].join(';');
+                        // Use html2pdf directly on the original element but with a
+                        // temporary style override to suppress preview-only pseudo-elements
+                        // and fix the left offset caused by the preview container.
+                        // We inject a temporary <style> tag, capture, then remove it.
+                        const tempStyle = document.createElement('style');
+                        tempStyle.id = 'pdf-capture-overrides';
+                        tempStyle.textContent = `
+                          #resume-template {
+                            transform: none !important;
+                            position: static !important;
+                            margin: 0 !important;
+                            box-shadow: none !important;
+                            border: none !important;
+                          }
+                          #resume-template::after,
+                          #resume-template::before {
+                            display: none !important;
+                            content: none !important;
+                          }
+                          .resume-preview-viewport::before,
+                          .resume-preview-container .resume-content-wrapper::after {
+                            display: none !important;
+                            content: none !important;
+                          }
+                        `;
+                        document.head.appendChild(tempStyle);
 
-                        const fresh = document.createElement('div');
-                        fresh.id = 'resume-print-target';
-                        fresh.className = element.className;   // carry theme class
-                        fresh.innerHTML = element.innerHTML;
-                        fresh.style.cssText = [
-                            'width:210mm', 'min-height:297mm',
-                            'padding:20mm', 'margin:0',
-                            'background:white', 'transform:none',
-                            'box-shadow:none', 'border:none',
-                            'position:static', 'float:none',
-                            'overflow:visible'
-                        ].join(';');
-
-                        // Inject a style to suppress preview-only pseudo-elements
-                        const suppressStyle = document.createElement('style');
-                        suppressStyle.textContent =
-                            '#resume-print-target::after,' +
-                            '#resume-print-target::before { display:none !important; content:none !important; }';
-                        fresh.appendChild(suppressStyle);
-
-                        captureContainer.appendChild(fresh);
-                        document.body.appendChild(captureContainer);
+                        // Save and temporarily clear the inline transform so html2canvas
+                        // captures from position (0,0) not from the scaled preview position.
+                        const savedTransform = element.style.transform;
+                        const savedPosition  = element.style.position;
+                        element.style.transform = 'none';
+                        element.style.position  = 'static';
 
                         const opt = {
                             margin: 0,
@@ -685,18 +700,24 @@ try {
                                 useCORS: true,
                                 letterRendering: true,
                                 backgroundColor: '#ffffff',
+                                scrollX: 0,
                                 scrollY: 0,
-                                windowWidth: 794
+                                windowWidth: 794,
+                                x: 0,
+                                y: 0
                             },
                             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                             pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                         };
 
-                        await html2pdf().set(opt).from(fresh).save();
+                        await html2pdf().set(opt).from(element).save();
 
-                        if (document.body.contains(captureContainer)) {
-                            document.body.removeChild(captureContainer);
-                        }
+                        // Restore everything
+                        element.style.transform = savedTransform;
+                        element.style.position  = savedPosition;
+                        const overrideEl = document.getElementById('pdf-capture-overrides');
+                        if (overrideEl) overrideEl.remove();
+
                         Swal.close();
                     } catch (err) {
                         console.error("PDF Export Error:", err);

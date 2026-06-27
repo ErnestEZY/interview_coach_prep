@@ -584,7 +584,7 @@
                                             <span v-if="proj.tech" class="small fw-normal">{{ proj.tech }}</span>
                                         </div>
                                         <ul class="item-desc list-unstyled ps-0" v-if="proj.bullets && proj.bullets.length > 0">
-                                            <li v-for="bullet in proj.bullets">• {{ bullet }}</li>
+                                            <li v-for="bullet in proj.bullets">• {{ bullet.replace(/^[•\-\*]\s*/, '') }}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -614,14 +614,14 @@
                             </div>
 
                             <!-- Others -->
-                            <div class="row mt-1" v-if="resume.certifications.some(c => c.name) || resume.languages.some(l => l.name)">
-                                <div class="col-6" v-if="resume.certifications.some(c => c.name)">
+                            <div style="display:flex; gap:0; margin-top:4px;" v-if="resume.certifications.some(c => c.name) || resume.languages.some(l => l.name)">
+                                <div style="flex:0 0 50%; width:50%; padding-right:12px; box-sizing:border-box;" v-if="resume.certifications.some(c => c.name)">
                                     <div class="section-title">Certifications</div>
                                     <div v-for="(cert, index) in resume.certifications" :key="'preview-cert-'+index">
                                         <div class="item-desc cert-lang-item" v-if="cert.name">• {{ cert.name }}</div>
                                     </div>
                                 </div>
-                                <div class="col-6" v-if="resume.languages.some(l => l.name)">
+                                <div style="flex:0 0 50%; width:50%; padding-left:0; box-sizing:border-box;" v-if="resume.languages.some(l => l.name)">
                                     <div class="section-title">Languages</div>
                                     <div v-for="(lang, index) in resume.languages" :key="'preview-lang-'+index">
                                         <div class="item-desc cert-lang-item" v-if="lang.name">• {{ lang.name }}</div>
