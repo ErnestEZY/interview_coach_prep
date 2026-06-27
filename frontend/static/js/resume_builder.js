@@ -451,13 +451,20 @@ try {
                     // RESET TO PAGE 1 BEFORE PRINTING (Fixes "Blank Page" issue)
                     this.currentPage = 1;
                     
-                    // Wait for Vue to update the DOM and use a longer delay for security
+                    // Wait for Vue to update the DOM
                     await this.$nextTick();
                     
-                    // Add a tiny delay to ensure the browser has repainted for printing
+                    // Remove inline transform entirely before printing so the browser
+                    // does not wrap the template in a graphics object (which makes
+                    // the output image-based and breaks ATS scanning).
+                    const tmpl = document.getElementById('resume-template');
+                    const savedTransform = tmpl ? tmpl.style.transform : '';
+                    if (tmpl) tmpl.style.transform = 'none';
+
                     setTimeout(() => {
                         window.print();
-                        // Restore page after a short delay
+                        // Restore transform after print dialog closes
+                        if (tmpl) tmpl.style.transform = savedTransform;
                         this.currentPage = originalPage;
                     }, 500);
                     return;
