@@ -430,73 +430,124 @@ const app = createApp({
       this.showAnalysisProgress = true;
       this.analysisProgress = 0;
       this.analysisStatus = isManual ? 'Initializing profile builder...' : 'Uploading resume...';
-      
-      const stages = [
-        { threshold: 10, status: isManual ? 'Initializing profile builder...' : 'Uploading resume...' },
-        { threshold: 25, status: isManual ? 'Extracting profile data...' : 'Extracting resume content...' },
-        { threshold: 35, status: 'Scanning document structure...' },
-        { threshold: 45, status: 'Analyzing target role requirements...' },
-        { threshold: 55, status: 'Analyzing technical skills...' },
-        { threshold: 65, status: 'Evaluating work experience...' },
-        { threshold: 72, status: 'Reviewing academic background...' },
-        { threshold: 80, status: 'Comparing strengths and weaknesses...' },
-        { threshold: 88, status: 'Generating improvement suggestions...' },
-        { threshold: 94, status: 'Personalizing career coaching advice...' }
+
+      const stages = isManual ? [
+        { threshold: 5,  status: 'Initializing profile builder...' },
+        { threshold: 12, status: 'Extracting profile data...' },
+        { threshold: 20, status: 'Scanning profile for completeness...' },
+        { threshold: 25, status: 'Retrieving career knowledge base...' },
+        { threshold: 30, status: 'AI is reviewing your profile...' },
+        { threshold: 40, status: 'Analysing target role requirements...' },
+        { threshold: 50, status: 'Evaluating your technical skills...' },
+        { threshold: 58, status: 'Assessing experience and achievements...' },
+        { threshold: 66, status: 'Identifying strengths and weaknesses...' },
+        { threshold: 74, status: 'Generating improvement suggestions...' },
+        { threshold: 82, status: 'Personalising career coaching advice...' },
+        { threshold: 88, status: 'Cross-referencing industry standards...' },
+        { threshold: 94, status: 'Finalising analysis...' },
+      ] : [
+        { threshold: 5,  status: 'Uploading resume...' },
+        { threshold: 12, status: 'Extracting resume content...' },
+        { threshold: 20, status: 'Scanning document for ATS compatibility...' },
+        { threshold: 25, status: 'Retrieving career knowledge base...' },
+        { threshold: 30, status: 'AI is reviewing your profile...' },
+        { threshold: 40, status: 'Analysing target role requirements...' },
+        { threshold: 50, status: 'Evaluating your technical skills...' },
+        { threshold: 58, status: 'Assessing work experience and projects...' },
+        { threshold: 66, status: 'Reviewing academic background...' },
+        { threshold: 74, status: 'Identifying strengths and weaknesses...' },
+        { threshold: 82, status: 'Generating improvement suggestions...' },
+        { threshold: 88, status: 'Personalising career coaching advice...' },
+        { threshold: 94, status: 'Cross-referencing industry standards...' },
       ];
 
       const holdingMessages = [
-        'Finalizing analysis...',
         'Almost there...',
         'Polishing your feedback...',
-        'Organizing results...'
+        'Organising results...',
+        'Wrapping up the analysis...',
       ];
 
+      // Speed zones (single 200ms interval, probabilistic skipping):
+      //   0–12%  : no skip   → ~200ms/step  (fast — real upload/extraction)
+      //  12–30%  : ~33% skip → ~300ms/step  (medium — OCR + RAG + prompt build)
+      //  30–94%  : ~55% skip → ~450ms/step  (slow crawl — Mistral thinking)
       let currentStage = 0;
       let holdingIndex = 0;
+
       this.progressInterval = setInterval(() => {
         if (this.analysisProgress < 95) {
-          // Slower increment: 1% every 270ms
-          this.analysisProgress += 1;
-          
-          if (currentStage < stages.length && this.analysisProgress >= stages[currentStage].threshold) {
+          const p = this.analysisProgress;
+          const skip =
+            p >= 30 ? (Math.random() > 0.45) :   // ~55% skip → ~450ms/step
+            p >= 12 ? (Math.random() > 0.67) :    // ~33% skip → ~300ms/step
+                       false;                      // no skip   → ~200ms/step
+          if (skip) return;
+
+          this.analysisProgress = Math.min(94, this.analysisProgress + 1);
+
+          while (
+            currentStage < stages.length &&
+            this.analysisProgress >= stages[currentStage].threshold
+          ) {
             this.analysisStatus = stages[currentStage].status;
             currentStage++;
           }
         } else {
-          // Hold at 95% and rotate messages every 2 seconds
-          this.analysisProgress = 95;
-          if (Math.random() > 0.95) { // Slow rotation
-             this.analysisStatus = holdingMessages[holdingIndex % holdingMessages.length];
-             holdingIndex++;
+          // ── Soft wait zones ──────────────────────────────────────────────
+          // If backend is not done yet, we use two soft checkpoints:
+          //   95% → hold for ~4s, then slowly creep to 97%
+          //   97% → hold for ~4s, then stay there until backend returns
+          // Each step in the creep zone has a high skip rate to move slowly.
+
+          const p = this.analysisProgress;
+
+          if (p < 97) {
+            // Creep slowly from 95 → 97 (~8s for 2 steps, ~4s each)
+            if (Math.random() > 0.98) {   // ~2% chance per 200ms tick → ~10s per step
+              this.analysisProgress += 1;
+              if (this.analysisProgress === 96) {
+                this.analysisStatus = 'Almost there...';
+              } else if (this.analysisProgress === 97) {
+                this.analysisStatus = 'Polishing your feedback...';
+              }
+            }
+          } else {
+            // Stuck at 97 — rotate messages softly, wait for backend
+            if (Math.random() > 0.96) {
+              this.analysisStatus = holdingMessages[holdingIndex % holdingMessages.length];
+              holdingIndex++;
+            }
           }
         }
-      }, 270);
+      }, 200);
     },
 
     stopAnalysisProgress(success = true) {
+      // Stop the holding loop — backend has returned
       if (this.progressInterval) {
         clearInterval(this.progressInterval);
         this.progressInterval = null;
       }
-      
-      if (success) {
-        // Return a promise that resolves when the progress hits 100% and overlay is hidden
-        return new Promise(resolve => {
-          // If we haven't reached the final stage yet, give it a neutral "finishing" status
-          if (this.analysisProgress < 99) {
-            this.analysisStatus = 'Finalizing your professional analysis...';
-          }
 
-          // Increment from current position to 100% smoothly
+      if (success) {
+        return new Promise(resolve => {
+          // Set the completion message regardless of where the bar is
+          this.analysisStatus = 'Generating your feedback report...';
+
+          // Animate from current position to 100% at a natural human pace (~200ms/step)
+          // This ensures the bar never jumps — it always finishes smoothly even if
+          // the backend returned early while the bar was only at 40%.
           const finalInterval = setInterval(() => {
             if (this.analysisProgress < 100) {
               this.analysisProgress += 1;
-              
-              // Only show 'Analysis complete' when hitting 99% or 100%
+
               if (this.analysisProgress >= 99) {
                 this.analysisStatus = 'Analysis complete';
               } else if (this.analysisProgress === 97) {
                 this.analysisStatus = 'Preparing your career insights...';
+              } else if (this.analysisProgress <= 96) {
+                this.analysisStatus = 'Generating your feedback report...';
               }
             } else {
               clearInterval(finalInterval);
@@ -505,7 +556,7 @@ const app = createApp({
                 resolve();
               }, 600);
             }
-          }, 270); // Same speed until 100%
+          }, 200);
         });
       } else {
         this.showAnalysisProgress = false;
