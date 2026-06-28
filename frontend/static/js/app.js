@@ -101,6 +101,19 @@ const icpState = {
   },
   
   clearToken() {
+    // Fire-and-forget backend reset — covers all improper logout paths
+    // (token expiry, 401 response, page refresh with bad token, etc.)
+    // The logout() function also calls this, so every clearToken path resets the DB.
+    try {
+      const token = this.token || localStorage.getItem('token');
+      if (token && token !== 'null' && token !== 'undefined') {
+        fetch((this.apiBase || '') + '/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token }
+        }).catch(() => {});  // always silent — never block UI
+      }
+    } catch (_) {}
+
     this.token = "";
     localStorage.removeItem("token");
     try {
@@ -202,19 +215,7 @@ if (window.axios) {
 function logout() {
   const currentPath = window.location.pathname;
   const is_admin_page = currentPath.includes('icp-admin-');
-
-  // Call backend logout to reset has_analyzed in MongoDB before clearing local state.
-  // Fire-and-forget — don't wait for it to avoid blocking the redirect.
-  try {
-    const token = icpState.token || localStorage.getItem('token');
-    if (token) {
-      fetch(icpState.apiBase + '/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token }
-      }).catch(() => {});  // silent fail — logout must always succeed client-side
-    }
-  } catch (_) {}
-
+  // clearToken() handles the backend reset and localStorage clearing
   icpState.clearToken();
   if (is_admin_page) {
     window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
