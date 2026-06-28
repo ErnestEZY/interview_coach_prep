@@ -237,9 +237,10 @@ html, body, * {
   background-color: rgba(37, 99, 235, 0.55);
 }
 
-/* Prevents layout shift when scrollbars appear */
+/* Prevents layout shift when scrollbars appear — Safari falls back gracefully */
 html {
   scrollbar-gutter: stable;
+  overflow-y: scroll; /* Safari fallback — always show scrollbar space */
 }
 
 /* AI Disclaimer Styling */
@@ -1868,7 +1869,8 @@ html {
         overflow-x: auto;
         justify-content: flex-start !important;
         padding: 10px;
-        -webkit-overflow-scrolling: touch;
+        -webkit-overflow-scrolling: touch; /* Legacy iOS — modern iOS handles this natively */
+        /* overflow-scrolling is deprecated; momentum scrolling is now default on all modern browsers */
     }
 
     .builder-card .nav-pills .nav-link {
