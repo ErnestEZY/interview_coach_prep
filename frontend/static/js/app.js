@@ -122,6 +122,7 @@ const icpState = {
       localStorage.removeItem('resume_builder_imported');
       localStorage.removeItem('resume_builder_hide_import_prompt');
       localStorage.removeItem('resume_submitted');
+      localStorage.removeItem('session_has_analyzed');
       
       // Also clear everything else just to be safe, except startup_id
       const keys = Object.keys(localStorage);
