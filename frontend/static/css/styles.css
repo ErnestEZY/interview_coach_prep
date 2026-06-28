@@ -2941,3 +2941,73 @@ html {
   caret-color: transparent;
   outline: none;
 }
+
+
+/* ── Inline style replacements ───────────────────────────────────────────── */
+
+/* Progress bar at zero width (N/A score state in interview) */
+.progress-bar-zero { width: 0% !important; }
+
+/* Find-jobs search tips bar */
+.search-tips-bar {
+  background: rgba(251, 191, 36, 0.07);
+  border-left: 3px solid rgba(251, 191, 36, 0.5);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.search-tips-icon {
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+/* Verify page – OTP attempt warning colour */
+.otp-attempt-warning { color: #f87171; }
+
+/* Verify page – resend button states */
+.resend-btn-base {
+  vertical-align: baseline;
+  font-size: inherit;
+  cursor: pointer;
+}
+.resend-btn-disabled-state {
+  cursor: not-allowed !important;
+  opacity: 0.55 !important;
+}
+
+/* Verify page – cooldown countdown */
+.resend-cooldown { font-variant-numeric: tabular-nums; }
+
+/* Resume builder – cert/lang two-column layout (replaces inline flex) */
+.cert-lang-row {
+  display: flex;
+  gap: 0;
+  margin-top: 4px;
+}
+.cert-lang-col-left {
+  flex: 0 0 50%;
+  width: 50%;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+.cert-lang-col-right {
+  flex: 0 0 50%;
+  width: 50%;
+  padding-left: 0;
+  box-sizing: border-box;
+}
+
+/* ── End inline style replacements ───────────────────────────────────────── */
+
+/* ── History page inline style replacements ─────────────────────────────── */
+.history-score-label   { font-size: 0.6rem;  letter-spacing: 1px; }
+.history-score-label-sm{ font-size: 0.55rem; letter-spacing: 0.5px; }
+.history-score-value   { font-size: 1.1rem;  line-height: 1; }
+.history-score-suffix  { font-size: 0.7rem; }
+.history-section-label { font-size: 0.65rem; }
+.history-breakdown-label{ font-size: 0.55rem; }
+.history-vr            { height: 35px; }
+.history-progress-mini {
+  height: 3px !important;
+  background: rgba(255,255,255,0.05) !important;
+}
+/* ── End history inline style replacements ───────────────────────────────── */

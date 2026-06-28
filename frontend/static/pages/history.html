@@ -6,7 +6,6 @@
   <title>History - ICP</title>
   <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
   <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
-  <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
   <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
   <script>
@@ -226,9 +225,9 @@
                             {{ it.readiness_score }}<span class="text-secondary fs-6 opacity-50">/100</span>
                           </div>
                           <div class="fw-bold fs-4 text-secondary" v-else>N/A</div>
-                          <div class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.6rem; letter-spacing: 1px;">Score</div>
+                          <div class="smaller text-secondary text-uppercase fw-bold" class="history-score-label">Score</div>
                         </div>
-                        <div class="vr bg-secondary opacity-25" style="height: 35px;"></div>
+                        <div class="vr bg-secondary opacity-25" class="history-vr"></div>
                       </div>
 
                       <div class="d-flex flex-column align-items-center">
@@ -241,11 +240,11 @@
                         </div>
 
                         <div v-if="it.ended_at" class="d-md-none text-center">
-                          <div class="fw-bold text-info" style="font-size: 1.1rem; line-height: 1;" v-if="it.readiness_score !== null && it.readiness_score !== undefined">
-                            {{ it.readiness_score }}<span class="text-secondary opacity-50" style="font-size: 0.7rem;">/100</span>
+                          <div class="fw-bold text-info" class="history-score-value" v-if="it.readiness_score !== null && it.readiness_score !== undefined">
+                            {{ it.readiness_score }}<span class="text-secondary opacity-50" class="history-score-suffix">/100</span>
                           </div>
-                          <div class="fw-bold text-secondary" style="font-size: 1.1rem; line-height: 1;" v-else>N/A</div>
-                          <div class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem; letter-spacing: 0.5px;">Score</div>
+                          <div class="fw-bold text-secondary" class="history-score-value" v-else>N/A</div>
+                          <div class="smaller text-secondary text-uppercase fw-bold" class="history-score-label-sm">Score</div>
                         </div>
                       </div>
                     </div>
@@ -292,7 +291,7 @@
                                   <!-- Main Score Section -->
                                 <div class="col-md-4 border-md-end border-white border-opacity-10 mb-3 mb-md-0">
                                   <div class="text-center h-100 d-flex flex-column justify-content-center py-2">
-                                    <div class="small fw-bold text-info text-uppercase tracking-wider mb-2" style="font-size: 0.65rem;">Readiness Score</div>
+                                    <div class="small fw-bold text-info text-uppercase tracking-wider mb-2" class="history-section-label">Readiness Score</div>
                                     <div class="d-flex align-items-baseline justify-content-center gap-1">
                                       <span class="fs-1 fw-bold text-info readiness-score-glow">{{ expandedDetails.readiness_score }}</span>
                                       <span class="fs-5 text-info opacity-50">/ 100</span>
@@ -303,17 +302,17 @@
                                 <!-- Detailed Breakdown Section -->
                                 <div class="col-md-8">
                                   <div class="p-3 rounded-3 h-100 readiness-box-primary d-flex flex-column justify-content-center">
-                                    <div class="small fw-bold text-info text-uppercase tracking-wider mb-3 text-center text-md-start" style="font-size: 0.65rem;">Score Breakdown</div>
+                                    <div class="small fw-bold text-info text-uppercase tracking-wider mb-3 text-center text-md-start" class="history-section-label">Score Breakdown</div>
                                     
                                     <!-- Show Breakdown if exists -->
                                     <div class="row g-2" v-if="expandedDetails.readiness_breakdown">
                                       <div class="col-12 col-sm-6">
                                         <div class="d-flex flex-column gap-1 bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
                                           <div class="d-flex justify-content-between align-items-center">
-                                            <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">Technical</span>
+                                            <span class="smaller text-secondary text-uppercase fw-bold" class="history-breakdown-label">Technical</span>
                                             <span class="small fw-bold text-primary">{{ expandedDetails.readiness_breakdown.TechnicalScore || 0 }}/30</span>
                                           </div>
-                                          <div class="progress" style="height: 3px; background: rgba(255,255,255,0.05);">
+                                          <div class="progress" class="history-progress-mini">
                                             <div class="progress-bar bg-primary" :style="{ width: ((expandedDetails.readiness_breakdown.TechnicalScore || 0)/30 * 100) + '%' }"></div>
                                           </div>
                                         </div>
@@ -321,10 +320,10 @@
                                       <div class="col-12 col-sm-6">
                                         <div class="d-flex flex-column gap-1 bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
                                           <div class="d-flex justify-content-between align-items-center">
-                                            <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">Communication</span>
+                                            <span class="smaller text-secondary text-uppercase fw-bold" class="history-breakdown-label">Communication</span>
                                             <span class="small fw-bold text-success">{{ expandedDetails.readiness_breakdown.CommunicationScore || 0 }}/30</span>
                                           </div>
-                                          <div class="progress" style="height: 3px; background: rgba(255,255,255,0.05);">
+                                          <div class="progress" class="history-progress-mini">
                                             <div class="progress-bar bg-success" :style="{ width: ((expandedDetails.readiness_breakdown.CommunicationScore || 0)/30 * 100) + '%' }"></div>
                                           </div>
                                         </div>
@@ -332,10 +331,10 @@
                                       <div class="col-12 col-sm-6">
                                         <div class="d-flex flex-column gap-1 bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
                                           <div class="d-flex justify-content-between align-items-center">
-                                            <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">Alignment</span>
+                                            <span class="smaller text-secondary text-uppercase fw-bold" class="history-breakdown-label">Alignment</span>
                                             <span class="small fw-bold text-info">{{ expandedDetails.readiness_breakdown.AlignmentScore || 0 }}/20</span>
                                           </div>
-                                          <div class="progress" style="height: 3px; background: rgba(255,255,255,0.05);">
+                                          <div class="progress" class="history-progress-mini">
                                             <div class="progress-bar bg-info" :style="{ width: ((expandedDetails.readiness_breakdown.AlignmentScore || 0)/20 * 100) + '%' }"></div>
                                           </div>
                                         </div>
@@ -343,10 +342,10 @@
                                       <div class="col-12 col-sm-6">
                                         <div class="d-flex flex-column gap-1 bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
                                           <div class="d-flex justify-content-between align-items-center">
-                                            <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">Relevance</span>
+                                            <span class="smaller text-secondary text-uppercase fw-bold" class="history-breakdown-label">Relevance</span>
                                             <span class="small fw-bold text-warning">{{ expandedDetails.readiness_breakdown.RelevanceScore || 0 }}/20</span>
                                           </div>
-                                          <div class="progress" style="height: 3px; background: rgba(255,255,255,0.05);">
+                                          <div class="progress" class="history-progress-mini">
                                             <div class="progress-bar bg-warning" :style="{ width: ((expandedDetails.readiness_breakdown.RelevanceScore || 0)/20 * 100) + '%' }"></div>
                                           </div>
                                         </div>
@@ -357,7 +356,7 @@
                                     <div class="row g-2" v-else>
                                       <div class="col-12 col-sm-6" v-for="label in ['Technical', 'Communication', 'Alignment', 'Relevance']" :key="label">
                                         <div class="d-flex justify-content-between align-items-center bg-dark bg-opacity-25 p-2 rounded-2 border border-white border-opacity-5">
-                                          <span class="smaller text-secondary text-uppercase fw-bold" style="font-size: 0.55rem;">{{ label }}</span>
+                                          <span class="smaller text-secondary text-uppercase fw-bold" class="history-breakdown-label">{{ label }}</span>
                                           <span class="small fw-bold text-secondary">N/A</span>
                                         </div>
                                       </div>
@@ -400,3 +399,4 @@
   <script src="/static/js/history.js"></script>
 </body>
 </html>
+

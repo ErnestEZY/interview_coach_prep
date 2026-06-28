@@ -40,8 +40,10 @@ const app = createApp({
   },
   computed: {
     hasResume() {
-      // Both conditions must be true: backend flag AND actual feedback data present
-      return !!this.feedback && !!this.hasAnalyzed;
+      // Either condition is sufficient within a session.
+      // hasAnalyzed (from backend) guards against stale data on fresh login.
+      // feedback (from localStorage) is the actual content — trust it when present.
+      return !!(this.feedback) || !!(this.hasAnalyzed && this.persistedFileName);
     }
   },
   mounted() {
@@ -209,7 +211,11 @@ const app = createApp({
           const meRes = await axios.get(window.icp ? window.icp.apiUrl('/api/auth/me') : '/api/auth/me');
           const serverHasAnalyzed = !!(meRes.data && meRes.data.has_analyzed);
           this.hasAnalyzed = serverHasAnalyzed;
-          if (!serverHasAnalyzed) {
+          // Only wipe localStorage if backend explicitly says NOT analyzed
+          // AND there is no feedback already in localStorage from this session.
+          // This prevents wiping valid session data on page navigations.
+          const existingFeedback = localStorage.getItem('resume_feedback');
+          if (!serverHasAnalyzed && !existingFeedback) {
             try {
               ['resume_feedback','resume_filename','resume_score',
                'target_job_title','target_location',
@@ -222,19 +228,23 @@ const app = createApp({
           }
         } catch (_) {}
 
+        // autoloadDisabled is a legacy flag — still respect it to not break existing behaviour
+        // but do NOT wipe data that was just written by a successful upload in this session.
         const autoloadDisabled = localStorage.getItem('resume_autoload_disabled') === 'true';
         if (autoloadDisabled) {
-          try {
-            localStorage.removeItem('resume_feedback');
-            localStorage.removeItem('resume_filename');
-            localStorage.removeItem('resume_score');
-            localStorage.removeItem('target_job_title');
-            localStorage.removeItem('target_location');
-          } catch (_) {}
-          this.feedback = null;
-          this.hasAnalyzed = false;
-          this.persistedFileName = '';
-          this.targetJobTitle = '';
+          // Only clear if there's genuinely no fresh feedback from this session
+          const freshFeedback = localStorage.getItem('resume_feedback');
+          if (!freshFeedback) {
+            try {
+              localStorage.removeItem('resume_score');
+              localStorage.removeItem('target_job_title');
+              localStorage.removeItem('target_location');
+            } catch (_) {}
+            this.feedback = null;
+            this.hasAnalyzed = false;
+            this.persistedFileName = '';
+            this.targetJobTitle = '';
+          }
         }
         // Load from local storage first
         const stored = localStorage.getItem('resume_feedback');

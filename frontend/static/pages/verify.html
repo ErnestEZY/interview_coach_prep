@@ -66,7 +66,7 @@
 
           <div class="text-center mt-4">
             <!-- Attempt indicator -->
-            <p v-if="!locked && attemptsLeft < MAX_ATTEMPTS" class="small mb-2" style="color: #f87171;">
+            <p v-if="!locked && attemptsLeft < MAX_ATTEMPTS" class="small mb-2 otp-attempt-warning">
               <i class="bi bi-exclamation-triangle-fill me-1"></i>
               {{ attemptsLeft }} attempt{{ attemptsLeft !== 1 ? 's' : '' }} remaining
             </p>
@@ -76,17 +76,15 @@
               Didn't receive a code?
               <button
                 type="button"
-                class="btn btn-link btn-sm p-0 fw-bold text-decoration-none"
-                :class="resendDisabled ? 'text-secondary' : 'text-primary'"
+                class="btn btn-link btn-sm p-0 fw-bold text-decoration-none resend-btn-base"
+                :class="[resendDisabled ? 'text-secondary resend-btn-disabled-state' : 'text-primary']"
                 :disabled="resendDisabled"
                 :aria-disabled="resendDisabled"
                 @click="resendOtp"
-                style="vertical-align: baseline; font-size: inherit; cursor: pointer;"
-                :style="resendDisabled ? 'cursor: not-allowed; opacity: 0.55;' : ''"
               >
                 Resend Code
               </button>
-              <span v-if="resendCooldown > 0" class="ms-1 text-secondary" style="font-variant-numeric: tabular-nums;">
+              <span v-if="resendCooldown > 0" class="ms-1 text-secondary resend-cooldown">
                 ({{ resendCooldown }}s)
               </span>
             </p>
