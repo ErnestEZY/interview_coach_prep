@@ -199,7 +199,7 @@ async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
         prompt = build_resume_prompt(text, context, ocr_used)
 
         response = client.chat.complete(
-            model="mistral-small-latest",
+            model="mistral-large-latest",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.3

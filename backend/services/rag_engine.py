@@ -1,4 +1,4 @@
-import os
+﻿import os
 import time
 import json
 import numpy as np
@@ -35,7 +35,7 @@ def _build_mistral_client(api_key: str) -> "Mistral":
             print(f"Warning: certifi SSL still failing ({err}). Falling back to verify=False for local dev.")
             http = httpx.Client(verify=False, follow_redirects=True)
             return Mistral(api_key=api_key, client=http)
-        # Non-SSL error (e.g. auth error on probe) — return the certifi client anyway
+        # Non-SSL error (e.g. auth error on probe) â€” return the certifi client anyway
         http = httpx.Client(verify=certifi.where(), follow_redirects=True)
         return Mistral(api_key=api_key, client=http)
 
@@ -155,7 +155,7 @@ class RAGEngine:
         
         try:
             resp = self.mistral_client.chat.complete(
-                model="open-mistral-nemo",
+                model="ministral-14b-2512",
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
                 temperature=0.0
@@ -261,7 +261,7 @@ class RAGEngine:
             )
             
             eval_resp = self.mistral_client.chat.complete(
-                model="open-mistral-nemo",
+                model="ministral-14b-2512",
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
                 temperature=0.0
@@ -315,7 +315,7 @@ class RAGEngine:
         
         try:
             resp = self.mistral_client.chat.complete(
-                model="open-mistral-nemo",
+                model="ministral-14b-2512",
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
                 temperature=0.0
