@@ -6,7 +6,7 @@
   "scripts": {
     "tauri": "tauri",
     "dev:desktop": "tauri dev",
-    "build:desktop": "tauri build"
+    "build:desktop": "npx tauri build && powershell -ExecutionPolicy Bypass -File scripts/copy-artifacts.ps1 -TauriOnly"
   },
   "keywords": [],
   "author": "ErnestEZY",

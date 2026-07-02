@@ -101,6 +101,7 @@ apps/
 !apps/msi/
 !apps/apk/*.apk
 !apps/msi/*.msi
+!apps/msi/*.exe
 
 # Local-only files (not for git)
 docs/
