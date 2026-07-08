@@ -23,6 +23,8 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body class="auth-page">
@@ -87,6 +89,16 @@
         </div>
     </div>
   </nav>
+
+  <!-- Session Timer Badge — shows when ≤3 minutes remain -->
+  <div class="session-timer-badge"
+       v-show="logged && sessionTime > 0 && sessionTime <= 180"
+       v-cloak
+       role="status" aria-live="polite" aria-atomic="true">
+    <i class="bi bi-clock-history" :class="sessionTime <= 60 ? 'timer-critical' : ''"></i>
+    <span>Session: {{ formatTime(sessionTime) }}</span>
+    <span class="ms-2 small text-warning" v-show="sessionTime <= 60">Time is running out!</span>
+  </div>
 
   <div class="container-fluid px-3 px-md-5 py-4">
     <div class="text-center mb-4 px-2">

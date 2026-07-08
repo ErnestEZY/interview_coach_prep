@@ -778,7 +778,55 @@ const app = createApp({
     openManualBuilder() {
       const modalEl = document.getElementById('manualBuilderModal');
       if (!modalEl) return;
-      
+
+      // Pre-fill from existing AI analysis if available
+      const feedbackStr = localStorage.getItem('resume_feedback');
+      if (feedbackStr) {
+        try {
+          const fb = JSON.parse(feedbackStr);
+
+          // Job title: use stored target first, fallback to AI detected
+          if (!this.manualData.jobTitle) {
+            this.manualData.jobTitle = localStorage.getItem('target_job_title') || fb.DetectedJobTitle || '';
+          }
+
+          // Experience: derive from first Experience entry date range, or leave blank
+          if (!this.manualData.experience && fb.Experience && fb.Experience.length > 0) {
+            const firstExp = fb.Experience[0];
+            this.manualData.experience = firstExp.Date || firstExp.date || '';
+          }
+
+          // Professional summary
+          if (!this.manualData.summary) {
+            this.manualData.summary = fb.ProfessionalSummary || fb.Summary || '';
+          }
+
+          // Skills: join tech + tools + soft skills into a comma list
+          if (!this.manualData.skills) {
+            const skillParts = [
+              fb.SkillsTech || '',
+              fb.SkillsTools || '',
+              fb.SkillsSoft || ''
+            ].filter(Boolean).join(', ');
+            // Deduplicate and trim to 300 chars
+            const uniqueSkills = [...new Set(
+              skillParts.split(/[,\n]/).map(s => s.trim()).filter(s => s)
+            )].join(', ');
+            this.manualData.skills = uniqueSkills.slice(0, 300);
+          }
+
+          // Achievement: use first experience bullet as the key achievement
+          if (!this.manualData.achievement) {
+            if (fb.Experience && fb.Experience.length > 0) {
+              const bullets = fb.Experience[0].Bullets || [];
+              this.manualData.achievement = bullets.length > 0 ? bullets[0] : '';
+            }
+          }
+        } catch (e) {
+          // silently ignore parse errors — fields stay blank
+        }
+      }
+
       try {
         let modal = bootstrap.Modal.getInstance(modalEl);
         if (!modal) {

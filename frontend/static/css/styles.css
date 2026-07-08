@@ -1253,42 +1253,75 @@ html {
     visibility: hidden !important;
   }
 
-  /* 2. Setup Page Margins and Size */
+  /* 2. Page — zero margin kills browser date/URL/page decorations */
   @page {
     size: A4 portrait;
-    margin: 0; /* Let #resume-template handle internal padding */
+    margin: 0;
   }
 
-  /* 3. Reset Body for Print */
+  /* 3. Clean body — must be exactly A4 width so the template centres correctly */
   body, html {
     background: white !important;
     margin: 0 !important;
     padding: 0 !important;
     height: auto !important;
     overflow: visible !important;
+    width: 210mm !important;
   }
 
-  /* 4. Ensure Template takes full page */
-  #app, main, .container-fluid, .col-xl-8, .resume-preview-container, .resume-preview-viewport, .resume-preview-wrapper {
+  /* 4. Flatten every wrapper between <body> and #resume-template */
+  #app,
+  .container-fluid,
+  .row,
+  .col-xl-5,
+  .col-xl-6,
+  .col-xl-7,
+  .col-xl-8,
+  .sticky-xl-top,
+  .sticky-preview-column,
+  .resume-preview-container,
+  .resume-preview-wrapper,
+  .resume-preview-viewport {
+    all: unset !important;
+    display: block !important;
+    width: 210mm !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: auto !important;
     overflow: visible !important;
-    position: static !important;
-    transform: none !important;
-    box-shadow: none !important;
     background: white !important;
+    transform: none !important;
+    position: static !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
-  /* 5. Fix Side-by-Side sections in print */
+  /* 5. Resume — 15mm padding matches preview, @page:0 kills browser decorations */
+  #resume-template {
+    display: block !important;
+    box-sizing: border-box !important;
+    width: 210mm !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 15mm !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: white !important;
+    color: #333 !important;
+    position: relative !important;
+    visibility: visible !important;
+    left: 0 !important;
+    right: auto !important;
+    float: none !important;
+  }
+
+  /* 6. Side-by-side columns inside the template */
   #resume-template .row {
     display: flex !important;
     flex-wrap: nowrap !important;
     width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   #resume-template .col-6 {
@@ -1296,27 +1329,15 @@ html {
     flex: 0 0 50% !important;
     max-width: 50% !important;
     padding-left: 0 !important;
-    padding-right: 10mm !important; /* Add gap between the two columns */
+    padding-right: 5mm !important;
   }
 
   #resume-template .col-6:last-child {
     padding-right: 0 !important;
-    padding-left: 10mm !important;
+    padding-left: 5mm !important;
   }
 
-  #resume-template {
-    width: 210mm !important;
-    min-height: 297mm !important;
-    transform: none !important;
-    margin: 0 auto !important;
-    padding: 20mm !important; /* MATCH PREVIEW MARGINS */
-    box-shadow: none !important;
-    border: none !important;
-    visibility: visible !important;
-    display: block !important;
-  }
-
-  /* Force background colors/images if any */
+  /* 7. Ensure exact colour rendering */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -1681,10 +1702,10 @@ html {
 
 #resume-template {
     width: 210mm;
-    min-height: 257mm; /* A4 height (297) - 20mm top - 20mm bottom */
+    min-height: 267mm; /* A4 height (297) - 15mm top - 15mm bottom */
     margin: 0 auto;
     background: white !important;
-    padding: 20mm !important; /* Strict 20mm margins on all sides */
+    padding: 15mm !important; /* 15mm — visible content area, standard A4 look */
     color: #333 !important;
     line-height: 1.5;
     font-size: 11pt;
@@ -1760,7 +1781,7 @@ html {
 #resume-template::after {
     content: "Page 1 Safe Margin (Bottom)";
     position: absolute;
-    top: 277mm; /* 297mm - 20mm */
+    top: 282mm; /* 297mm - 15mm */
     left: 0;
     width: 100%;
     height: 20mm;
@@ -1781,6 +1802,11 @@ html {
     #resume-template::after {
         display: none !important;
     }
+}
+
+/* Hide the indicator during html2pdf capture */
+#resume-template[data-pdf-export="true"]::after {
+    display: none !important;
 }
 
 .resume-preview-viewport {
@@ -2147,109 +2173,88 @@ html {
 
 /* --- Print Styles --- */
 @media print {
-    /* Set page size and margins */
-    @page {
-        size: A4;
-        margin: 0;
+    /* Hide UI chrome */
+    nav, .page-loader, .session-timer-badge, .navbar,
+    .col-xl-5,                                /* form column */
+    .resume-preview-actions, .resume-pagination,
+    .hamburger-btn, .sidebar-overlay, .mobile-sidebar,
+    .swal2-container,
+    .sticky-preview-column > .text-center {   /* "Resume Preview" heading */
+        display: none !important;
     }
 
-    /* Hide everything except the resume template */
-     nav, .page-loader, .session-timer-badge, .navbar, .container-fluid > .text-center, 
-     .col-xl-5, .resume-preview-actions, .resume-pagination, .footer,
-     .hamburger-btn, .sidebar-overlay, .mobile-sidebar, .btn-close,
-     .swal2-container, .resume-preview-actions, .resume-pagination,
-     .col-xl-6 > .text-center.mb-3.px-2 {
-         display: none !important;
-     }
+    /* Flatten the sticky wrapper on the preview column */
+    .sticky-xl-top, .sticky-preview-column {
+        position: static !important;
+        top: auto !important;
+    }
 
-    /* Reset background and layout for print */
+    /* Flatten wrappers */
     body, .auth-page {
         background: white !important;
         margin: 0 !important;
         padding: 0 !important;
         min-height: auto !important;
-        color: #000 !important;
     }
 
-    .container-fluid {
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: none !important;
-    }
-
-    .row {
+    .container-fluid, .row, .col-xl-6, .sticky-preview-column {
+        all: unset !important;
         display: block !important;
-        margin: 0 !important;
-    }
-
-    .col-xl-6 {
         width: 100% !important;
-        padding: 0 !important;
         margin: 0 !important;
-        position: static !important;
-        transform: none !important;
+        padding: 0 !important;
     }
 
-    /* Resume Preview Container Reset */
-    .resume-preview-container {
-        position: static !important;
-        height: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
-        background: white !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 100% !important;
-    }
-
-    .resume-preview-wrapper {
-        overflow: visible !important;
-        display: block !important;
-        height: auto !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
+    .resume-preview-container,
+    .resume-preview-wrapper,
     .resume-preview-viewport {
-        transform: none !important;
+        all: unset !important;
+        display: block !important;
         width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
         margin: 0 !important;
         padding: 0 !important;
+        overflow: visible !important;
         background: white !important;
+        transform: none !important;
     }
 
     #resume-template {
-        transform: none !important; /* Critical: override Vue's pagination transform */
+        transform: none !important;
         box-shadow: none !important;
         margin: 0 !important;
-        padding: 20mm !important; /* Strict 20mm margins for print */
+        padding: 15mm !important;
+        box-sizing: border-box !important;
         width: 210mm !important;
-        min-height: 257mm !important; /* A4 height (297) - 20mm top - 20mm bottom */
+        min-height: auto !important;
         border: none !important;
         position: relative !important;
         background: white !important;
-        color: #333 !important; /* Standard dark gray for text */
+        color: #333 !important;
+        left: 0 !important;
+        right: auto !important;
+        float: none !important;
+        display: block !important;
     }
 
-    /* Keep theme colors during print */
-    .resume-name, .section-title, .resume-title, .item-header span:first-child {
+    /* Preserve theme accent colours */
+    .resume-name, .section-title, .resume-title,
+    .item-header span:first-child {
         color: inherit !important;
     }
 
-    .theme-modern .resume-name, .theme-modern .section-title, .theme-modern .item-header span:first-child {
+    .theme-modern .resume-name,
+    .theme-modern .section-title,
+    .theme-modern .item-header span:first-child {
         color: #007BFF !important;
     }
 
-    /* Enable background printing */
+    /* Exact colour rendering */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    /* Break sections nicely across pages */
+    /* Avoid orphaned section breaks */
     .resume-item, .section-title, .skills-grid > div {
         page-break-inside: avoid;
         break-inside: avoid;

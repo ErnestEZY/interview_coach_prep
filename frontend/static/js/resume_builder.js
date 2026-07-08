@@ -133,14 +133,8 @@ try {
             // Load user info
             await this.setUserFromToken();
             
-            // Setup session timer if app.js is loaded
-            if (window.setupSessionTimer) {
-                try {
-                    this.timerId = window.setupSessionTimer(this);
-                } catch (e) {
-                    console.error("Error setting up session timer:", e);
-                }
-            }
+            // Start session timer using JWT exp decode (same pattern as all other pages)
+            this.startTimer();
 
             // Add a small delay to ensure app.js checks are done
             setTimeout(() => {
@@ -168,6 +162,49 @@ try {
                 if (window.handleMobileMenu) {
                     window.handleMobileMenu(this.isMobileMenuOpen);
                 }
+            },
+
+            startTimer() {
+                if (this.timerId) return;
+                const token = (window.icp && window.icp.state && window.icp.state.token)
+                              || localStorage.getItem('token');
+                if (!token) return;
+
+                let exp = null;
+                try {
+                    const payload = JSON.parse(
+                        atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
+                    );
+                    exp = payload.exp;
+                } catch (_) { return; }
+                if (!exp) return;
+
+                const updateTimer = () => {
+                    if (this._isUnmounted) {
+                        if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+                        return;
+                    }
+                    const now = Math.floor(Date.now() / 1000);
+                    this.sessionTime = Math.max(0, exp - now);
+
+                    if (this.sessionTime <= 0) {
+                        if (this.timerId) { clearInterval(this.timerId); this.timerId = null; }
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Session Expired',
+                            text: 'Your session has expired. Please login again to continue.',
+                            confirmButtonText: 'Login Again',
+                            confirmButtonColor: '#8b5cf6',
+                            allowOutsideClick: false
+                        }).then(() => {
+                            if (window.icp) window.icp.logout();
+                            else { localStorage.clear(); window.location.href = '/static/pages/login.html'; }
+                        });
+                    }
+                };
+
+                updateTimer();
+                this.timerId = setInterval(updateTimer, 1000);
             },
             async checkAnalysisImport() {
                 const feedbackStr = localStorage.getItem('resume_feedback');
@@ -457,16 +494,21 @@ try {
                 const originalPage = this.currentPage;
                 
                 if (result.isConfirmed) {
-                    // RESET TO PAGE 1 BEFORE PRINTING (Fixes "Blank Page" issue)
+                    // RESET TO PAGE 1 BEFORE PRINTING
                     this.currentPage = 1;
-                    
-                    // Wait for Vue to update the DOM and use a longer delay for security
                     await this.$nextTick();
-                    
-                    // Add a tiny delay to ensure the browser has repainted for printing
+
+                    // The Vue :style binding sets an inline transform: translateY(0mm) for page 1.
+                    // Inline styles beat @media print even with !important, so we must
+                    // explicitly force transform:none on the element before printing.
+                    const el = document.getElementById('resume-template');
+                    const prevInlineTransform = el ? el.style.transform : '';
+                    if (el) el.style.transform = 'none';
+
                     setTimeout(() => {
                         window.print();
-                        // Restore page after a short delay
+                        // Restore original inline transform after print dialog closes
+                        if (el) el.style.transform = prevInlineTransform;
                         this.currentPage = originalPage;
                     }, 500);
                     return;
@@ -478,59 +520,148 @@ try {
                         title: 'Generating PDF...',
                         text: 'Please wait while we prepare your file.',
                         allowOutsideClick: false,
-                        showCloseButton: true, // Allow cancelling during direct download
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
+                        showCloseButton: true,
+                        didOpen: () => { Swal.showLoading(); }
                     });
 
                     try {
-                        // Create a COMPLETELY NEW element for capture to avoid transform/pagination issues
-                        const captureContainer = document.createElement('div');
-                        captureContainer.id = 'temp-capture-container';
-                        captureContainer.style.position = 'absolute';
-                        captureContainer.style.left = '-9999px';
-                        captureContainer.style.top = '0';
-                        captureContainer.style.width = '210mm';
-                        captureContainer.style.background = 'white';
-                        
-                        // Clone the template but STRIP the Vue-driven transforms
-                        const clone = element.cloneNode(true);
-                        clone.style.transform = 'none';
-                        clone.style.padding = '20mm'; // MATCH PREVIEW AND PRINT MARGINS (Changed from 15mm)
-                        clone.style.margin = '0';
-                        clone.style.width = '210mm'; 
-                        clone.style.boxShadow = 'none';
-                        clone.style.minHeight = '297mm'; 
-                        
-                        captureContainer.appendChild(clone);
-                        document.body.appendChild(captureContainer);
+                        // Reset to page 1
+                        const savedPage = this.currentPage;
+                        this.currentPage = 1;
+                        await this.$nextTick();
+                        await new Promise(r => setTimeout(r, 150)); // let Vue repaint at page 1
 
-                        const opt = {
-                            margin: 0, // Zero outer margin since we added 15mm inner padding to clone
-                            filename: `${this.resume.name.replace(/\s+/g, '_')}_Resume.pdf`,
-                            image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { 
-                                scale: 2, 
-                                useCORS: true, 
-                                letterRendering: true,
-                                backgroundColor: '#ffffff',
-                                scrollY: 0,
-                                windowWidth: 794 // Approx width for A4 at 96 DPI
-                            },
-                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                        const el       = document.getElementById('resume-template');
+                        const viewport = document.querySelector('.resume-preview-viewport');
+                        const wrapper  = document.querySelector('.resume-preview-wrapper');
+                        const container = document.querySelector('.resume-preview-container');
+
+                        // ── Save & clear ALL transforms/clips that squash the element ──
+                        const saved = {
+                            elTransform:        el.style.transform,
+                            elBoxShadow:        el.style.boxShadow,
+                            elMinHeight:        el.style.minHeight,
+                            vpTransform:        viewport ? viewport.style.transform    : '',
+                            vpOverflow:         viewport ? viewport.style.overflow     : '',
+                            vpWidth:            viewport ? viewport.style.width        : '',
+                            vpHeight:           viewport ? viewport.style.height       : '',
+                            wrapOverflowX:      wrapper  ? wrapper.style.overflowX    : '',
+                            wrapOverflowY:      wrapper  ? wrapper.style.overflowY    : '',
+                            ctOverflow:         container ? container.style.overflow  : '',
                         };
 
-                        await html2pdf().set(opt).from(clone).save();
-                        
-                        if (document.getElementById('temp-capture-container')) {
-                            document.body.removeChild(captureContainer);
+                        // Remove viewport scale so html2canvas sees the full-size element
+                        if (viewport) {
+                            viewport.style.transform = 'none';
+                            viewport.style.overflow  = 'visible';
+                            viewport.style.width     = 'auto';
+                            viewport.style.height    = 'auto';
                         }
+                        if (wrapper) {
+                            wrapper.style.overflowX = 'visible';
+                            wrapper.style.overflowY = 'visible';
+                        }
+                        if (container) {
+                            container.style.overflow = 'visible';
+                        }
+
+                        // Remove inline transform from the element itself (Vue translateY)
+                        el.style.transform = 'none';
+                        el.style.boxShadow = 'none';
+                        el.style.minHeight = 'auto';
+                        // Mark for ::after pseudo-element suppression via CSS attr selector
+                        el.setAttribute('data-pdf-export', 'true');
+
+                        await new Promise(r => setTimeout(r, 100));
+
+                        // Capture at the element's natural full size — no squashing
+                        const canvas = await html2canvas(el, {
+                            scale:           2,
+                            useCORS:         true,
+                            letterRendering: true,
+                            backgroundColor: '#ffffff',
+                            scrollX:         0,
+                            scrollY:         0,
+                            x:               0,
+                            y:               0,
+                            width:           el.scrollWidth,
+                            height:          el.scrollHeight,
+                            windowWidth:     Math.ceil(el.scrollWidth),
+                            windowHeight:    Math.ceil(el.scrollHeight),
+                            ignoreElements:  (node) => node.tagName === 'NAV' ||
+                                             node.classList.contains('resume-preview-actions') ||
+                                             node.classList.contains('resume-pagination') ||
+                                             node.classList.contains('session-timer-badge'),
+                        });
+
+                        // ── Restore everything ──
+                        el.style.transform = saved.elTransform;
+                        el.style.boxShadow = saved.elBoxShadow;
+                        el.style.minHeight = saved.elMinHeight;
+                        el.removeAttribute('data-pdf-export');
+                        if (viewport) {
+                            viewport.style.transform = saved.vpTransform;
+                            viewport.style.overflow  = saved.vpOverflow;
+                            viewport.style.width     = saved.vpWidth;
+                            viewport.style.height    = saved.vpHeight;
+                        }
+                        if (wrapper) {
+                            wrapper.style.overflowX = saved.wrapOverflowX;
+                            wrapper.style.overflowY = saved.wrapOverflowY;
+                        }
+                        if (container) container.style.overflow = saved.ctOverflow;
+                        this.currentPage = savedPage;
+
+                        // ── Build PDF ──
+                        let JsPDF = null;
+                        if (window.jspdf && window.jspdf.jsPDF) {
+                            JsPDF = window.jspdf.jsPDF;
+                        } else if (window.jsPDF) {
+                            JsPDF = window.jsPDF;
+                        }
+                        if (!JsPDF) throw new Error('jsPDF library not found.');
+
+                        const pdf    = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+                        const pageW  = pdf.internal.pageSize.getWidth();   // 210
+                        const pageH  = pdf.internal.pageSize.getHeight();  // 297
+                        const cW     = canvas.width;
+                        const cH     = canvas.height;
+                        // Scale factor: canvas pixels → mm
+                        const pxPerMm = cW / pageW;
+                        const pageHpx = pageH * pxPerMm;
+
+                        let pageNum = 0;
+                        let srcY    = 0;
+                        while (srcY < cH) {
+                            if (pageNum > 0) pdf.addPage();
+                            const sliceH = Math.min(pageHpx, cH - srcY);
+
+                            const slice = document.createElement('canvas');
+                            slice.width  = cW;
+                            slice.height = Math.ceil(sliceH);
+                            slice.getContext('2d').drawImage(
+                                canvas, 0, srcY, cW, sliceH, 0, 0, cW, Math.ceil(sliceH)
+                            );
+
+                            const sliceHmm = (sliceH / pxPerMm);
+                            pdf.addImage(slice.toDataURL('image/jpeg', 0.98),
+                                         'JPEG', 0, 0, pageW, sliceHmm);
+                            srcY += pageHpx;
+                            pageNum++;
+                        }
+
+                        pdf.save(`${(this.resume.name || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`);
                         Swal.close();
                     } catch (err) {
                         console.error("PDF Export Error:", err);
-                        Swal.fire('Error', 'Failed to generate PDF. Please try again.', 'error');
+                        // Restore page state on error
+                        if (typeof savedPage !== 'undefined') this.currentPage = savedPage;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Export Failed',
+                            text: err.message || 'Failed to generate PDF. Please try again.',
+                            confirmButtonColor: '#8b5cf6'
+                        });
                     }
                 }
             },

@@ -36,7 +36,7 @@ class TestPageAvailability:
         "/static/pages/history.html",
         "/static/pages/resume_builder.html",
         "/static/pages/find-jobs.html",
-        "/static/pages/cta.html",
+        "/static/pages/about.html",
     ]
 
     @pytest.mark.asyncio

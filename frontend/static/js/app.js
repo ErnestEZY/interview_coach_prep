@@ -33,24 +33,28 @@ document.addEventListener('click', (e) => {
 });
 
 window.setupSessionTimer = function(vueInstance) {
+  // Decode JWT exp directly — 'token_expiration' is never written to localStorage
+  const token = (window.icp && window.icp.state && window.icp.state.token)
+                || localStorage.getItem('token');
+  if (!token) return null;
+
+  let exp = null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    exp = payload.exp;
+  } catch (_) { return null; }
+  if (!exp) return null;
+
   const checkTimer = () => {
-    if (vueInstance._isUnmounted) {
-      // The interval will be cleared in the component's beforeUnmount hook
-      return;
-    }
-    const expiration = localStorage.getItem('token_expiration');
-    if (expiration) {
-      const now = Math.floor(Date.now() / 1000);
-      const timeLeft = expiration - now;
-      if (timeLeft <= 0) {
-        // Clear resume builder session when token expires
-        localStorage.removeItem('resume_builder_session');
-        localStorage.removeItem('resume_builder_imported');
-        if (window.icp && window.icp.logout) window.icp.logout();
-        else window.location.href = '/';
-        return;
-      }
-      vueInstance.sessionTime = timeLeft;
+    if (vueInstance._isUnmounted) return;
+    const now = Math.floor(Date.now() / 1000);
+    const timeLeft = Math.max(0, exp - now);
+    vueInstance.sessionTime = timeLeft;
+    if (timeLeft <= 0) {
+      localStorage.removeItem('resume_builder_session');
+      localStorage.removeItem('resume_builder_imported');
+      if (window.icp && window.icp.logout) window.icp.logout();
+      else { localStorage.clear(); window.location.href = '/static/pages/login.html'; }
     }
   };
   const intervalId = setInterval(checkTimer, 1000);
@@ -193,7 +197,7 @@ if (window.axios) {
         currentPath === '/' || 
         currentPath.includes('login.html') || 
         currentPath.includes('register.html') || 
-        currentPath.includes('cta.html') || 
+        currentPath.includes('about.html') || 
         currentPath.includes('reset_password.html') || 
         currentPath.includes('forgot_password.html');
 
@@ -477,7 +481,7 @@ Object.assign(window.icp, {
               'reset_password.html', 
               'forgot_password.html', 
               'resume_builder.html',
-              'cta.html'
+              'about.html'
             ];
             
             const isSafe = currentPath === '/' || safePaths.some(p => currentPath.includes(p));
