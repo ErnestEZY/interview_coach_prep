@@ -26,6 +26,12 @@ try {
                 actionVerbs: [
                     'Developed', 'Implemented', 'Designed', 'Optimized', 'Led', 'Managed', 'Created', 'Improved', 'Increased', 'Reduced', 'Analyzed', 'Engineered', 'Launched', 'Collaborated'
                 ],
+                // AI assist loading state per section/index
+                assistState: {
+                    summary: false,
+                    experience: {},   // keyed by entry index
+                    projects: {},     // keyed by entry index
+                },
                 resume: {
                     name: 'FULL NAME',
                     title: 'Professional Title',
@@ -525,57 +531,54 @@ try {
                     });
 
                     try {
-                        // Reset to page 1
+                        // Reset to page 1 so no translateY offset is applied
                         const savedPage = this.currentPage;
                         this.currentPage = 1;
                         await this.$nextTick();
-                        await new Promise(r => setTimeout(r, 150)); // let Vue repaint at page 1
+                        await new Promise(r => setTimeout(r, 150));
 
-                        const el       = document.getElementById('resume-template');
-                        const viewport = document.querySelector('.resume-preview-viewport');
-                        const wrapper  = document.querySelector('.resume-preview-wrapper');
-                        const container = document.querySelector('.resume-preview-container');
+                        const el = document.getElementById('resume-template');
 
-                        // ── Save & clear ALL transforms/clips that squash the element ──
-                        const saved = {
-                            elTransform:        el.style.transform,
-                            elBoxShadow:        el.style.boxShadow,
-                            elMinHeight:        el.style.minHeight,
-                            vpTransform:        viewport ? viewport.style.transform    : '',
-                            vpOverflow:         viewport ? viewport.style.overflow     : '',
-                            vpWidth:            viewport ? viewport.style.width        : '',
-                            vpHeight:           viewport ? viewport.style.height       : '',
-                            wrapOverflowX:      wrapper  ? wrapper.style.overflowX    : '',
-                            wrapOverflowY:      wrapper  ? wrapper.style.overflowY    : '',
-                            ctOverflow:         container ? container.style.overflow  : '',
-                        };
+                        // ── Clone the live element into an off-screen container ──
+                        // This bypasses the viewport's CSS scale(0.xx) entirely.
+                        // The clone inherits all theme classes so colours/fonts are preserved.
+                        const offscreen = document.createElement('div');
+                        offscreen.style.cssText = [
+                            'position:fixed',
+                            'top:0',
+                            'left:-9999px',
+                            'width:794px',      // 210mm at 96dpi
+                            'height:auto',
+                            'overflow:visible',
+                            'background:white',
+                            'z-index:-9999',
+                            'pointer-events:none',
+                        ].join(';');
+                        document.body.appendChild(offscreen);
 
-                        // Remove viewport scale so html2canvas sees the full-size element
-                        if (viewport) {
-                            viewport.style.transform = 'none';
-                            viewport.style.overflow  = 'visible';
-                            viewport.style.width     = 'auto';
-                            viewport.style.height    = 'auto';
-                        }
-                        if (wrapper) {
-                            wrapper.style.overflowX = 'visible';
-                            wrapper.style.overflowY = 'visible';
-                        }
-                        if (container) {
-                            container.style.overflow = 'visible';
-                        }
+                        const clone = el.cloneNode(true);
+                        // Apply same theme classes
+                        clone.style.cssText = [
+                            'width:794px',
+                            'min-height:auto',
+                            'padding:57px',     // ≈15mm at 96dpi
+                            'box-sizing:border-box',
+                            'transform:none',
+                            'box-shadow:none',
+                            'background:white',
+                            'position:static',
+                            'display:block',
+                        ].join(';');
+                        // Remove the page-break indicator pseudo-element trigger
+                        clone.removeAttribute('data-pdf-export');
+                        clone.setAttribute('data-pdf-export', 'true');
+                        offscreen.appendChild(clone);
 
-                        // Remove inline transform from the element itself (Vue translateY)
-                        el.style.transform = 'none';
-                        el.style.boxShadow = 'none';
-                        el.style.minHeight = 'auto';
-                        // Mark for ::after pseudo-element suppression via CSS attr selector
-                        el.setAttribute('data-pdf-export', 'true');
+                        // Give browser one frame to lay out the clone
+                        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                        await new Promise(r => setTimeout(r, 80));
 
-                        await new Promise(r => setTimeout(r, 100));
-
-                        // Capture at the element's natural full size — no squashing
-                        const canvas = await html2canvas(el, {
+                        const canvas = await html2canvas(clone, {
                             scale:           2,
                             useCORS:         true,
                             letterRendering: true,
@@ -584,35 +587,22 @@ try {
                             scrollY:         0,
                             x:               0,
                             y:               0,
-                            width:           el.scrollWidth,
-                            height:          el.scrollHeight,
-                            windowWidth:     Math.ceil(el.scrollWidth),
-                            windowHeight:    Math.ceil(el.scrollHeight),
-                            ignoreElements:  (node) => node.tagName === 'NAV' ||
-                                             node.classList.contains('resume-preview-actions') ||
-                                             node.classList.contains('resume-pagination') ||
-                                             node.classList.contains('session-timer-badge'),
+                            width:           clone.scrollWidth,
+                            height:          clone.scrollHeight,
+                            windowWidth:     clone.scrollWidth,
+                            windowHeight:    clone.scrollHeight,
+                            ignoreElements: (node) =>
+                                node.tagName === 'NAV' ||
+                                node.classList.contains('resume-preview-actions') ||
+                                node.classList.contains('resume-pagination') ||
+                                node.classList.contains('session-timer-badge'),
                         });
 
-                        // ── Restore everything ──
-                        el.style.transform = saved.elTransform;
-                        el.style.boxShadow = saved.elBoxShadow;
-                        el.style.minHeight = saved.elMinHeight;
-                        el.removeAttribute('data-pdf-export');
-                        if (viewport) {
-                            viewport.style.transform = saved.vpTransform;
-                            viewport.style.overflow  = saved.vpOverflow;
-                            viewport.style.width     = saved.vpWidth;
-                            viewport.style.height    = saved.vpHeight;
-                        }
-                        if (wrapper) {
-                            wrapper.style.overflowX = saved.wrapOverflowX;
-                            wrapper.style.overflowY = saved.wrapOverflowY;
-                        }
-                        if (container) container.style.overflow = saved.ctOverflow;
+                        // Clean up off-screen clone
+                        document.body.removeChild(offscreen);
                         this.currentPage = savedPage;
 
-                        // ── Build PDF ──
+                        // ── Build PDF — canvas px → mm using exact A4 width ──
                         let JsPDF = null;
                         if (window.jspdf && window.jspdf.jsPDF) {
                             JsPDF = window.jspdf.jsPDF;
@@ -621,13 +611,12 @@ try {
                         }
                         if (!JsPDF) throw new Error('jsPDF library not found.');
 
-                        const pdf    = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-                        const pageW  = pdf.internal.pageSize.getWidth();   // 210
-                        const pageH  = pdf.internal.pageSize.getHeight();  // 297
-                        const cW     = canvas.width;
-                        const cH     = canvas.height;
-                        // Scale factor: canvas pixels → mm
-                        const pxPerMm = cW / pageW;
+                        const pdf     = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+                        const pageW   = pdf.internal.pageSize.getWidth();   // 210
+                        const pageH   = pdf.internal.pageSize.getHeight();  // 297
+                        const cW      = canvas.width;
+                        const cH      = canvas.height;
+                        const pxPerMm = cW / pageW;   // canvas pixels per mm
                         const pageHpx = pageH * pxPerMm;
 
                         let pageNum = 0;
@@ -643,9 +632,10 @@ try {
                                 canvas, 0, srcY, cW, sliceH, 0, 0, cW, Math.ceil(sliceH)
                             );
 
-                            const sliceHmm = (sliceH / pxPerMm);
-                            pdf.addImage(slice.toDataURL('image/jpeg', 0.98),
-                                         'JPEG', 0, 0, pageW, sliceHmm);
+                            pdf.addImage(
+                                slice.toDataURL('image/jpeg', 0.98),
+                                'JPEG', 0, 0, pageW, sliceH / pxPerMm
+                            );
                             srcY += pageHpx;
                             pageNum++;
                         }
@@ -654,7 +644,9 @@ try {
                         Swal.close();
                     } catch (err) {
                         console.error("PDF Export Error:", err);
-                        // Restore page state on error
+                        // Clean up any leftover off-screen node
+                        const leftover = document.querySelector('div[style*="left:-9999px"]');
+                        if (leftover) document.body.removeChild(leftover);
                         if (typeof savedPage !== 'undefined') this.currentPage = savedPage;
                         Swal.fire({
                             icon: 'error',
@@ -723,7 +715,111 @@ try {
                 const startsWithVerb = this.actionVerbs.some(verb => bullet.trim().toLowerCase().startsWith(verb.toLowerCase()));
                 if (!startsWithVerb) return ''; // Removed as requested
                 return '';
-            }
+            },
+
+            // ── AI Writing Assist Methods ──────────────────────────────────
+
+            async assistSummary() {
+                const text = this.resume.summary;
+                if (!text || !text.trim()) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Nothing to enhance yet',
+                        text: 'Please write your summary first before using AI assist.',
+                        confirmButtonColor: '#8b5cf6',
+                        timer: 3000,
+                        showConfirmButton: false,
+                    });
+                    return;
+                }
+                this.assistState.summary = true;
+                try {
+                    const token = localStorage.getItem('token');
+                    const apiUrl = window.icp ? window.icp.apiUrl('/api/assist/summary') : '/api/assist/summary';
+                    const res = await axios.post(
+                        apiUrl,
+                        { text: text.trim(), job_title: this.resume.title || '', char_limit: 250 },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    const improved = this._stripMarkdown(res.data?.result || '');
+                    if (improved) this.resume.summary = improved;
+                } catch (err) {
+                    const msg = err.response?.data?.detail || 'AI assist failed. Please try again.';
+                    Swal.fire({ icon: 'error', title: 'Assist Failed', text: msg, confirmButtonColor: '#8b5cf6' });
+                } finally {
+                    this.assistState.summary = false;
+                }
+            },
+
+            async assistBullets(section, index) {
+                const entry = this.resume[section][index];
+                const bullets = (entry?.bullets || []).filter(b => b && b.trim());
+                if (!bullets.length) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Nothing to enhance yet',
+                        text: 'Please write at least one bullet point before using AI assist.',
+                        confirmButtonColor: '#8b5cf6',
+                        timer: 3000,
+                        showConfirmButton: false,
+                    });
+                    return;
+                }
+
+                // Mark this specific entry as loading
+                this.assistState[section] = { ...this.assistState[section], [index]: true };
+
+                try {
+                    const token = localStorage.getItem('token');
+                    const apiUrl = window.icp ? window.icp.apiUrl('/api/assist/bullets') : '/api/assist/bullets';
+
+                    // Build context string: for experience use company+position, for projects use name+tech
+                    const roleContext = section === 'experience'
+                        ? [entry.position, entry.company].filter(Boolean).join(' at ')
+                        : [entry.name, entry.tech].filter(Boolean).join(' — ');
+
+                    const res = await axios.post(
+                        apiUrl,
+                        {
+                            bullets,
+                            role_context: roleContext,
+                            section,
+                            char_limit: 250,
+                        },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+
+                    const improved = (res.data?.result || []).map(b => this._stripMarkdown(b));
+                    if (improved.length) {
+                        // Replace bullets, padding with empty strings to retain array length
+                        const updated = [...improved];
+                        while (updated.length < entry.bullets.length) updated.push('');
+                        this.resume[section][index].bullets = updated.slice(0, entry.bullets.length);
+                    }
+                } catch (err) {
+                    const msg = err.response?.data?.detail || 'AI assist failed. Please try again.';
+                    Swal.fire({ icon: 'error', title: 'Assist Failed', text: msg, confirmButtonColor: '#8b5cf6' });
+                } finally {
+                    this.assistState[section] = { ...this.assistState[section], [index]: false };
+                }
+            },
+
+            /** Strip all markdown formatting and wrapping quotes from a string (client-side safety net) */
+            _stripMarkdown(text) {
+                if (!text) return '';
+                // Remove bold/italic: **x**, *x*, __x__, _x_
+                text = text.replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1');
+                text = text.replace(/_{1,3}([^_\n]+)_{1,3}/g, '$1');
+                // Remove stray lone asterisks
+                text = text.replace(/(?<!\w)\*+(?!\w)/g, '');
+                text = text.trim();
+                // Strip wrapping quotes the model sometimes adds
+                if ((text.startsWith('"') && text.endsWith('"')) ||
+                    (text.startsWith("'") && text.endsWith("'"))) {
+                    text = text.slice(1, -1).trim();
+                }
+                return text;
+            },
         }
     });
     

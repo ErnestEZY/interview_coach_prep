@@ -27,6 +27,11 @@ const app = createApp({
         skills: '',
         achievement: ''
       },
+      assistLoading: {
+        summary: false,
+        skills: false,
+        achievement: false,
+      },
       consent: false,
       showInfoTooltip: false,
       isSubmitted: false,
@@ -838,6 +843,64 @@ const app = createApp({
       }
     },
 
+    async assistManualField(field) {
+      // Char limits matching the HTML maxlength values
+      const charLimits = { summary: 500, skills: 300, achievement: 500 };
+      const currentText = this.manualData[field];
+
+      if (!currentText || !currentText.trim()) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Nothing to enhance yet',
+          text: 'Please type something in the field first before using AI assist.',
+          confirmButtonColor: '#8b5cf6',
+          timer: 3000,
+          showConfirmButton: false,
+        });
+        return;
+      }
+
+      this.assistLoading[field] = true;
+      try {
+        const token = localStorage.getItem('token');
+        const apiUrl = window.icp ? window.icp.apiUrl('/api/assist/manual-field') : '/api/assist/manual-field';
+        const response = await axios.post(
+          apiUrl,
+          {
+            field,
+            text: currentText.trim(),
+            job_title: this.manualData.jobTitle || '',
+            char_limit: charLimits[field],
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const improved = this._stripMarkdown(response.data?.result || '');
+        if (improved) {
+          this.manualData[field] = improved;
+        }
+      } catch (err) {
+        const msg = err.response?.data?.detail || 'AI assist failed. Please try again.';
+        Swal.fire({ icon: 'error', title: 'Assist Failed', text: msg, confirmButtonColor: '#8b5cf6' });
+      } finally {
+        this.assistLoading[field] = false;
+      }
+    },
+
+    /** Strip all markdown formatting and wrapping quotes from a string (client-side safety net) */
+    _stripMarkdown(text) {
+      if (!text) return '';
+      text = text.replace(/\*{1,3}([^*\n]+)\*{1,3}/g, '$1');
+      text = text.replace(/_{1,3}([^_\n]+)_{1,3}/g, '$1');
+      text = text.replace(/(?<!\w)\*+(?!\w)/g, '');
+      text = text.trim();
+      // Strip wrapping quotes the model sometimes adds
+      if ((text.startsWith('"') && text.endsWith('"')) ||
+          (text.startsWith("'") && text.endsWith("'"))) {
+        text = text.slice(1, -1).trim();
+      }
+      return text;
+    },
+
     async submitManualProfile() {
       if (this.resumeAttempts <= 0) {
         Swal.fire({
@@ -867,9 +930,9 @@ const app = createApp({
         const labels = gibberishFields.map(f => f.label);
         let message = '';
         if (labels.length === 1) {
-          message = `The **${labels[0]}** you entered appears to be invalid or gibberish.`;
+          message = `The ${labels[0]} you entered appears to be invalid or gibberish.`;
         } else {
-          message = `The following fields appear to have invalid or gibberish text: **${labels.join(', ')}**.`;
+          message = `The following fields appear to have invalid or gibberish text: ${labels.join(', ')}.`;
         }
 
         Swal.fire({

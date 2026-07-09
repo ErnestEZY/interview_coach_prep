@@ -31,6 +31,7 @@ from .controllers.resume_routes import router as resume_router
 from .controllers.interview_routes import router as interview_router
 from .controllers.admin_routes import router as admin_router
 from .controllers.job_routes import router as job_router
+from .controllers.assist_routes import router as assist_router
 from .services.rag_engine import rag_engine
 from .services.utils import get_malaysia_time
 from .core.db import interviews, pending_users, reset_tokens, client
@@ -100,6 +101,7 @@ app.include_router(resume_router)
 app.include_router(interview_router)
 app.include_router(admin_router)
 app.include_router(job_router)
+app.include_router(assist_router)
 
 # --- App Download Routes ---
 @app.get("/downloads/apk/app-release.apk")

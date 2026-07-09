@@ -1243,107 +1243,14 @@ html {
 }
 /* --- End Analysis Progress --- */
 
-/* --- Print Styles for Resume Export --- */
-@media print {
-  /* 1. Hide ALL UI elements */
-  nav, .glass-nav, .sidebar-overlay, .mobile-sidebar, .builder-card, 
-  .resume-preview-actions, .resume-pagination, .scroll-to-top,
-  .swal2-container, #scroll-to-top, .analysis-progress-overlay {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  /* 2. Page — zero margin kills browser date/URL/page decorations */
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
-
-  /* 3. Clean body — must be exactly A4 width so the template centres correctly */
-  body, html {
-    background: white !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    height: auto !important;
-    overflow: visible !important;
-    width: 210mm !important;
-  }
-
-  /* 4. Flatten every wrapper between <body> and #resume-template */
-  #app,
-  .container-fluid,
-  .row,
-  .col-xl-5,
-  .col-xl-6,
-  .col-xl-7,
-  .col-xl-8,
-  .sticky-xl-top,
-  .sticky-preview-column,
-  .resume-preview-container,
-  .resume-preview-wrapper,
-  .resume-preview-viewport {
-    all: unset !important;
-    display: block !important;
-    width: 210mm !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    background: white !important;
-    transform: none !important;
-    position: static !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
-  /* 5. Resume — 15mm padding matches preview, @page:0 kills browser decorations */
-  #resume-template {
-    display: block !important;
-    box-sizing: border-box !important;
-    width: 210mm !important;
-    min-height: auto !important;
-    margin: 0 !important;
-    padding: 15mm !important;
-    transform: none !important;
-    box-shadow: none !important;
-    border: none !important;
-    background: white !important;
-    color: #333 !important;
-    position: relative !important;
-    visibility: visible !important;
-    left: 0 !important;
-    right: auto !important;
-    float: none !important;
-  }
-
-  /* 6. Side-by-side columns inside the template */
-  #resume-template .row {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  #resume-template .col-6 {
-    width: 50% !important;
-    flex: 0 0 50% !important;
-    max-width: 50% !important;
-    padding-left: 0 !important;
-    padding-right: 5mm !important;
-  }
-
-  #resume-template .col-6:last-child {
-    padding-right: 0 !important;
-    padding-left: 5mm !important;
-  }
-
-  /* 7. Ensure exact colour rendering */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
+/* --- Print Styles for Resume Export (primary block — keep in sync with block near #resume-template) --- */
+/* NOTE: The authoritative @media print block lives below near the resume template styles.
+   This stub only sets @page so the browser margin decorations are suppressed early. */
+@page {
+  size: A4 portrait;
+  margin: 0;
 }
-/* --- End Print Styles --- */
+/* --- End Print Styles stub --- */
 
 /* Dashboard Specific Styles */
 .dashboard-card {
@@ -2171,95 +2078,128 @@ html {
   font-weight: bold;
 }
 
-/* --- Print Styles --- */
+/* --- Print Styles (authoritative block) --- */
 @media print {
-    /* Hide UI chrome */
-    nav, .page-loader, .session-timer-badge, .navbar,
-    .col-xl-5,                                /* form column */
+    /* 1. Hide all UI chrome */
+    nav, .glass-nav, .navbar, .page-loader, .session-timer-badge,
+    .col-xl-5, .builder-card,
     .resume-preview-actions, .resume-pagination,
     .hamburger-btn, .sidebar-overlay, .mobile-sidebar,
-    .swal2-container,
-    .sticky-preview-column > .text-center {   /* "Resume Preview" heading */
+    .swal2-container, #scroll-to-top, .analysis-progress-overlay,
+    .sticky-preview-column > .text-center {
         display: none !important;
+        visibility: hidden !important;
     }
 
-    /* Flatten the sticky wrapper on the preview column */
-    .sticky-xl-top, .sticky-preview-column {
-        position: static !important;
-        top: auto !important;
+    /* 2. Suppress browser header/footer decorations (date, URL, page number) */
+    @page {
+        size: A4 portrait;
+        margin: 0;
     }
 
-    /* Flatten wrappers */
-    body, .auth-page {
+    /* 3. Body — exactly A4 wide so margin:auto centres the template */
+    html, body, .auth-page {
         background: white !important;
         margin: 0 !important;
         padding: 0 !important;
+        width: 210mm !important;
+        height: auto !important;
         min-height: auto !important;
+        overflow: visible !important;
     }
 
-    .container-fluid, .row, .col-xl-6, .sticky-preview-column {
-        all: unset !important;
-        display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
+    /* 4. Flatten all wrappers to block so #resume-template is unobstructed */
+    #app,
+    .container-fluid,
+    .row,
+    .col-xl-5,
+    .col-xl-6,
+    .col-xl-7,
+    .col-xl-8,
+    .sticky-xl-top,
+    .sticky-preview-column,
     .resume-preview-container,
     .resume-preview-wrapper,
     .resume-preview-viewport {
         all: unset !important;
         display: block !important;
-        width: 100% !important;
+        width: 210mm !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
         background: white !important;
         transform: none !important;
+        position: static !important;
+        box-shadow: none !important;
+        border: none !important;
     }
 
+    /* 5. Resume template — centred, 15mm padding, no shadow */
     #resume-template {
-        transform: none !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 15mm !important;
+        display: block !important;
         box-sizing: border-box !important;
         width: 210mm !important;
         min-height: auto !important;
+        margin: 0 auto !important;
+        padding: 15mm !important;
+        transform: none !important;
+        box-shadow: none !important;
         border: none !important;
-        position: relative !important;
         background: white !important;
         color: #333 !important;
-        left: 0 !important;
+        position: relative !important;
+        visibility: visible !important;
+        left: auto !important;
         right: auto !important;
         float: none !important;
-        display: block !important;
     }
 
-    /* Preserve theme accent colours */
+    /* 6. Side-by-side columns inside the template */
+    #resume-template .row {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    #resume-template .col-6 {
+        width: 50% !important;
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+        padding-left: 0 !important;
+        padding-right: 5mm !important;
+    }
+
+    #resume-template .col-6:last-child {
+        padding-right: 0 !important;
+        padding-left: 5mm !important;
+    }
+
+    /* 7. Preserve theme accent colours across all themes */
     .resume-name, .section-title, .resume-title,
     .item-header span:first-child {
         color: inherit !important;
     }
 
-    .theme-modern .resume-name,
-    .theme-modern .section-title,
-    .theme-modern .item-header span:first-child {
-        color: #007BFF !important;
-    }
-
-    /* Exact colour rendering */
+    /* 8. Exact colour rendering for backgrounds, borders, theme colours */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    /* Avoid orphaned section breaks */
-    .resume-item, .section-title, .skills-grid > div {
+    /* 9. Avoid orphaned section breaks */
+    .resume-item, .section-title, .skills-grid > div, .cert-lang-item {
         page-break-inside: avoid;
         break-inside: avoid;
     }
+
+    .section-title {
+        page-break-after: avoid;
+        break-after: avoid;
+    }
 }
+/* --- End Print Styles --- */
 
 .item-sub {
   font-style: italic;
@@ -2464,6 +2404,30 @@ html {
 .builder-card .form-label { color: rgba(255, 255, 255, 0.8); font-size: 0.85rem; font-weight: 600; }
 
 .btn-xs { padding: 0.2rem 0.4rem; font-size: 0.75rem; }
+
+/* AI Writing Assist button */
+.btn-ai-assist {
+    padding: 0.18rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #c4b5fd;
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+.btn-ai-assist:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.7);
+    color: #ede9fe;
+}
+.btn-ai-assist:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
 
 /* --- Mobile Responsiveness for Resume Builder --- */
 @media (max-width: 1200px) {

@@ -518,7 +518,7 @@
                       {{ manualData.jobTitle.length }}/100
                     </span>
                   </div>
-                  <input type="text" class="form-control rounded-3" v-model="manualData.jobTitle" placeholder="e.g. Data Scientist" required maxlength="100">
+                  <input type="text" class="form-control rounded-3" v-model="manualData.jobTitle" placeholder="e.g. Junior Software Engineer, Data Analyst Intern" required maxlength="100">
                   <div class="coach-tip mt-1">
                     <i class="bi bi-lightbulb text-warning"></i>
                     <span class="small text-white-50">Tip: Be specific (e.g., 'Junior' or 'Senior').</span>
@@ -531,48 +531,66 @@
                       {{ manualData.experience.length }}/15
                     </span>
                   </div>
-                  <input type="text" class="form-control rounded-3" v-model="manualData.experience" placeholder="e.g. 2 years" required maxlength="15" @input="manualData.experience = manualData.experience.replace(/[^0-9a-zA-Z\s]/g, '')">
+                  <input type="text" class="form-control rounded-3" v-model="manualData.experience" placeholder="e.g. 1 year, 6 months, Fresh Graduate" required maxlength="15" @input="manualData.experience = manualData.experience.replace(/[^0-9a-zA-Z\s]/g, '')">
                 </div>
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-end mb-1">
                     <label class="form-label small fw-bold text-secondary mb-0">Professional Summary</label>
-                    <span class="char-counter" :class="{'near-limit': manualData.summary.length > 450, 'at-limit': manualData.summary.length >= 500}">
-                      {{ manualData.summary.length }}/500
-                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                      <button type="button" class="btn btn-ai-assist btn-xs" @click="assistManualField('summary')" :disabled="assistLoading.summary" title="AI writing assist">
+                        <span v-if="assistLoading.summary" class="spinner-border spinner-border-sm" role="status"></span>
+                        <span v-else>✨ Improve</span>
+                      </button>
+                      <span class="char-counter" :class="{'near-limit': manualData.summary.length > 450, 'at-limit': manualData.summary.length >= 500}">
+                        {{ manualData.summary.length }}/500
+                      </span>
+                    </div>
                   </div>
-                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="3" v-model="manualData.summary" placeholder="Describe your professional background..." required maxlength="500"
+                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="3" v-model="manualData.summary" placeholder="e.g. Web development professional with internship experience in building responsive web apps using React and Node.js. Passionate about clean code and delivering user-focused solutions." required maxlength="500"
                             @input="autoExpand($event)" ref="summaryInput"></textarea>
                   <div class="coach-tip mt-1">
                     <i class="bi bi-lightbulb text-warning"></i>
-                    <span class="small text-white-50">Tip: Focus on your biggest career impact in 2-3 sentences.</span>
+                    <span class="small text-white-50">Tip: Focus on your role, key skills, and biggest career impact in 2–3 sentences.</span>
                   </div>
                 </div>
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-end mb-1">
                     <label class="form-label small fw-bold text-secondary mb-0">Top 5 Skills</label>
-                    <span class="char-counter" :class="{'near-limit': manualData.skills.length > 250, 'at-limit': manualData.skills.length >= 300}">
-                      {{ manualData.skills.length }}/300
-                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                      <button type="button" class="btn btn-ai-assist btn-xs" @click="assistManualField('skills')" :disabled="assistLoading.skills" title="AI writing assist">
+                        <span v-if="assistLoading.skills" class="spinner-border spinner-border-sm" role="status"></span>
+                        <span v-else>✨ Improve</span>
+                      </button>
+                      <span class="char-counter" :class="{'near-limit': manualData.skills.length > 250, 'at-limit': manualData.skills.length >= 300}">
+                        {{ manualData.skills.length }}/300
+                      </span>
+                    </div>
                   </div>
-                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="2" v-model="manualData.skills" placeholder="e.g. Python, SQL, Project Management..." required maxlength="300"
+                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="2" v-model="manualData.skills" placeholder="e.g. Python, JavaScript, SQL, REST APIs, Git, Problem Solving, Team Collaboration" required maxlength="300"
                             @input="autoExpand($event)" ref="skillsInput"></textarea>
                   <div class="coach-tip mt-1">
                     <i class="bi bi-lightbulb text-warning"></i>
-                    <span class="small text-white-50">Tip: Mix technical skills with soft skills like 'Communication'.</span>
+                    <span class="small text-white-50">Tip: Mix technical and soft skills — list your strongest ones first.</span>
                   </div>
                 </div>
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-end mb-1">
                     <label class="form-label small fw-bold text-secondary mb-0">Key Achievement</label>
-                    <span class="char-counter" :class="{'near-limit': manualData.achievement.length > 450, 'at-limit': manualData.achievement.length >= 500}">
-                      {{ manualData.achievement.length }}/500
-                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                      <button type="button" class="btn btn-ai-assist btn-xs" @click="assistManualField('achievement')" :disabled="assistLoading.achievement" title="AI writing assist">
+                        <span v-if="assistLoading.achievement" class="spinner-border spinner-border-sm" role="status"></span>
+                        <span v-else>✨ Improve</span>
+                      </button>
+                      <span class="char-counter" :class="{'near-limit': manualData.achievement.length > 450, 'at-limit': manualData.achievement.length >= 500}">
+                        {{ manualData.achievement.length }}/500
+                      </span>
+                    </div>
                   </div>
-                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="2" v-model="manualData.achievement" placeholder="Describe a project or goal you completed..." required maxlength="500"
+                  <textarea class="form-control rounded-3 auto-expand-textarea" rows="2" v-model="manualData.achievement" placeholder="e.g. Built a full-stack inventory system using React and FastAPI during my internship, reducing manual tracking time by 40% for the operations team." required maxlength="500"
                             @input="autoExpand($event)" ref="achievementInput"></textarea>
                   <div class="coach-tip mt-1">
                     <i class="bi bi-lightbulb text-warning"></i>
-                    <span class="small text-white-50">Tip: Use numbers if possible (e.g., 'Reduced costs by 15%').</span>
+                    <span class="small text-white-50">Tip: Mention what you did, the tools used, and the result — numbers make it stronger.</span>
                   </div>
                 </div>
               </div>

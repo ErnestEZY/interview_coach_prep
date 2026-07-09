@@ -187,7 +187,13 @@
                                         </div>
                                     </div>
                                     <div class="col-12">
-                                        <label for="resume-summary" class="form-label mb-1">Summary</label>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label for="resume-summary" class="form-label mb-0">Summary</label>
+                                            <button type="button" class="btn btn-ai-assist btn-xs" @click="assistSummary()" :disabled="assistState.summary" title="AI improves your summary">
+                                                <span v-if="assistState.summary" class="spinner-border spinner-border-sm" role="status"></span>
+                                                <span v-else>✨ Improve</span>
+                                            </button>
+                                        </div>
                                         <div class="input-container-relative">
                                             <textarea id="resume-summary" v-model="resume.summary" class="form-control" rows="4" title="Write a short professional summary" placeholder="Briefly describe your professional background" maxlength="250"></textarea>
                                             <span class="char-counter char-counter-inside" :class="{'near-limit': resume.summary.length > 220, 'at-limit': resume.summary.length >= 250}">
@@ -300,12 +306,21 @@
                                     <div class="col-12">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <label class="form-label mb-0">Key Achievements / Bullets <span class="badge bg-secondary smaller fw-normal ms-1">{{ exp.bullets ? exp.bullets.length : 0 }}/4</span></label>
-                                            <button @click="addBullet('experience', index)" class="btn btn-xs btn-outline-success" :disabled="exp.bullets && exp.bullets.length >= 4" title="Add a bullet point">+ Add Bullet</button>
+                                            <div class="d-flex gap-1 flex-wrap justify-content-end">
+                                                <button type="button" class="btn btn-ai-assist btn-xs"
+                                                    @click="assistBullets('experience', index)"
+                                                    :disabled="assistState.experience[index]"
+                                                    title="AI rewrites all bullets using Google XYZ format">
+                                                    <span v-if="assistState.experience[index]" class="spinner-border spinner-border-sm" role="status"></span>
+                                                    <span v-else>✨ Improve</span>
+                                                </button>
+                                                <button @click="addBullet('experience', index)" class="btn btn-xs btn-outline-success" :disabled="exp.bullets && exp.bullets.length >= 4" title="Add a bullet point">+ Add</button>
+                                            </div>
                                         </div>
                                         <div v-for="(bullet, bIndex) in exp.bullets" :key="bIndex" class="bullet-input-wrapper mb-1">
                                             <div class="input-group input-group-sm flex-nowrap">
                                                 <div class="input-container-relative flex-grow-1">
-                                                    <textarea v-model="exp.bullets[bIndex]" class="form-control no-right-radius" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your work experience" maxlength="250"></textarea>
+                                                    <textarea v-model="exp.bullets[bIndex]" class="form-control no-right-radius" rows="2" placeholder="e.g. Reduced deployment time by 30% as measured by CI/CD pipeline metrics, by automating build scripts." title="Enter a bullet point for your work experience" maxlength="250"></textarea>
                                                     <span class="char-counter char-counter-inside" :class="{'near-limit': exp.bullets[bIndex].length > 220, 'at-limit': exp.bullets[bIndex].length >= 250}">
                                                         {{ exp.bullets[bIndex].length }}/250
                                                     </span>
@@ -361,12 +376,21 @@
                                     <div class="col-12">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <label class="form-label mb-0">Description / Bullets <span class="badge bg-secondary smaller fw-normal ms-1">{{ proj.bullets ? proj.bullets.length : 0 }}/4</span></label>
-                                            <button @click="addBullet('projects', index)" class="btn btn-xs btn-outline-success" :disabled="proj.bullets && proj.bullets.length >= 4" title="Add a bullet point">+ Add Bullet</button>
+                                            <div class="d-flex gap-1 flex-wrap justify-content-end">
+                                                <button type="button" class="btn btn-ai-assist btn-xs"
+                                                    @click="assistBullets('projects', index)"
+                                                    :disabled="assistState.projects[index]"
+                                                    title="AI rewrites all bullets using Google XYZ format">
+                                                    <span v-if="assistState.projects[index]" class="spinner-border spinner-border-sm" role="status"></span>
+                                                    <span v-else>✨ Improve</span>
+                                                </button>
+                                                <button @click="addBullet('projects', index)" class="btn btn-xs btn-outline-success" :disabled="proj.bullets && proj.bullets.length >= 4" title="Add a bullet point">+ Add</button>
+                                            </div>
                                         </div>
                                         <div v-for="(bullet, bIndex) in proj.bullets" :key="bIndex" class="bullet-input-wrapper mb-1">
                                             <div class="input-group input-group-sm flex-nowrap">
                                                 <div class="input-container-relative flex-grow-1">
-                                                    <textarea v-model="proj.bullets[bIndex]" class="form-control no-right-radius" rows="2" placeholder="Describe a key achievement..." title="Enter a bullet point for your project" maxlength="250"></textarea>
+                                                    <textarea v-model="proj.bullets[bIndex]" class="form-control no-right-radius" rows="2" placeholder="e.g. Built a real-time dashboard using React and WebSockets, resulting in 50% faster data visibility for the team." title="Enter a bullet point for your project" maxlength="250"></textarea>
                                                     <span class="char-counter char-counter-inside" :class="{'near-limit': proj.bullets[bIndex].length > 220, 'at-limit': proj.bullets[bIndex].length >= 250}">
                                                         {{ proj.bullets[bIndex].length }}/250
                                                     </span>
