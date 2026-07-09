@@ -64,9 +64,10 @@ async def upload_resume(
         try:
             feedback = await get_feedback(text, ocr_used=ocr_used)
         except Exception as e:
-            if "429" in str(e) or "rate_limit" in str(e).lower():
-                raise HTTPException(status_code=429, detail="Mistral AI rate limit exceeded. Please wait a moment.")
-            raise HTTPException(status_code=500, detail=f"AI Analysis failed: {str(e)}")
+            err_str = str(e)
+            if "429" in err_str or "rate_limit" in err_str.lower() or "AI_RATE_LIMIT" in err_str:
+                raise HTTPException(status_code=429, detail="AI_RATE_LIMIT")
+            raise HTTPException(status_code=500, detail=f"AI Analysis failed: {err_str}")
 
         # Validate if it's actually a resume
         is_valid_resume = feedback.get("IsResume", True)

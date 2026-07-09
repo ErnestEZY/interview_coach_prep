@@ -88,9 +88,10 @@ async def start(
     try:
         ai = interview_reply([], job_title=job_title, resume_feedback=feedback_dict, questions_limit=questions_limit, difficulty=difficulty, current_asked_count=0)
     except Exception as e:
-        if "429" in str(e) or "rate_limit" in str(e).lower():
-            raise HTTPException(status_code=429, detail="Mistral AI rate limit exceeded. Please wait a moment.")
-        raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
+        err_str = str(e)
+        if "429" in err_str or "rate_limit" in err_str.lower() or "AI_RATE_LIMIT" in err_str:
+            raise HTTPException(status_code=429, detail="AI_RATE_LIMIT")
+        raise HTTPException(status_code=500, detail=f"AI Error: {err_str}")
 
     sid = str(ObjectId())
     doc = {
@@ -176,9 +177,10 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
     try:
         ai = interview_reply(history, job_title=job_title, resume_feedback=resume_feedback, questions_limit=questions_limit, difficulty=difficulty, current_asked_count=current_asked_count)
     except Exception as e:
-        if "429" in str(e) or "rate_limit" in str(e).lower():
-            raise HTTPException(status_code=429, detail="Mistral AI rate limit exceeded. Please wait a moment.")
-        raise HTTPException(status_code=500, detail=f"AI Error: {str(e)}")
+        err_str = str(e)
+        if "429" in err_str or "rate_limit" in err_str.lower() or "AI_RATE_LIMIT" in err_str:
+            raise HTTPException(status_code=429, detail="AI_RATE_LIMIT")
+        raise HTTPException(status_code=500, detail=f"AI Error: {err_str}")
     
     # Check for AI signaling completion
     ai_ended = "[FINISH]" in ai

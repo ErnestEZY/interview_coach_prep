@@ -8,6 +8,7 @@ import os
 import re
 from typing import List, Optional
 from dotenv import load_dotenv
+from .mistral_retry import mistral_call
 
 try:
     from mistralai import Mistral
@@ -81,19 +82,19 @@ _BASE_INSTRUCTIONS = (
 
 
 def _call_nemo(system_prompt: str, user_prompt: str, temperature: float = 0.4) -> str:
-    """Low-level call to open-mistral-nemo."""
+    """Low-level call to open-mistral-nemo with automatic retry on rate limits."""
     if not MISTRAL_API_KEY:
         raise ValueError("MISTRAL_API_KEY not configured.")
     client = Mistral(api_key=MISTRAL_API_KEY)
-    resp = client.chat.complete(
+    resp = mistral_call(lambda: client.chat.complete(
         model=ASSIST_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_prompt},
         ],
         temperature=temperature,
-        max_tokens=1024,   # increased: 4 bullets × 250 chars + summary up to 500 chars needs headroom
-    )
+        max_tokens=1024,
+    ))
     return resp.choices[0].message.content.strip()
 
 

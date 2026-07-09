@@ -62,7 +62,10 @@ async def assist_summary(
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI assist failed: {str(e)}")
+        err_str = str(e)
+        if "AI_RATE_LIMIT" in err_str or "429" in err_str or "rate_limit" in err_str.lower():
+            raise HTTPException(status_code=429, detail="AI is busy right now. Please try again in a moment.")
+        raise HTTPException(status_code=500, detail=f"AI assist failed: {err_str}")
 
 
 @router.post("/bullets", response_model=BulletsResponse)
@@ -85,7 +88,10 @@ async def assist_bullets(
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI assist failed: {str(e)}")
+        err_str = str(e)
+        if "AI_RATE_LIMIT" in err_str or "429" in err_str or "rate_limit" in err_str.lower():
+            raise HTTPException(status_code=429, detail="AI is busy right now. Please try again in a moment.")
+        raise HTTPException(status_code=500, detail=f"AI assist failed: {err_str}")
 
 
 @router.post("/manual-field", response_model=TextResponse)
@@ -108,4 +114,7 @@ async def assist_manual_field(
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI assist failed: {str(e)}")
+        err_str = str(e)
+        if "AI_RATE_LIMIT" in err_str or "429" in err_str or "rate_limit" in err_str.lower():
+            raise HTTPException(status_code=429, detail="AI is busy right now. Please try again in a moment.")
+        raise HTTPException(status_code=500, detail=f"AI assist failed: {err_str}")

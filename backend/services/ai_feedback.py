@@ -14,6 +14,7 @@ except (ImportError, AttributeError):
         from mistralai import MistralClient as Mistral
 
 from .rag_engine import rag_engine
+from .mistral_retry import mistral_call
 
 load_dotenv()
 
@@ -198,12 +199,12 @@ async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
         client = Mistral(api_key=MISTRAL_API_KEY)
         prompt = build_resume_prompt(text, context, ocr_used)
 
-        response = client.chat.complete(
+        response = mistral_call(lambda: client.chat.complete(
             model="mistral-large-latest",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.3
-        )
+        ))
 
         return parse_json_response(response.choices[0].message.content)
     except Exception as e:

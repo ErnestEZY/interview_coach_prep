@@ -9,6 +9,7 @@ except (ImportError, AttributeError):
         from mistralai import MistralClient as Mistral
 from ..core.config import MISTRAL_API_KEY
 from .cache_manager import memoize
+from .mistral_retry import mistral_call
 
 SYSTEM_PROMPT = (
     "You are a professional interviewer. Use plain text only. No bold, no emojis. "
@@ -167,11 +168,11 @@ def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_f
     custom_system += "\n\nEnsure you follow the question count strictly. Do not hallucinate that the interview is over until the count reaches the limit."
 
     msgs = [{"role": "system", "content": custom_system}] + history
-    completion = client.chat.complete(
-        model="mistral-small-latest", 
-        messages=msgs, 
+    completion = mistral_call(lambda: client.chat.complete(
+        model="mistral-small-latest",
+        messages=msgs,
         temperature=0.3
-    )
+    ))
     content = completion.choices[0].message.content
     
     # VETO: Hard-strip any premature scores if we haven't reached the limit
@@ -192,11 +193,11 @@ def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_f
                 "role": "user", 
                 "content": f"[SYSTEM CORRECTION]: You tried to end the interview early or didn't ask a question. You have only asked {current_asked_count} questions out of {questions_limit}. You MUST continue. Please ask a high-quality, {difficulty}-level technical question about {job_title} now. Do NOT say goodbye."
             })
-            retry_completion = client.chat.complete(
-                model="mistral-small-latest", 
-                messages=correction_msgs, 
+            retry_completion = mistral_call(lambda: client.chat.complete(
+                model="mistral-small-latest",
+                messages=correction_msgs,
                 temperature=0.3
-            )
+            ))
             content = retry_completion.choices[0].message.content
             content = re.sub(r"Interview Readiness Score:.*", "", content, flags=re.IGNORECASE).strip()
             content = content.replace("[FINISH]", "").strip()
