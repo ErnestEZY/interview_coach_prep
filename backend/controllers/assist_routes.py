@@ -24,7 +24,7 @@ class SummaryRequest(BaseModel):
 
 
 class BulletsRequest(BaseModel):
-    bullets: List[str] = Field(..., min_items=1)
+    bullets: List[str] = Field(..., min_length=1)
     role_context: Optional[str] = ""
     section: Optional[str] = "experience"   # "experience" | "projects"
     char_limit: Optional[int] = 250

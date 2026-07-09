@@ -126,3 +126,49 @@ class TestBuildResumePrompt:
     def test_ocr_warning_absent_without_flag(self):
         prompt = build_resume_prompt("text", "ctx", ocr_used=False)
         assert "Canva-style" not in prompt
+
+
+class TestModelUsage:
+    """Verify ai_feedback uses the correct Mistral model."""
+
+    @pytest.mark.asyncio
+    async def test_uses_mistral_large_latest(self):
+        """get_feedback must call mistral-large-latest, not small or nemo."""
+        import backend.services.ai_feedback as af
+        captured = {}
+
+        def fake_complete(**kwargs):
+            captured["model"] = kwargs.get("model")
+            mock_resp = MagicMock()
+            mock_resp.choices[0].message.content = (
+                '{"IsResume":true,"Score":70,'
+                '"ScoreBreakdown":{"ImpactScore":28,"SkillScore":21,'
+                '"StructureScore":14,"ATSScore":7},'
+                '"Advantages":[],"Disadvantages":[],"Suggestions":[],'
+                '"Keywords":[],"Location":"","DetectedJobTitle":""}'
+            )
+            return mock_resp
+
+        mock_client = MagicMock()
+        mock_client.chat.complete.side_effect = fake_complete
+
+        with patch("backend.services.ai_feedback.Mistral", return_value=mock_client), \
+             patch("backend.services.ai_feedback.rag_engine") as mock_rag:
+            mock_rag.retrieve_with_correction = AsyncMock(
+                return_value={"documents": []}
+            )
+            await af.get_feedback("Python developer resume text")
+
+        assert captured.get("model") == "mistral-large-latest", (
+            f"Expected 'mistral-large-latest', got '{captured.get('model')}'"
+        )
+
+    def test_model_constant_not_overridden(self):
+        """Confirm no accidental override of the model string in ai_feedback."""
+        import inspect
+        import backend.services.ai_feedback as af
+        src = inspect.getsource(af)
+        assert "mistral-large-latest" in src
+        # Must not use small or nemo for resume analysis
+        assert "mistral-small-latest" not in src
+        assert "open-mistral-nemo" not in src

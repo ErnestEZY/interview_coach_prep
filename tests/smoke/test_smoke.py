@@ -77,3 +77,19 @@ class TestApiRoutesSmokeCheck:
         r = await ac.get("/downloads/apk/app-release.apk")
         assert r.status_code in (200, 404)   # 200 if binary present, 404 if not
         assert r.status_code != 500
+
+    @pytest.mark.asyncio
+    async def test_assist_summary_requires_auth(self, ac):
+        r = await ac.post("/api/assist/summary", json={"text": "test"})
+        assert r.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_assist_bullets_requires_auth(self, ac):
+        r = await ac.post("/api/assist/bullets", json={"bullets": ["test"]})
+        assert r.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_assist_manual_field_requires_auth(self, ac):
+        r = await ac.post("/api/assist/manual-field",
+                          json={"field": "summary", "text": "test"})
+        assert r.status_code == 401
