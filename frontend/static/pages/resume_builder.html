@@ -29,7 +29,7 @@
 </head>
 <body class="auth-page">
   <!-- Scripts at start of body for faster execution -->
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=1.7"></script>
 
   <div id="app" v-cloak>
   
@@ -581,7 +581,7 @@
                                 <div v-for="(edu, index) in resume.education" :key="'preview-edu-'+index">
                                     <div class="resume-item" v-if="edu.school || edu.degree">
                                         <div class="item-header">
-                                            <span>{{ edu.school }}<span v-if="edu.location" class="fw-normal text-muted small ms-2">| {{ edu.location }}</span></span>
+                                            <span>{{ edu.school }}<span v-if="edu.location" class="fw-normal text-muted small"> | {{ edu.location }}</span></span>
                                             <span class="small">{{ edu.date }}</span>
                                         </div>
                                         <div class="item-header">
@@ -618,9 +618,9 @@
                                             <span>{{ proj.name }}</span>
                                             <span v-if="proj.tech" class="small fw-normal">{{ proj.tech }}</span>
                                         </div>
-                                        <ul class="item-desc list-unstyled ps-0" v-if="proj.bullets && proj.bullets.length > 0">
-                                            <li v-for="bullet in proj.bullets">• {{ bullet.replace(/^[•\-\*]\s*/, '') }}</li>
-                                        </ul>
+                                        <div class="item-desc" v-if="proj.bullets && proj.bullets.length > 0">
+                                            <div v-for="bullet in proj.bullets">• {{ bullet.replace(/^[•\-\*]\s*/, '') }}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

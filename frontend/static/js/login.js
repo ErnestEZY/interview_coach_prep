@@ -87,12 +87,16 @@ const app = createApp({
                     return;
                 }
 
-                window.icp.state.setToken(res.access_token);
+                // Check role BEFORE writing token to localStorage.
+                // This prevents stale admin tokens from persisting if the user
+                // accidentally uses a user account on the wrong login page.
+                const me = await axios.get(window.icp.apiUrl('/api/auth/me'), {
+                    headers: { 'Authorization': 'Bearer ' + res.access_token }
+                }).then(r => r.data);
 
-                // Check role
-                const me = await axios.get(window.icp.apiUrl('/api/auth/me')).then(r => r.data);
-                
                 if (me.role === 'user') {
+                    // Only now write the token — we confirmed it's a user account
+                    window.icp.state.setToken(res.access_token);
                     Swal.fire({
                         icon: 'success',
                         title: 'Login Successful!',
@@ -103,7 +107,7 @@ const app = createApp({
                         window.location = '/static/pages/dashboard.html';
                     });
                 } else if (me.role === 'admin' || me.role === 'super_admin') {
-                    window.icp.state.clearToken();
+                    // Never write the token — just show the error
                     Swal.fire({
                         icon: 'error',
                         title: 'Restricted Access',
@@ -111,7 +115,6 @@ const app = createApp({
                         confirmButtonColor: '#8b5cf6'
                     });
                 } else {
-                    window.icp.state.clearToken();
                     Swal.fire({
                         icon: 'error',
                         title: 'Unknown Role',

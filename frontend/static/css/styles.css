@@ -1243,14 +1243,7 @@ html {
 }
 /* --- End Analysis Progress --- */
 
-/* --- Print Styles for Resume Export (primary block — keep in sync with block near #resume-template) --- */
-/* NOTE: The authoritative @media print block lives below near the resume template styles.
-   This stub only sets @page so the browser margin decorations are suppressed early. */
-@page {
-  size: A4 portrait;
-  margin: 0;
-}
-/* --- End Print Styles stub --- */
+/* --- Print styles are handled exclusively in the @media print block below --- */
 
 /* Dashboard Specific Styles */
 .dashboard-card {
@@ -2091,24 +2084,28 @@ html {
         visibility: hidden !important;
     }
 
-    /* 2. Suppress browser header/footer decorations (date, URL, page number) */
+    /* 2. Page margins — browser uses these as the whitespace around content.
+          size:auto lets the page shrink to actual content height so there is
+          no blank bottom half when the resume is shorter than a full A4 page.
+          The margin values here are the only whitespace the user will see
+          around the resume in the print preview / saved PDF. */
     @page {
-        size: A4 portrait;
-        margin: 0;
+        size: auto;
+        margin: 10mm 12mm;
     }
 
-    /* 3. Body — exactly A4 wide so margin:auto centres the template */
+    /* 3. Body — fill the printable area, no extra spacing */
     html, body, .auth-page {
         background: white !important;
         margin: 0 !important;
         padding: 0 !important;
-        width: 210mm !important;
+        width: auto !important;
         height: auto !important;
         min-height: auto !important;
         overflow: visible !important;
     }
 
-    /* 4. Flatten all wrappers to block so #resume-template is unobstructed */
+    /* 4. Flatten all wrappers so #resume-template is unobstructed */
     #app,
     .container-fluid,
     .row,
@@ -2123,7 +2120,7 @@ html {
     .resume-preview-viewport {
         all: unset !important;
         display: block !important;
-        width: 210mm !important;
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
@@ -2134,20 +2131,23 @@ html {
         border: none !important;
     }
 
-    /* 5. Resume template — centred, 15mm padding, no shadow */
+    /* 5. Resume template — zero padding (margins handled by @page above),
+          no fixed height so the box wraps its content exactly */
     #resume-template {
         display: block !important;
+        flex-direction: unset !important;
         box-sizing: border-box !important;
-        width: 210mm !important;
-        min-height: auto !important;
-        margin: 0 auto !important;
-        padding: 15mm !important;
+        width: 100% !important;
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
         transform: none !important;
         box-shadow: none !important;
         border: none !important;
         background: white !important;
         color: #333 !important;
-        position: relative !important;
+        position: static !important;
         visibility: visible !important;
         left: auto !important;
         right: auto !important;

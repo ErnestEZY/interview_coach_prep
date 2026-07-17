@@ -73,6 +73,24 @@ async def log_origins(request: Request, call_next):
         print(f"  - Method: {request.method}")
     return await call_next(request)
 
+@app.middleware("http")
+async def no_cache_auth_pages(request: Request, call_next):
+    """Prevent browser caching of auth HTML pages so stale JS state cannot persist."""
+    response = await call_next(request)
+    path = request.url.path
+    auth_pages = [
+        "login.html",
+        "register.html",
+        "forgot_password.html",
+        "reset_password.html",
+        "icp-admin-auth-",
+    ]
+    if any(p in path for p in auth_pages):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     # In production, we should list the exact frontend domains

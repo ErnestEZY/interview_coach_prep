@@ -25,16 +25,16 @@
 </head>
 <body class="auth-page">
   <!-- Scripts at start of body for faster execution -->
-  <script src="/static/js/app.js?v=1.3"></script>
-  <!-- Silently clear any stale session so this page always starts clean -->
+  <script src="/static/js/app.js?v=1.7"></script>
+  <!-- Clear any stale session data when arriving at the register page. -->
   <script>
     (function() {
       try {
         if (window.icp && window.icp.state) {
           window.icp.state.token = "";
-          const keys = Object.keys(localStorage);
-          keys.forEach(function(k) { if (k !== 'startup_id') localStorage.removeItem(k); });
         }
+        const keys = Object.keys(localStorage);
+        keys.forEach(function(k) { if (k !== 'startup_id') localStorage.removeItem(k); });
       } catch(_) {}
     })();
   </script>

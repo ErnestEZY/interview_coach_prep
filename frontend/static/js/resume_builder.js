@@ -475,89 +475,163 @@ try {
                 }
             },
             async downloadPDF() {
-                const element = document.getElementById('resume-template');
-                if (!element) return;
+                const el = document.getElementById('resume-template');
+                if (!el) return;
 
-                // 1. Show instruction alert for ATS-Friendly PDF
+                // Ask user which download type they want
                 const result = await Swal.fire({
-                    title: 'Download ATS-Friendly PDF',
-                    text: 'For the best results (selectable text & ATS-friendly), we recommend using "Save as PDF" in the print dialog.',
-                    icon: 'info',
+                    title: 'Download Resume',
+                    html: `
+                        <div class="text-start">
+                            <p class="text-secondary small mb-3">Choose your preferred format:</p>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="p-3 rounded" style="border: 1px solid #93c5fd; background: #eff6ff;">
+                                    <div class="fw-bold small mb-1" style="color: #1d4ed8;">&#9733; Save as PDF — ATS Friendly</div>
+                                    <div class="small" style="color: #374151;">Text-based PDF. Selectable, copyable and scannable by ATS systems. Recommended for job applications.</div>
+                                </div>
+                                <div class="p-3 rounded" style="border: 1px solid #d1d5db; background: #f9fafb;">
+                                    <div class="fw-bold small mb-1" style="color: #374151;">Direct Download — Image Based</div>
+                                    <div class="small" style="color: #4b5563;">Renders resume as an image. Looks pixel-perfect but text cannot be selected or scanned by ATS.</div>
+                                </div>
+                            </div>
+                        </div>
+                    `,
                     showCancelButton: true,
-                    showCloseButton: true, // Added Close Button
-                    confirmButtonText: 'Open Print Dialog',
-                    cancelButtonText: 'Direct Download',
-                    confirmButtonColor: '#0d6efd',
-                    cancelButtonColor: '#6c757d'
+                    showCloseButton: true,
+                    confirmButtonText: '&#8681; Save as PDF (ATS)',
+                    cancelButtonText: '&#8681; Direct Download',
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#6b7280',
+                    reverseButtons: false
                 });
 
-                // If user closed the alert or clicked outside
-                if (result.isDismissed && result.dismiss === Swal.DismissReason.close || result.dismiss === Swal.DismissReason.esc) {
-                    return;
-                }
+                // Only bail out if the user closed/escaped — not if they clicked cancel (Direct Download)
+                if (result.isDismissed && result.dismiss !== Swal.DismissReason.cancel) return;
 
-                // Capture original state to restore later
-                const originalPage = this.currentPage;
-                
+                const rawName = this.resume.name || 'Resume';
+                const themeClass = this.currentTheme.className;
+                const fileName = rawName.replace(/\s+/g, '_') + '_Resume';
+
+                // ── ATS Path: clean popup print ─────────────────────────────────────────
                 if (result.isConfirmed) {
-                    // RESET TO PAGE 1 BEFORE PRINTING
-                    this.currentPage = 1;
-                    await this.$nextTick();
+                    const resumeHTML = el.innerHTML;
 
-                    // The Vue :style binding sets an inline transform: translateY(0mm) for page 1.
-                    // Inline styles beat @media print even with !important, so we must
-                    // explicitly force transform:none on the element before printing.
-                    const el = document.getElementById('resume-template');
-                    const prevInlineTransform = el ? el.style.transform : '';
-                    if (el) el.style.transform = 'none';
+                    const printDoc = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${fileName}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: white; font-family: 'Times New Roman', Times, serif; color: #333; font-size: 11pt; line-height: 1.5; }
+    @page { size: A4 portrait; margin: 0; }
+    body { padding: 12mm 14mm; }
+    #resume-template { width: 100%; }
+    .resume-header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; text-align: center; }
+    .resume-name { font-size: 22pt; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 2px; overflow-wrap: break-word; word-break: break-word; margin-bottom: 5px; }
+    .resume-title { font-size: 12pt; color: #555; font-weight: 500; margin-bottom: 10px; }
+    .resume-contact { font-size: 10pt; color: #444; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+    .section-title { font-size: 14pt; font-weight: bold; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; page-break-after: avoid; break-after: avoid; }
+    .resume-item { margin-bottom: 15px; page-break-inside: avoid; break-inside: avoid; }
+    .item-header { display: flex; justify-content: space-between; font-weight: bold; }
+    .item-sub { font-style: italic; color: #555; font-size: 10pt; margin-bottom: 5px; }
+    .item-desc { font-size: 10pt; line-height: 1.4; color: #444; }
+    .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 20px; margin-top: 5px; }
+    .skill-group-title { font-weight: bold; font-size: 10pt; margin-bottom: 2px; }
+    .skills-list { font-size: 10pt; color: #444; }
+    .cert-lang-row { display: flex; gap: 20px; }
+    .cert-lang-col-left, .cert-lang-col-right { flex: 1; }
+    .cert-lang-item { page-break-inside: avoid; break-inside: avoid; }
+    #resume-template::after { display: none !important; }
+    .bi::before { content: '' }
+    .theme-classic { font-family: 'Times New Roman', Times, serif; }
+    .theme-classic .resume-name { color: #333; }
+    .theme-classic .section-title { border-bottom-color: #ccc; color: #333; }
+    .theme-modern { font-family: Arial, Helvetica, sans-serif; }
+    .theme-modern .resume-header { border-bottom-color: #007BFF; }
+    .theme-modern .resume-name { color: #007BFF; letter-spacing: 1px; }
+    .theme-modern .section-title { border-bottom: 2px solid #007BFF; color: #333; text-transform: uppercase; font-size: 13pt; }
+    .theme-modern .item-header span:first-child { color: #007BFF; }
+    .theme-kendall { font-family: 'Garamond', 'Times New Roman', serif; }
+    .theme-kendall .resume-name { font-family: 'Garamond', serif; font-weight: bold; text-align: center; letter-spacing: 4px; font-size: 24pt; }
+    .theme-kendall .section-title { font-family: 'Garamond', serif; text-align: center; font-size: 14pt; letter-spacing: 2px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding-top: 5px; padding-bottom: 5px; margin-top: 15px; }
+    .theme-flat { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    .theme-flat .section-title { background-color: #f2f2f2; padding: 5px 10px; font-size: 12pt; font-weight: bold; border-left: 4px solid #333; }
+    .theme-flat .item-header span:first-child { font-weight: bold; }
+    .theme-gov { font-family: 'Times New Roman', Times, serif; }
+    .theme-gov .resume-name { font-size: 18pt; font-weight: bold; }
+    .theme-gov .section-title { font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 8px; text-transform: uppercase; }
+    .theme-gov .item-header { font-weight: normal; }
+    .theme-gov .item-header span:first-child { font-weight: bold; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  </style>
+</head>
+<body>
+  <div id="resume-template" class="${themeClass}">
+    ${resumeHTML}
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+        window.onafterprint = function() { window.close(); };
+      }, 250);
+    };
+  <\/script>
+</body>
+</html>`;
 
-                    setTimeout(() => {
-                        window.print();
-                        // Restore original inline transform after print dialog closes
-                        if (el) el.style.transform = prevInlineTransform;
-                        this.currentPage = originalPage;
-                    }, 500);
+                    const printWin = window.open('', '_blank', 'width=900,height=700,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no');
+                    if (!printWin) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Popup Blocked',
+                            html: 'Please allow popups for this site, then try again.',
+                            confirmButtonColor: '#8b5cf6'
+                        });
+                        return;
+                    }
+                    printWin.document.write(printDoc);
+                    printWin.document.close();
                     return;
                 }
 
-                // 2. Direct Download Fallback (if they clicked "Direct Download")
+                // ── Direct Download Path: jsPDF image-based ─────────────────────────────
                 if (result.dismiss === Swal.DismissReason.cancel) {
                     Swal.fire({
                         title: 'Generating PDF...',
                         text: 'Please wait while we prepare your file.',
                         allowOutsideClick: false,
-                        showCloseButton: true,
+                        showCloseButton: false,
                         didOpen: () => { Swal.showLoading(); }
                     });
 
                     try {
-                        // Reset to page 1 so no translateY offset is applied
                         const savedPage = this.currentPage;
                         this.currentPage = 1;
                         await this.$nextTick();
                         await new Promise(r => setTimeout(r, 150));
 
-                        const el = document.getElementById('resume-template');
-
-                        // ── Clone the live element into an off-screen container ──
-                        // This bypasses the viewport's CSS scale(0.xx) entirely.
-                        // The clone inherits all theme classes so colours/fonts are preserved.
                         const offscreen = document.createElement('div');
+                        // Use position:absolute top:-9999px (NOT fixed + negative z-index)
+                        // so html2canvas can capture the element. Fixed + z-index:-9999
+                        // causes html2canvas to render a blank canvas on some browsers.
                         offscreen.style.cssText = [
-                            'position:fixed',
-                            'top:0',
-                            'left:-9999px',
-                            'width:794px',      // 210mm at 96dpi
+                            'position:absolute',
+                            'top:-9999px',
+                            'left:0',
+                            'width:794px',
                             'height:auto',
                             'overflow:visible',
                             'background:white',
-                            'z-index:-9999',
                             'pointer-events:none',
                         ].join(';');
                         document.body.appendChild(offscreen);
 
                         const clone = el.cloneNode(true);
-                        // Apply same theme classes
+                        // Ensure the theme class from the live element is on the clone.
+                        // el already has it, but explicitly set it to be safe.
+                        clone.className = el.className;
                         clone.style.cssText = [
                             'width:794px',
                             'min-height:auto',
@@ -569,28 +643,19 @@ try {
                             'position:static',
                             'display:block',
                         ].join(';');
-                        // Remove the page-break indicator pseudo-element trigger
                         clone.removeAttribute('data-pdf-export');
                         clone.setAttribute('data-pdf-export', 'true');
                         offscreen.appendChild(clone);
 
-                        // Give browser one frame to lay out the clone
                         await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
                         await new Promise(r => setTimeout(r, 80));
 
                         const canvas = await html2canvas(clone, {
-                            scale:           2,
-                            useCORS:         true,
-                            letterRendering: true,
+                            scale: 2, useCORS: true, letterRendering: true,
                             backgroundColor: '#ffffff',
-                            scrollX:         0,
-                            scrollY:         0,
-                            x:               0,
-                            y:               0,
-                            width:           clone.scrollWidth,
-                            height:          clone.scrollHeight,
-                            windowWidth:     clone.scrollWidth,
-                            windowHeight:    clone.scrollHeight,
+                            scrollX: 0, scrollY: 0, x: 0, y: 0,
+                            width: clone.scrollWidth, height: clone.scrollHeight,
+                            windowWidth: clone.scrollWidth, windowHeight: clone.scrollHeight,
                             ignoreElements: (node) =>
                                 node.tagName === 'NAV' ||
                                 node.classList.contains('resume-preview-actions') ||
@@ -598,62 +663,40 @@ try {
                                 node.classList.contains('session-timer-badge'),
                         });
 
-                        // Clean up off-screen clone
                         document.body.removeChild(offscreen);
                         this.currentPage = savedPage;
 
-                        // ── Build PDF — canvas px → mm using exact A4 width ──
-                        let JsPDF = null;
-                        if (window.jspdf && window.jspdf.jsPDF) {
-                            JsPDF = window.jspdf.jsPDF;
-                        } else if (window.jsPDF) {
-                            JsPDF = window.jsPDF;
-                        }
+                        let JsPDF = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
                         if (!JsPDF) throw new Error('jsPDF library not found.');
 
                         const pdf     = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-                        const pageW   = pdf.internal.pageSize.getWidth();   // 210
-                        const pageH   = pdf.internal.pageSize.getHeight();  // 297
+                        const pageW   = pdf.internal.pageSize.getWidth();
+                        const pageH   = pdf.internal.pageSize.getHeight();
                         const cW      = canvas.width;
                         const cH      = canvas.height;
-                        const pxPerMm = cW / pageW;   // canvas pixels per mm
+                        const pxPerMm = cW / pageW;
                         const pageHpx = pageH * pxPerMm;
 
-                        let pageNum = 0;
-                        let srcY    = 0;
+                        let pageNum = 0, srcY = 0;
                         while (srcY < cH) {
                             if (pageNum > 0) pdf.addPage();
                             const sliceH = Math.min(pageHpx, cH - srcY);
-
                             const slice = document.createElement('canvas');
                             slice.width  = cW;
                             slice.height = Math.ceil(sliceH);
-                            slice.getContext('2d').drawImage(
-                                canvas, 0, srcY, cW, sliceH, 0, 0, cW, Math.ceil(sliceH)
-                            );
-
-                            pdf.addImage(
-                                slice.toDataURL('image/jpeg', 0.98),
-                                'JPEG', 0, 0, pageW, sliceH / pxPerMm
-                            );
+                            slice.getContext('2d').drawImage(canvas, 0, srcY, cW, sliceH, 0, 0, cW, Math.ceil(sliceH));
+                            pdf.addImage(slice.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, pageW, sliceH / pxPerMm);
                             srcY += pageHpx;
                             pageNum++;
                         }
 
-                        pdf.save(`${(this.resume.name || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`);
+                        pdf.save(`${rawName.replace(/\s+/g, '_')}_Resume.pdf`);
                         Swal.close();
                     } catch (err) {
-                        console.error("PDF Export Error:", err);
-                        // Clean up any leftover off-screen node
-                        const leftover = document.querySelector('div[style*="left:-9999px"]');
+                        console.error('PDF Export Error:', err);
+                        const leftover = document.querySelector('div[style*="top:-9999px"]');
                         if (leftover) document.body.removeChild(leftover);
-                        if (typeof savedPage !== 'undefined') this.currentPage = savedPage;
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Export Failed',
-                            text: err.message || 'Failed to generate PDF. Please try again.',
-                            confirmButtonColor: '#8b5cf6'
-                        });
+                        Swal.fire({ icon: 'error', title: 'Export Failed', text: err.message || 'Please try again.', confirmButtonColor: '#8b5cf6' });
                     }
                 }
             },

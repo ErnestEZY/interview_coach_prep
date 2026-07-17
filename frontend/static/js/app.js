@@ -62,6 +62,22 @@ window.setupSessionTimer = function(vueInstance) {
   return intervalId;
 };
 
+// Pre-clear stale token on auth pages BEFORE icpState reads localStorage.
+// icpState.token = localStorage.getItem("token") runs synchronously at parse time,
+// so any cleanup IIFE in the HTML body runs too late to stop it.
+// This guard fires first and ensures auth pages always start with no token in memory.
+(function() {
+  try {
+    var path = window.location.pathname || '';
+    var authPages = ['login.html', 'register.html', 'forgot_password.html', 'reset_password.html', 'icp-admin-auth-'];
+    var isAuthPage = authPages.some(function(p) { return path.includes(p); });
+    if (isAuthPage) {
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('icp_just_logged_in');
+    }
+  } catch(_) {}
+})();
+
 const icpState = {
   token: localStorage.getItem("token") || "",
   
@@ -95,6 +111,8 @@ const icpState = {
     if (!t || t === "undefined" || t === "null") return;
     this.token = t;
     localStorage.setItem("token", t);
+    // Record when token was set so checkStartup can avoid wiping a fresh session
+    sessionStorage.setItem('icp_just_logged_in', '1');
     try { 
       localStorage.setItem('resume_autoload_disabled', 'true'); 
     } catch (_) {}
@@ -119,6 +137,7 @@ const icpState = {
     } catch (_) {}
 
     this.token = "";
+    sessionStorage.removeItem('icp_just_logged_in');
     localStorage.removeItem("token");
     try {
       // Forcefully remove everything related to the user session
@@ -467,8 +486,21 @@ Object.assign(window.icp, {
     .then(j => {
       if (j && j.startup_id) {
         const prev = localStorage.getItem('startup_id') || '';
-        // Force logout if startup_id changed (or is missing) to ensure fresh session on server restart
+        // Force logout if startup_id changed (or is missing) to ensure fresh session on server restart.
+        // IMPORTANT: skip the clear if a token was JUST set (within the last 5 seconds) —
+        // this prevents the startup check from wiping a freshly-issued login token
+        // when the admin/login page clears startup_id on load (making prev always "").
         if (prev !== j.startup_id) {
+          // Skip the wipe if a login just completed — detected via sessionStorage flag
+          // set by setToken(). Do NOT remove the flag here — checkStartup can fire
+          // multiple times (page load + auth:changed event), and consuming the flag
+          // on the first call would leave the second call unprotected.
+          // The flag is only cleared by clearToken() on logout or by the destination
+          // page loading fresh.
+          if (sessionStorage.getItem('icp_just_logged_in') === '1') {
+            localStorage.setItem('startup_id', j.startup_id);
+            return;
+          }
           localStorage.clear(); 
           localStorage.setItem('startup_id', j.startup_id);
           window.dispatchEvent(new CustomEvent("auth:changed"));
@@ -684,16 +716,16 @@ function handleAppPromotion() {
   const injectFooterPromotion = () => {
     // Small delay to ensure DOM is fully ready and other scripts haven't cleared body
     setTimeout(() => {
-      // Only allow on CTA page
+      // Allow on CTA page and about page
       const path = window.location.pathname;
-      const isCtaPage = path.toLowerCase().includes('cta');
+      const isCtaPage = path.toLowerCase().includes('cta') || path.toLowerCase().includes('about');
       
       if (!isCtaPage) {
-        console.log('[App Promotion] Not a CTA page, skipping footer injection. Path:', path);
+        console.log('[App Promotion] Not a CTA/about page, skipping footer injection. Path:', path);
         return;
       }
 
-      console.log('[App Promotion] CTA page detected, injecting footer promotion.');
+      console.log('[App Promotion] CTA/about page detected, injecting footer promotion.');
 
       // Check if already injected
       if (document.getElementById('footer-app-promotion')) return;
@@ -749,7 +781,7 @@ function handleAppPromotion() {
  */
 function injectAppPopUpBanner() {
   const path = window.location.pathname;
-  const isCtaPage = path.toLowerCase().includes('cta');
+  const isCtaPage = path.toLowerCase().includes('cta') || path.toLowerCase().includes('about');
   
   if (!isCtaPage) return;
 
