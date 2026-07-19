@@ -1856,9 +1856,9 @@ html {
     }
 
     .resume-preview-viewport {
-        transform: scale(0.45) !important; /* Larger fixed scale for better readability on mobile */
+        transform: scale(0.42) !important; /* Slightly smaller fixed scale for better fit on mobile */
         transform-origin: top center;
-        margin-bottom: calc(-1122px * (1 - 0.45)); /* Adjust margin for 0.45 scale */
+        margin-bottom: calc(-1122px * (1 - 0.42)); /* Adjust margin for 0.42 scale */
     }
 }
 
@@ -2521,9 +2521,9 @@ html {
         justify-content: center; /* Explicitly centered */
     }
     #resume-template {
-        transform: scale(0.45);
+        transform: scale(0.42);
         transform-origin: top center;
-        margin-bottom: calc(-1122px * (1 - 0.45));
+        margin-bottom: calc(-1122px * (1 - 0.42));
     }
 }
 
