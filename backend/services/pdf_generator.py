@@ -42,11 +42,12 @@ def _find_wkhtmltopdf() -> str | None:
         print(f"pdf_generator: wkhtmltopdf from env var: {path!r}")
         return path
 
-    # 2. Known Linux install locations (apt / .deb package)
+    # 2. Known Linux install locations
+    # NOTE: the official wkhtmltox .deb installs to /usr/local/bin, NOT /usr/bin
     if sys.platform != "win32":
         linux_paths = [
-            "/usr/bin/wkhtmltopdf",
-            "/usr/local/bin/wkhtmltopdf",
+            "/usr/local/bin/wkhtmltopdf",  # official .deb install location
+            "/usr/bin/wkhtmltopdf",        # some distros / apt
         ]
         for p in linux_paths:
             if os.path.isfile(p):

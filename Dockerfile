@@ -4,13 +4,14 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including wkhtmltopdf (available in Bookworm repos),
-# Nginx for reverse proxy, and Tesseract for OCR.
+# Install system dependencies.
+# wkhtmltopdf is NOT in Debian Bookworm's apt repos, so we install the official
+# Bookworm .deb from the wkhtmltopdf GitHub releases page.
+# Tesseract is needed for OCR. Nginx is the reverse proxy.
 RUN apt-get update && apt-get install -y \
         nginx \
         curl \
         wget \
-        wkhtmltopdf \
         tesseract-ocr \
         libtesseract-dev \
         poppler-utils \
@@ -21,13 +22,29 @@ RUN apt-get update && apt-get install -y \
         gnupg2 \
         fontconfig \
         fonts-liberation \
+        xfonts-75dpi \
+        xfonts-base \
+        libxrender1 \
+        libxext6 \
+        libx11-6 \
+        libfreetype6 \
     && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && echo "wkhtmltopdf installed at: $(which wkhtmltopdf)" \
-    && wkhtmltopdf --version
+    && echo "Base packages installed."
 
-# Tell the Python PDF generator exactly where wkhtmltopdf lives.
-# This is the standard apt install path on Debian/Ubuntu.
-ENV WKHTMLTOPDF_PATH=/usr/bin/wkhtmltopdf
+# Install wkhtmltopdf from the official Bookworm .deb package.
+# The .deb installs the binary to /usr/local/bin/wkhtmltopdf.
+RUN set -eux; \
+    DEB_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb"; \
+    wget -q -O /tmp/wkhtml.deb "${DEB_URL}"; \
+    apt-get update && apt-get install -y /tmp/wkhtml.deb; \
+    rm -f /tmp/wkhtml.deb; \
+    apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    echo "wkhtmltopdf installed at: $(which wkhtmltopdf)"; \
+    wkhtmltopdf --version
+
+# Tell Python exactly where wkhtmltopdf is (the .deb installs to /usr/local/bin).
+# This is checked FIRST in pdf_generator.py — no PATH lookup needed.
+ENV WKHTMLTOPDF_PATH=/usr/local/bin/wkhtmltopdf
 
 # Copy backend requirements first to leverage Docker cache
 COPY backend/requirements.txt .
