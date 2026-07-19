@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y \
         libxss1 \
         libxtst6 \
         libxkbcommon-x11-0 \
-        libjpeg62-turbo \
+        libjpeg-turbo8 \
         libpng16-16 \
         libssl3 \
         xz-utils \

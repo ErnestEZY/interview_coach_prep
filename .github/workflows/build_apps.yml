@@ -26,7 +26,7 @@ jobs:
         run: |
           set -eux
           sudo apt-get update
-          sudo apt-get install -y wget curl ca-certificates fontconfig libfreetype6 libxrender1 libxext6 libx11-6 xz-utils libglib2.0-0 libxrandr2 libgdk-pixbuf2.0-0 libnss3 libxcomposite1 libxdamage1 libxss1 libxtst6 libxkbcommon-x11-0 libjpeg62-turbo libpng16-16 libssl3
+          sudo apt-get install -y wget curl ca-certificates fontconfig libfreetype6 libxrender1 libxext6 libx11-6 xz-utils libglib2.0-0 libxrandr2 libgdk-pixbuf2.0-0 libnss3 libxcomposite1 libxdamage1 libxss1 libxtst6 libxkbcommon-x11-0 libjpeg-turbo8 libpng16-16 libssl3
           if ! sudo apt-get install -y wkhtmltopdf; then
             echo "apt install wkhtmltopdf failed or not available, trying official .deb releases"
             WKDEB=""
