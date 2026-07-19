@@ -171,27 +171,29 @@
                     </div>
                 </div>
 
+                <!-- Reset Search Button (Top) -->
+                <div class="d-flex justify-content-end mb-3">
+                    <button class="btn btn-sm btn-outline-danger d-flex align-items-center gap-2 fw-semibold px-3 py-2 shadow-sm rounded-pill" @click="resetSearch" title="Clear auto-filled search data and start fresh">
+                        <i class="bi bi-arrow-counterclockwise fs-6"></i> Reset Search Fields
+                    </button>
+                </div>
+
                 <!-- Job Search Widget Container -->
-                <div class="card border-0 overflow-hidden cj-widget-wrapper cj-search-box-wrapper">
+                <div class="card border-0 overflow-hidden cj-widget-wrapper cj-search-box-wrapper shadow-sm">
                     <div class="card-body p-4">
                         <div id="search-box-container"></div>
                     </div>
                 </div>
 
-                <!-- Search tips & Reset -->
-                <div class="d-flex align-items-start justify-content-between gap-3 mt-3 px-1 search-tips-bar">
-                    <div class="d-flex gap-2">
-                        <i class="bi bi-lightbulb fs-5 mt-1 search-tips-icon"></i>
-                        <div class="small text-secondary">
-                            <span class="fw-semibold text-white">Search tips:</span>
-                            use full city names (e.g. <em>Kuala Lumpur</em>),
-                            try broader keywords,
-                            or leave location empty.
-                        </div>
+                <!-- Search tips — always visible, helpful for idle and no-result states -->
+                <div class="d-flex align-items-start gap-3 mt-3 px-1 search-tips-bar">
+                    <i class="bi bi-lightbulb fs-5 mt-1 search-tips-icon"></i>
+                    <div class="small text-secondary">
+                        <span class="fw-semibold text-white">Search tips:</span>
+                        use full city names (e.g. <em>Kuala Lumpur</em>),
+                        try broader keywords,
+                        or leave location empty.
                     </div>
-                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 text-nowrap" @click="resetSearch" title="Clear auto-filled search data">
-                        <i class="bi bi-arrow-counterclockwise"></i> Start Fresh
-                    </button>
                 </div>
                 
                 <div class="text-center mt-4" v-if="hasAnalyzed">
