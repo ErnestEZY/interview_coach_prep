@@ -109,30 +109,56 @@ const app = createApp({
         async setUserFromToken() {
             const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
             if (!token) return;
+
+            // First: check JWT expiry locally so we never make a doomed network call
             try {
-                const response = await axios.get(window.icp.apiUrl('/api/auth/me'));
-                const me = response.data || {};
-                this.userName = me.name || 'Guest';
-                this.userEmail = me.email || '';
-                this.hasAnalyzed = !!me.has_analyzed;
-            } catch (e) {
-                try {
-                    const base64Url = token.split('.')[1];
-                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                    const payload = JSON.parse(atob(base64));
-                    this.userName = payload.name || 'Guest';
-                    this.userEmail = payload.email || '';
-                    this.hasAnalyzed = !!payload.has_analyzed;
-                } catch (_) {}
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(atob(base64));
+                const nowSec = Math.floor(Date.now() / 1000);
+                if (payload.exp && payload.exp < nowSec) {
+                    // Token is genuinely expired — clean logout without triggering axios interceptor
+                    if (window.icp && window.icp.logout) window.icp.logout();
+                    return;
+                }
+                // Pre-fill from JWT while network call is in-flight
+                this.userName = payload.name || payload.sub || 'Guest';
+                this.userEmail = payload.email || '';
+                this.hasAnalyzed = !!payload.has_analyzed;
+            } catch (_) {}
+
+            // Use plain fetch (not axios) so the 401 interceptor cannot fire and wipe localStorage
+            try {
+                const apiBase = (window.icp && window.icp.state && window.icp.state.apiBase) || '';
+                const res = await fetch(apiBase + '/api/auth/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    const me = await res.json();
+                    this.userName = me.name || 'Guest';
+                    this.userEmail = me.email || '';
+                    this.hasAnalyzed = !!me.has_analyzed;
+                }
+                // If 401 — token expired server-side. The local check above should have caught this,
+                // but either way we do nothing here; let the session timer handle expiry gracefully.
+            } catch (_) {
+                // Network error — keep using JWT-decoded values from above
             }
         },
         async fetchConfigIfNeeded() {
             try {
                 let wid = localStorage.getItem('careerjet_widget_id');
                 if (!wid) {
-                    const r = await axios.get(window.icp.apiUrl('/api/auth/config'));
-                    wid = (r.data && r.data.careerjet_widget_id) || '';
-                    if (wid) localStorage.setItem('careerjet_widget_id', wid);
+                    const token = (window.icp && window.icp.state && window.icp.state.token) || localStorage.getItem('token') || '';
+                    const apiBase = (window.icp && window.icp.state && window.icp.state.apiBase) || '';
+                    const r = await fetch(apiBase + '/api/auth/config', {
+                        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+                    });
+                    if (r.ok) {
+                        const data = await r.json();
+                        wid = (data && data.careerjet_widget_id) || '';
+                        if (wid) localStorage.setItem('careerjet_widget_id', wid);
+                    }
                 }
                 this.careerjetWidgetId = wid || this.careerjetWidgetId || '';
             } catch (e) {

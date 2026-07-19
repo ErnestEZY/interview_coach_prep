@@ -1,4 +1,4 @@
-const CACHE_NAME = 'icp-cache-v1';
+const CACHE_NAME = 'icp-cache-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json?v=1',

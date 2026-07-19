@@ -66,10 +66,21 @@
     text-align: center;
     display: block;
     width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
   }
   .resume-contact span {
-    display: inline-block;
-    margin: 0 8px;
+    display: inline;
+    white-space: nowrap;
+  }
+  .resume-contact span + span::before {
+    content: "  \2022  ";
+    color: #999;
+    font-size: 9pt;
+  }
+  .contact-icon {
+    font-style: normal;
+    margin-right: 3px;
   }
 
   /* ── Sections ── */
@@ -274,10 +285,10 @@
     <div class="resume-title">{{ resume.title }}</div>
     {% endif %}
     <div class="resume-contact">
-      {% if resume.email %}<span>{{ resume.email }}</span>{% endif %}
-      {% if resume.phone %}<span>{{ resume.phone }}</span>{% endif %}
-      {% if resume.location %}<span>{{ resume.location }}</span>{% endif %}
-      {% if resume.website %}<span>{{ resume.website }}</span>{% endif %}
+      {% if resume.email %}<span><em class="contact-icon">&#x2709;</em>{{ resume.email }}</span>{% endif %}
+      {% if resume.phone %}<span><em class="contact-icon">&#x260E;</em>{{ resume.phone }}</span>{% endif %}
+      {% if resume.location %}<span><em class="contact-icon">&#x25CE;</em>{{ resume.location }}</span>{% endif %}
+      {% if resume.website %}<span><em class="contact-icon">&#x1F310;</em>{{ resume.website }}</span>{% endif %}
     </div>
   </div>
 
