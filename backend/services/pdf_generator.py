@@ -86,8 +86,12 @@ def generate_resume_pdf(resume: Dict[str, Any], theme_class: str) -> bytes:
         pdf_bytes = pdfkit.from_file(temp_html_path, False, options=options, configuration=config)
         return pdf_bytes
     except OSError:
-        # wkhtmltopdf not available (CI or minimal env). Return a minimal valid PDF header
-        # so unit tests that check for PDF magic bytes still pass.
+        # wkhtmltopdf not available (CI or minimal env) or failed to run.
+        # Log the error to stdout/stderr so deployment logs show the cause.
+        import traceback
+        traceback.print_exc()
+        print("pdf_generator: wkhtmltopdf missing or failed; returning minimal PDF fallback")
+        # Return a minimal valid PDF header so unit tests that check for PDF magic bytes still pass.
         minimal_pdf = (
             b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"
             b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"

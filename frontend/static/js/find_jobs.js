@@ -221,19 +221,37 @@ const app = createApp({
                     params.push('l=' + encodeURIComponent(location));
                     if (params.length > 0) widgetUrl += '?' + params.join('&');
 
-                    if (this.careerjetWidgetId) widgetDiv.setAttribute('data-url', widgetUrl);
-                    container.appendChild(widgetDiv);
+                    if (this.careerjetWidgetId) {
+                        widgetDiv.setAttribute('data-url', widgetUrl);
+                        container.appendChild(widgetDiv);
 
-                    const script = document.createElement('script');
-                    script.id = 'cj-search-box-script';
-                    script.async = true;
-                    script.src = 'https://static.careerjet.org/js/all_widget_search_box_3rd_party.min.js';
-                    script.onload = () => { 
+                        const script = document.createElement('script');
+                        script.id = 'cj-search-box-script';
+                        script.async = true;
+                        script.src = 'https://static.careerjet.org/js/all_widget_search_box_3rd_party.min.js';
+                        script.onload = () => { 
+                            this.isLoading = false;
+                            this.watchForEmptyResults(container);
+                        };
+                        script.onerror = () => { this.isLoading = false; };
+                        container.appendChild(script);
+                    } else {
+                        // Fallback: if widget id is not configured in deployment, show a simple
+                        // external link to Careerjet search so users can still find jobs.
+                        const fallback = document.createElement('div');
+                        fallback.className = 'cj-search-fallback';
+                        const q = encodeURIComponent(query || '');
+                        const l = encodeURIComponent(location || '');
+                        const url = `https://www.careerjet.net/search/jobs?s=${q}&l=${l}`;
+                        fallback.innerHTML = `
+                            <div style="display:flex;gap:12px;align-items:center;">
+                                <div style="flex:1">Careerjet widget is unavailable on this deployment. You can open the full search in a new tab.</div>
+                                <div><a class="btn btn-primary btn-sm" href="${url}" target="_blank" rel="noopener">Open Job Search</a></div>
+                            </div>
+                        `;
+                        container.appendChild(fallback);
                         this.isLoading = false;
-                        this.watchForEmptyResults(container);
-                    };
-                    script.onerror = () => { this.isLoading = false; };
-                    container.appendChild(script);
+                    }
                 }
                 
                 setTimeout(() => { this.isLoading = false; }, 3000);

@@ -18,6 +18,14 @@ RUN apt-get update && apt-get install -y \
         libcairo2-dev \
         ca-certificates \
         gnupg2 \
+        fontconfig \
+        fonts-liberation \
+        xfonts-75dpi \
+        xfonts-base \
+        libxrender1 \
+        libxext6 \
+        libx11-6 \
+        libfreetype6 \
         && \
         apt-get clean && rm -rf /var/lib/apt/lists/* \
         && \
