@@ -554,6 +554,7 @@ Object.assign(window.icp, {
               'reset_password.html', 
               'forgot_password.html', 
               'resume_builder.html',
+              'find-jobs.html',
               'about.html'
             ];
             

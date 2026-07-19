@@ -294,6 +294,11 @@ async def download_resume_pdf(
     try:
         resume_dict = payload.resume.model_dump()
         pdf_bytes = await generate_resume_pdf_async(resume_dict, payload.theme_class)
+        # Defensive: ensure PDF is not trivially small (indicates generation failure)
+        if not pdf_bytes or len(pdf_bytes) < 512:
+            import traceback
+            traceback.print_stack()
+            raise RuntimeError("PDF generation returned empty or very small output")
     except RuntimeError as e:
         import traceback
         traceback.print_exc()
