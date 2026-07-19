@@ -17,6 +17,7 @@ const app = createApp({
             timerId: null,
             loading: false,
             _isUnmounted: false,
+            _popstateHandler: null,
             // Filter options
             statusOptions: [
                 { value: '', label: 'Any status' },
@@ -47,6 +48,41 @@ const app = createApp({
     mounted() {
         this.init();
         
+        // Prevent back button to unauthenticated pages
+        this._allowedAdminRoutes = [
+            '/static/pages/icp-admin-view-2b8f4a10.html',
+            '/static/pages/icp-admin-portal-5e6a1c3d.html'
+        ];
+        // Check current URL on load
+        const checkCurrentUrl = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedAdminRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed && this.logged) {
+                window.location.replace('/static/pages/icp-admin-portal-5e6a1c3d.html');
+            }
+        };
+        checkCurrentUrl();
+        // Popstate handler
+        this._popstateHandler = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedAdminRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed) {
+                // Push multiple entries to prevent back button
+                history.replaceState(null, '', location.href);
+                for (let i = 0; i < 5; i++) {
+                    history.pushState(null, '', location.href);
+                }
+            } else {
+                history.pushState(null, '', location.href);
+            }
+        };
+        // Initialize history
+        history.replaceState(null, '', location.href);
+        for (let i = 0; i < 5; i++) {
+            history.pushState(null, '', location.href);
+        }
+        window.addEventListener('popstate', this._popstateHandler);
+        
         // Named listener for auth changes
         this._authListener = () => {
              if (!window.icp.state.token) {
@@ -61,6 +97,7 @@ const app = createApp({
         this._isUnmounted = true;
         if (this.timerId) clearInterval(this.timerId);
         if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        if (this._popstateHandler) window.removeEventListener('popstate', this._popstateHandler);
     },
     methods: {
         formatTime(seconds) {

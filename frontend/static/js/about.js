@@ -3,24 +3,77 @@ const { createApp } = Vue;
 const app = createApp({
     data() {
         return {
-            logged: false
+            logged: false,
+            role: '',
+            userName: '',
+            userEmail: ''
         };
     },
+    computed: {
+        isAdmin() {
+            return this.role === 'admin' || this.role === 'super_admin';
+        },
+        dashboardUrl() {
+            if (this.role === 'admin' || this.role === 'super_admin') {
+                // Encoded portal path: /static/pages/icp-admin-portal-5e6a1c3d.html
+                return atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tcG9ydGFsLTVlNmExYzNkLmh0bWw=');
+            }
+            return '/static/pages/dashboard.html';
+        },
+        dashboardText() {
+            return (this.role === 'admin' || this.role === 'super_admin') 
+                ? 'Back to Dashboard' 
+                : 'Go to Dashboard';
+        }
+    },
     mounted() {
+        // Prevent back button to unauthenticated pages when logged out
+        this._popstateHandler = () => {
+            history.pushState(null, '', window.location.href);
+        };
+        window.addEventListener('popstate', this._popstateHandler);
+        history.pushState(null, '', window.location.href);
+
         // Small delay to ensure app.js has initialized window.icp
         setTimeout(() => {
             this.checkAuth();
         }, 50);
         
-        window.addEventListener('auth:changed', () => {
+        this._authListener = () => {
             this.checkAuth();
-        });
+        };
+        window.addEventListener('auth:changed', this._authListener);
+    },
+    beforeUnmount() {
+        if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        if (this._popstateHandler) window.removeEventListener('popstate', this._popstateHandler);
     },
     methods: {
         showTerms() { if (window.icp && window.icp.showTerms) window.icp.showTerms(); },
         showPrivacy() { if (window.icp && window.icp.showPrivacy) window.icp.showPrivacy(); },
-        checkAuth() {
+        async checkAuth() {
             this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
+            if (!this.logged) {
+                this.role = '';
+                this.userName = '';
+                this.userEmail = '';
+                return;
+            }
+            await this.checkRole();
+        },
+        async checkRole() {
+            if (!this.logged) return;
+            try {
+                const response = await axios.get(window.icp.apiUrl('/api/auth/me'));
+                const me = response.data;
+                this.role = me.role || '';
+                this.userName = me.name || 'Guest';
+                this.userEmail = me.email || '';
+            } catch (e) {
+                console.error('Error fetching user info:', e);
+                const payload = window.icp.decodeToken(window.icp.state.token);
+                this.role = payload?.role || '';
+            }
         },
         logout() {
             if (window.icp && window.icp.logout) {

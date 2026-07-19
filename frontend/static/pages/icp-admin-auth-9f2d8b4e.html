@@ -23,19 +23,17 @@
   <style>
     [v-cloak] { display: none !important; }
   </style>
-  <script src="/static/js/app.js?v=1.7"></script>
-  <!-- Clear any stale session data when arriving at the admin login page. -->
+  <!-- Clear any stale session data FIRST, before loading app.js (which initializes icpState from localStorage) -->
   <script>
     (function() {
       try {
-        if (window.icp && window.icp.state) {
-          window.icp.state.token = "";
-        }
         const keys = Object.keys(localStorage);
         keys.forEach(function(k) { if (k !== 'startup_id') localStorage.removeItem(k); });
+        sessionStorage.removeItem('icp_just_logged_in');
       } catch(_) {}
     })();
   </script>
+  <script src="/static/js/app.js?v=1.7"></script>
 </head>
 <body>
   <div id="app" v-cloak>
@@ -49,6 +47,9 @@
       <div class="container d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-3">
           <a class="navbar-brand" href="/static/pages/icp-admin-auth-9f2d8b4e.html">ICP Admin</a>
+        </div>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <a class="btn btn-outline-light btn-sm" href="/">Back to Home</a>
         </div>
       </div>
     </nav>

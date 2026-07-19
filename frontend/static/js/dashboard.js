@@ -49,63 +49,102 @@ const app = createApp({
     }
   },
   mounted() {
-    // Check initial token
-    const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
-    this.logged = !!token;
+        // Check initial token
+        const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
+        this.logged = !!token;
 
-    if (this.logged) {
-      this.startTimer();
-      this.setUserFromToken();
-      this.initDashboard();
-    } else {
-      this.isLoading = false;
-      // Reset state if not logged in
-      this.targetJobTitle = '';
-      this.feedback = null;
-      this.hasAnalyzed = false;
-      this.fileName = '';
-      this.persistedFileName = '';
-    }
-
-    // Named listener for auth changes
-    this._authListener = () => {
-      const newToken = window.icp && window.icp.state ? window.icp.state.token : null;
-      this.logged = !!newToken;
-      if (this.logged) {
-        this.startTimer();
-        this.setUserFromToken();
-        this.initDashboard();
-      } else {
-        this.isLoading = false;
-        this.targetJobTitle = '';
-        this.feedback = null;
-        this.hasAnalyzed = false;
-        this.fileName = '';
-        this.persistedFileName = '';
-        if (this.timerId) {
-          clearInterval(this.timerId);
-          this.timerId = null;
+        if (this.logged) {
+            this.startTimer();
+            this.setUserFromToken();
+            this.initDashboard();
+        } else {
+            this.isLoading = false;
+            // Reset state if not logged in
+            this.targetJobTitle = '';
+            this.feedback = null;
+            this.hasAnalyzed = false;
+            this.fileName = '';
+            this.persistedFileName = '';
         }
-      }
-    };
-    window.addEventListener('auth:changed', this._authListener);
-    
-    // Named listener for tooltip
-    this._tooltipListener = (e) => {
-      const wrapper = document.querySelector('.info-popover-wrapper');
-      if (wrapper && !wrapper.contains(e.target)) {
-        this.showInfoTooltip = false;
-      }
-    };
-    document.addEventListener('click', this._tooltipListener);
-  },
-  beforeUnmount() {
-    this._isUnmounted = true;
-    if (this.timerId) clearInterval(this.timerId);
-    if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
-    if (this._tooltipListener) document.removeEventListener('click', this._tooltipListener);
-    document.body.style.overflow = "";
-  },
+
+        // Prevent back button to unauthenticated pages
+        this._allowedUserRoutes = [
+            '/static/pages/dashboard.html',
+            '/static/pages/history.html',
+            '/static/pages/resume_builder.html',
+            '/static/pages/find_jobs.html',
+            '/static/pages/interview.html'
+        ];
+        // Check current URL on load
+        const checkCurrentUrl = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed && this.logged) {
+                window.location.replace('/static/pages/dashboard.html');
+            }
+        };
+        checkCurrentUrl();
+        // Popstate handler
+        this._handlePopState = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed) {
+                // Push multiple entries to prevent back button
+                history.replaceState(null, '', location.href);
+                for (let i = 0; i < 5; i++) {
+                    history.pushState(null, '', location.href);
+                }
+            } else {
+                history.pushState(null, '', location.href);
+            }
+        };
+        // Initialize history
+        history.replaceState(null, '', location.href);
+        for (let i = 0; i < 5; i++) {
+            history.pushState(null, '', location.href);
+        }
+        window.addEventListener('popstate', this._handlePopState);
+
+        // Named listener for auth changes
+        this._authListener = () => {
+            const newToken = window.icp && window.icp.state ? window.icp.state.token : null;
+            this.logged = !!newToken;
+            if (this.logged) {
+                this.startTimer();
+                this.setUserFromToken();
+                this.initDashboard();
+            } else {
+                this.isLoading = false;
+                this.targetJobTitle = '';
+                this.feedback = null;
+                this.hasAnalyzed = false;
+                this.fileName = '';
+                this.persistedFileName = '';
+                if (this.timerId) {
+                    clearInterval(this.timerId);
+                    this.timerId = null;
+                }
+            }
+        };
+        window.addEventListener('auth:changed', this._authListener);
+        
+        // Named listener for tooltip
+        this._tooltipListener = (e) => {
+            const wrapper = document.querySelector('.info-popover-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                this.showInfoTooltip = false;
+            }
+        };
+        document.addEventListener('click', this._tooltipListener);
+    },
+    beforeUnmount() {
+        this._isUnmounted = true;
+        if (this.timerId) clearInterval(this.timerId);
+        if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        if (this._tooltipListener) document.removeEventListener('click', this._tooltipListener);
+        if (this._handlePopState) window.removeEventListener('popstate', this._handlePopState);
+        document.body.style.overflow = "";
+    },
   methods: {
     toggleMobileMenu() {
       this.isMobileMenuOpen = !this.isMobileMenuOpen;
@@ -114,13 +153,14 @@ const app = createApp({
       }
     },
     async setUserFromToken() {
-      const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
+      const token = window.icp && window.icp.state.token ? window.icp.state.token : localStorage.getItem("token");
       if (!token) return;
       try {
         const response = await axios.get(window.icp.apiUrl('/api/auth/me'));
         const me = response.data || {};
         this.userName = me.name || 'Guest';
         this.userEmail = me.email || '';
+        this.isAdmin = (me.role === 'admin' || me.role === 'super_admin');
       } catch (_) {
         try {
           const base64Url = token.split('.')[1];
@@ -128,6 +168,7 @@ const app = createApp({
           const payload = JSON.parse(atob(base64));
           this.userName = payload.name || 'Guest';
           this.userEmail = payload.email || '';
+          this.isAdmin = (payload.role === 'admin' || payload.role === 'super_admin');
         } catch (e) {}
       }
     },

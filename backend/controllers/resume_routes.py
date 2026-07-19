@@ -6,13 +6,16 @@ import json
 import base64
 import httpx
 from ..core.db import resumes, users, fs
-from ..models.schemas import ResumeFeedback, ManualProfileIn
+from ..models.schemas import ResumeFeedback, ManualProfileIn, ResumePDFRequest
+from fastapi.responses import StreamingResponse
+import io
 from ..core.security import get_current_user
 from ..services.resume_parser import extract_resume_text
 from ..services.ai_feedback import get_feedback
 from ..services.rate_limit import rate_limit
 from ..services.utils import get_malaysia_time, is_gibberish
 from ..services.daily_limit import check_daily_limit, increment_daily_limit
+from ..services.pdf_generator import generate_resume_pdf_async
 
 router = APIRouter(prefix="/api/resume", tags=["resume"])
 
@@ -276,3 +279,35 @@ async def my_resumes(current=Depends(get_current_user)):
             }
         )
     return items
+
+
+@router.post("/builder/download-pdf")
+async def download_resume_pdf(
+    payload: ResumePDFRequest,
+    current=Depends(get_current_user),
+):
+    """
+    Generate an ATS-friendly text-based PDF from the resume builder data.
+    Uses Playwright (headless Chrome/Edge) for pixel-perfect rendering.
+    """
+
+    try:
+        resume_dict = payload.resume.model_dump()
+        pdf_bytes = await generate_resume_pdf_async(resume_dict, payload.theme_class)
+    except RuntimeError as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"PDF generation error: {str(e)}")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {type(e).__name__}: {str(e)}")
+
+    safe_name = (payload.resume.name or "Resume").replace(" ", "_").replace("/", "_")
+    filename = f"{safe_name}_Resume.pdf"
+
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

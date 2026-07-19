@@ -10,6 +10,10 @@ const app = createApp({
         };
     },
     mounted() {
+        // Clear any existing token/session
+        if (window.icp && window.icp.state) {
+            window.icp.state.clearToken();
+        }
         // Clear old session data
         try {
             localStorage.removeItem('resume_feedback');
@@ -36,6 +40,13 @@ const app = createApp({
             }
         },
         async login() {
+            // CLEAR ALL EXISTING SESSION DATA BEFORE ANYTHING ELSE
+            if (window.icp && window.icp.state) {
+                window.icp.state.clearToken();
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            
             if (this.loading) return;
             this.loading = true;
 

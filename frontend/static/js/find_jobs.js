@@ -15,7 +15,8 @@ const app = createApp({
             syncInterval: null,
             sessionTime: 0,
             timerId: null,
-            _isUnmounted: false
+            _isUnmounted: false,
+            _popstateHandler: null
         };
     },
     computed: {
@@ -27,6 +28,44 @@ const app = createApp({
     },
     mounted() {
         this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
+        
+        // Prevent back button to unauthenticated pages
+        this._allowedUserRoutes = [
+            '/static/pages/dashboard.html',
+            '/static/pages/history.html',
+            '/static/pages/resume_builder.html',
+            '/static/pages/find_jobs.html',
+            '/static/pages/interview.html'
+        ];
+        // Check current URL on load
+        const checkCurrentUrl = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed && this.logged) {
+                window.location.replace('/static/pages/dashboard.html');
+            }
+        };
+        checkCurrentUrl();
+        // Popstate handler
+        this._popstateHandler = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed) {
+                // Push multiple entries to prevent back button
+                history.replaceState(null, '', location.href);
+                for (let i = 0; i < 5; i++) {
+                    history.pushState(null, '', location.href);
+                }
+            } else {
+                history.pushState(null, '', location.href);
+            }
+        };
+        // Initialize history
+        history.replaceState(null, '', location.href);
+        for (let i = 0; i < 5; i++) {
+            history.pushState(null, '', location.href);
+        }
+        window.addEventListener('popstate', this._popstateHandler);
         
         // Named listener for auth changes
         this._authListener = () => {
@@ -57,6 +96,7 @@ const app = createApp({
             this.timerId = null;
         }
         if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        if (this._popstateHandler) window.removeEventListener('popstate', this._popstateHandler);
         document.body.style.overflow = "";
     },
     methods: {

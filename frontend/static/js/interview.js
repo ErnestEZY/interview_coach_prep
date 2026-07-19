@@ -74,7 +74,8 @@ const app = createApp({
             selectedFemaleVoiceId: null,
             selectedMaleVoiceId: null,
             isPaused: false,
-            _isUnmounted: false
+            _isUnmounted: false,
+            _popstateHandler: null
         };
     },
     computed: {
@@ -115,6 +116,44 @@ const app = createApp({
         }
     },
     mounted() {
+        // Prevent back button to unauthenticated pages
+        this._allowedUserRoutes = [
+            '/static/pages/dashboard.html',
+            '/static/pages/history.html',
+            '/static/pages/resume_builder.html',
+            '/static/pages/find_jobs.html',
+            '/static/pages/interview.html'
+        ];
+        // Check current URL on load
+        const checkCurrentUrl = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed && this.logged) {
+                window.location.replace('/static/pages/dashboard.html');
+            }
+        };
+        checkCurrentUrl();
+        // Popstate handler
+        this._popstateHandler = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed) {
+                // Push multiple entries to prevent back button
+                history.replaceState(null, '', location.href);
+                for (let i = 0; i < 5; i++) {
+                    history.pushState(null, '', location.href);
+                }
+            } else {
+                history.pushState(null, '', location.href);
+            }
+        };
+        // Initialize history
+        history.replaceState(null, '', location.href);
+        for (let i = 0; i < 5; i++) {
+            history.pushState(null, '', location.href);
+        }
+        window.addEventListener('popstate', this._popstateHandler);
+
         // Initialize state
         const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
         this.logged = !!token;
@@ -187,6 +226,9 @@ const app = createApp({
             document.removeEventListener('click', this._activityListener);
             document.removeEventListener('keypress', this._activityListener);
             this._activityListener = null;
+        }
+        if (this._popstateHandler) {
+            window.removeEventListener('popstate', this._popstateHandler);
         }
 
         // Reset body overflow in case mobile menu was open

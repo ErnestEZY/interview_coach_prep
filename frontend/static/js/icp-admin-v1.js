@@ -12,6 +12,10 @@ const app = createApp({
         };
     },
     mounted() {
+        // Clear any existing token/session
+        if (window.icp && window.icp.state) {
+            window.icp.state.clearToken();
+        }
         this.checkAuth();
         this._authListener = () => this.checkAuth();
         window.addEventListener('auth:changed', this._authListener);
@@ -37,6 +41,13 @@ const app = createApp({
             }
         },
         async login() {
+            // CLEAR ALL EXISTING SESSION DATA BEFORE ANYTHING ELSE
+            if (window.icp && window.icp.state) {
+                window.icp.state.clearToken();
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            
             if (this.loading) return;
             this.loading = true;
 

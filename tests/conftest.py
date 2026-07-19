@@ -5,7 +5,12 @@ tries to grab an event loop during module-level code.
 """
 import os
 import sys
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
+
+# Set event loop policy for Windows to prevent RuntimeError
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
@@ -53,3 +58,12 @@ def _col():
 for _name in ["users","pending_users","reset_tokens",
               "resumes","interviews","audit_logs","usage"]:
     setattr(_db, _name, _col())
+
+# Add event loop policy fixture for pytest-asyncio
+import pytest
+
+@pytest.fixture(scope="session")
+def event_loop_policy():
+    if sys.platform == "win32":
+        return asyncio.WindowsProactorEventLoopPolicy()
+    return asyncio.DefaultEventLoopPolicy()

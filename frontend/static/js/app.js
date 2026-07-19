@@ -71,9 +71,41 @@ window.setupSessionTimer = function(vueInstance) {
     var path = window.location.pathname || '';
     var authPages = ['login.html', 'register.html', 'forgot_password.html', 'reset_password.html', 'icp-admin-auth-'];
     var isAuthPage = authPages.some(function(p) { return path.includes(p); });
+    var isHomePage = path === '/' || path === '/index.html';
+    var isAboutPage = path.includes('about.html');
+    var isUnauthenticatedPage = isAuthPage || isHomePage || isAboutPage;
     if (isAuthPage) {
       localStorage.removeItem('token');
       sessionStorage.removeItem('icp_just_logged_in');
+    }
+    // For unauthenticated pages, prevent back button from going to authenticated pages
+    if (isUnauthenticatedPage) {
+      // Define allowed authenticated routes
+      var userRoutes = [
+        'dashboard.html',
+        'history.html',
+        'resume_builder.html',
+        'find_jobs.html',
+        'interview.html'
+      ];
+      var adminRoutes = [
+        'icp-admin-view-2b8f4a10.html',
+        'icp-admin-dashboard-v1.html'
+      ];
+      // Function to check if a path is authenticated
+      function isAuthenticatedPath(targetPath) {
+        return userRoutes.some(function(r) { return targetPath.includes(r); }) ||
+               adminRoutes.some(function(r) { return targetPath.includes(r); });
+      }
+      // Handle popstate
+      function handlePopState() {
+        // Push current page to history
+        history.pushState(null, '', window.location.href);
+      }
+      // Add popstate listener
+      window.addEventListener('popstate', handlePopState);
+      // Push initial state
+      history.pushState(null, '', window.location.href);
     }
   } catch(_) {}
 })();
@@ -180,8 +212,15 @@ if (icpState.token === "undefined" || icpState.token === "null") {
 if (window.axios) {
   // Request Interceptor
   axios.interceptors.request.use(function (config) {
-    // Only add token if it exists and we're NOT hitting the login endpoint
-    if (icpState.token && !config.url.includes('/api/auth/login')) {
+    // Only add token if:
+    // 1. It exists
+    // 2. We're NOT hitting the login endpoint
+    // 3. There isn't already an Authorization header set
+    if (
+      icpState.token && 
+      !config.url.includes('/api/auth/login') && 
+      !config.headers['Authorization']
+    ) {
       config.headers['Authorization'] = 'Bearer ' + icpState.token;
     }
     
@@ -241,9 +280,11 @@ function logout() {
   // clearToken() handles the backend reset and localStorage clearing
   icpState.clearToken();
   if (is_admin_page) {
-    window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
+    // Replace history with admin login page and clear history stack
+    window.location.replace(atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s'));
   } else {
-    window.location.href = "/";
+    // Replace history with home page and clear history stack
+    window.location.replace("/");
   }
 }
 
@@ -530,6 +571,69 @@ Object.assign(window.icp, {
       }
     })
     .catch(() => {});
+})();
+
+// Admin login via documented, mature methods
+(() => {
+  // Helper function to show passphrase prompt
+  const showPassphrasePrompt = () => {
+    Swal.fire({
+      title: 'Admin Access',
+      text: 'Enter the secret passphrase to proceed:',
+      input: 'password',
+      inputPlaceholder: 'Enter passphrase',
+      showCancelButton: true,
+      confirmButtonText: 'Submit',
+      confirmButtonColor: '#8b5cf6',
+      cancelButtonText: 'Cancel',
+      inputValidator: (value) => {
+        if (!value) {
+          return 'You need to enter the passphrase!';
+        }
+        // The secret passphrase (only you know this!)
+        if (value !== 'icp_admin_secret_2024') {
+          return 'Incorrect passphrase!';
+        }
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
+      }
+    });
+  };
+  
+  // 1. Secret query parameter: ?portal=admin (for easy documentation)
+  // Use sessionStorage to prevent running this multiple times
+  if (!sessionStorage.getItem('admin_portal_handled')) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('portal') === 'admin') {
+      window.history.replaceState({}, '', window.location.pathname);
+      sessionStorage.setItem('admin_portal_handled', 'true');
+      showPassphrasePrompt();
+    }
+  }
+  
+  // 2. Konami code as a fun backup
+  const konamiCode = [
+    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+    'KeyB', 'KeyA'
+  ];
+  let konamiIndex = 0;
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.code === konamiCode[konamiIndex]) {
+      konamiIndex++;
+      if (konamiIndex === konamiCode.length) {
+        showPassphrasePrompt();
+        konamiIndex = 0;
+      }
+    } else {
+      konamiIndex = 0;
+    }
+  });
+  
+
 })();
 
 // Global Loader Logic

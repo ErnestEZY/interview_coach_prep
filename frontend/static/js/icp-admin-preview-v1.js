@@ -9,11 +9,50 @@ const app = createApp({
             fileUrl: '',
             errorMsg: '',
             sessionTime: 0,
-            timerId: null
+            timerId: null,
+            userName: 'Admin',
+            userEmail: '',
+            _popstateHandler: null,
+            _isUnmounted: false
         };
     },
     mounted() {
         this.init();
+        
+        // Prevent back button to unauthenticated pages
+        this._allowedAdminRoutes = [
+            '/static/pages/icp-admin-view-2b8f4a10.html',
+            '/static/pages/icp-admin-portal-5e6a1c3d.html'
+        ];
+        // Check current URL on load
+        const checkCurrentUrl = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedAdminRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed && this.logged) {
+                window.location.replace('/static/pages/icp-admin-portal-5e6a1c3d.html');
+            }
+        };
+        checkCurrentUrl();
+        // Popstate handler
+        this._popstateHandler = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedAdminRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed) {
+                // Push multiple entries to prevent back button
+                history.replaceState(null, '', location.href);
+                for (let i = 0; i < 5; i++) {
+                    history.pushState(null, '', location.href);
+                }
+            } else {
+                history.pushState(null, '', location.href);
+            }
+        };
+        // Initialize history
+        history.replaceState(null, '', location.href);
+        for (let i = 0; i < 5; i++) {
+            history.pushState(null, '', location.href);
+        }
+        window.addEventListener('popstate', this._popstateHandler);
         
         // Named listener for auth changes
         this._authListener = () => {
@@ -29,9 +68,11 @@ const app = createApp({
         window.addEventListener('beforeunload', this._unloadListener);
     },
     beforeUnmount() {
+        this._isUnmounted = true;
         if (this.timerId) clearInterval(this.timerId);
         if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
         if (this._unloadListener) window.removeEventListener('beforeunload', this._unloadListener);
+        if (this._popstateHandler) window.removeEventListener('popstate', this._popstateHandler);
     },
     methods: {
         formatTime(seconds) {
@@ -76,31 +117,33 @@ const app = createApp({
             this.timerId = setInterval(updateTimer, 1000);
         },
         async init() {
-            const urlParams = new URLSearchParams(window.location.search);
-            this.id = urlParams.get('id');
-            
-            this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
-            
-            if (!this.logged) {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.id = urlParams.get('id');
+        
+        this.logged = !!(window.icp && window.icp.state && window.icp.state.token);
+        
+        if (!this.logged) {
+            // Encoded login path: /static/pages/icp-admin-auth-9f2d8b4e.html
+            window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
+            return;
+        }
+        
+        this.startTimer();
+        
+        try {
+            const me = await axios.get(window.icp.apiUrl('/api/auth/me')).then(r => r.data);
+            this.userName = me.name || 'Admin';
+            this.userEmail = me.email || '';
+            if (!(me.role === 'admin' || me.role === 'super_admin')) {
                 // Encoded login path: /static/pages/icp-admin-auth-9f2d8b4e.html
                 window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
                 return;
             }
-            
-            this.startTimer();
-            
-            try {
-                const me = await axios.get(window.icp.apiUrl('/api/auth/me')).then(r => r.data);
-                if (!(me.role === 'admin' || me.role === 'super_admin')) {
-                    // Encoded login path: /static/pages/icp-admin-auth-9f2d8b4e.html
-                    window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
-                    return;
-                }
-            } catch (e) {
-                // Encoded login path: /static/pages/icp-admin-auth-9f2d8b4e.html
-                window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
-                return;
-            }
+        } catch (e) {
+            // Encoded login path: /static/pages/icp-admin-auth-9f2d8b4e.html
+            window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
+            return;
+        }
             
             if (!this.id) {
                 Swal.fire({ 

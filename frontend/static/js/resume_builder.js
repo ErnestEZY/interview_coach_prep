@@ -8,6 +8,7 @@ try {
                 userEmail: '',
                 logged: false,
                 hasAnalyzed: false,
+                isAdmin: false,
                 isMobileMenuOpen: false,
                 sessionTime: 0,
                 timerId: null,
@@ -80,26 +81,26 @@ try {
         },
         watch: {
             resume: {
-            handler(val) {
-                localStorage.setItem('resume_builder_session', JSON.stringify(val));
-                this.$nextTick(() => {
-                    this.updatePageCount();
-                });
-            },
-            deep: true
-        }
-    },
-    computed: {
-        nameFontSize() {
-            const length = this.resume.name.length;
-            if (length > 30) return '12pt';
-            if (length > 20) return '14pt';
-            return '16pt';
-        }
-    },
+                handler(val) {
+                    localStorage.setItem('resume_builder_session', JSON.stringify(val));
+                    this.$nextTick(() => {
+                        this.updatePageCount();
+                    });
+                },
+                deep: true
+            }
+        },
+        computed: {
+            nameFontSize() {
+                const length = this.resume.name.length;
+                if (length > 30) return '12pt';
+                if (length > 20) return '14pt';
+                return '16pt';
+            }
+        },
         async mounted() {
         console.log("Resume Builder Mounted");
-        
+
         // Listen for auth changes
         this._authListener = () => {
             const token = localStorage.getItem('token');
@@ -109,7 +110,45 @@ try {
             }
         };
         window.addEventListener('auth:changed', this._authListener);
-        
+
+        // Prevent back button to unauthenticated pages
+        this._allowedUserRoutes = [
+            '/static/pages/dashboard.html',
+            '/static/pages/history.html',
+            '/static/pages/resume_builder.html',
+            '/static/pages/find_jobs.html',
+            '/static/pages/interview.html'
+        ];
+        // Check current URL on load
+        const checkCurrentUrl = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed && this.logged) {
+                window.location.replace('/static/pages/dashboard.html');
+            }
+        };
+        checkCurrentUrl();
+        // Popstate handler
+        this._handlePopState = () => {
+            const currentPath = window.location.pathname;
+            const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
+            if (!isAllowed) {
+                // Push multiple entries to prevent back button
+                history.replaceState(null, '', location.href);
+                for (let i = 0; i < 5; i++) {
+                    history.pushState(null, '', location.href);
+                }
+            } else {
+                history.pushState(null, '', location.href);
+            }
+        };
+        // Initialize history
+        history.replaceState(null, '', location.href);
+        for (let i = 0; i < 5; i++) {
+            history.pushState(null, '', location.href);
+        }
+        window.addEventListener('popstate', this._handlePopState);
+
         // Initialize page count after loading state
         this.$nextTick(() => {
             setTimeout(() => {
@@ -118,50 +157,54 @@ try {
         });
 
         const token = localStorage.getItem('token');
-            this.logged = !!token;
-            
-            if (!this.logged) {
-                window.location.href = '/static/pages/login.html';
-                return;
+        this.logged = !!token;
+
+        if (!this.logged) {
+            window.location.href = '/static/pages/login.html';
+            return;
+        }
+
+        // Load session data if available
+        const savedResume = localStorage.getItem('resume_builder_session');
+        if (savedResume) {
+            try {
+                this.resume = JSON.parse(savedResume);
+                console.log("Session data restored");
+            } catch (e) {
+                console.error("Error restoring session:", e);
             }
+        }
 
-            // Load session data if available
-            const savedResume = localStorage.getItem('resume_builder_session');
-            if (savedResume) {
-                try {
-                    this.resume = JSON.parse(savedResume);
-                    console.log("Session data restored");
-                } catch (e) {
-                    console.error("Error restoring session:", e);
-                }
-            }
+        // Load user info
+        await this.setUserFromToken();
 
-            // Load user info
-            await this.setUserFromToken();
-            
-            // Start session timer using JWT exp decode (same pattern as all other pages)
-            this.startTimer();
+        // Start session timer using JWT exp decode (same pattern as all other pages)
+        this.startTimer();
 
-            // Add a small delay to ensure app.js checks are done
-            setTimeout(() => {
-                this.isLoading = false;
-                console.log("Loading complete, state:", this.resume);
-                this.checkAnalysisImport();
-            }, 200);
+        // Add a small delay to ensure app.js checks are done
+        setTimeout(() => {
+            this.isLoading = false;
+            console.log("Loading complete, state:", this.resume);
+            this.checkAnalysisImport();
+            this.$nextTick(() => {
+                this.updatePageCount();
+            });
+        }, 200);
 
-            // Initialize with one empty item for main sections if they are empty
-            if (this.resume.education.length === 0) this.addItem('education');
-            if (this.resume.experience.length === 0) this.addItem('experience');
-        },
-        beforeUnmount() {
-            this._isUnmounted = true;
-            if (this.timerId) {
-                clearInterval(this.timerId);
-                this.timerId = null;
-            }
-            if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
-            document.body.style.overflow = "";
-        },
+        // Initialize with one empty item for main sections if they are empty
+        if (this.resume.education.length === 0) this.addItem('education');
+        if (this.resume.experience.length === 0) this.addItem('experience');
+    },
+    beforeUnmount() {
+        this._isUnmounted = true;
+        if (this.timerId) {
+            clearInterval(this.timerId);
+            this.timerId = null;
+        }
+        if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        if (this._handlePopState) window.removeEventListener('popstate', this._handlePopState);
+        document.body.style.overflow = "";
+    },
         methods: {
             toggleMobileMenu() {
                 this.isMobileMenuOpen = !this.isMobileMenuOpen;
@@ -220,7 +263,7 @@ try {
                 // AND there's actual feedback data in localStorage.
                 // This prevents stale or injected localStorage data from triggering the prompt.
                 if (!this.hasAnalyzed) return;
-                
+
                 if (feedbackStr && !hidePrompt) {
                     const result = await Swal.fire({
                         title: 'Import AI-Polished Data?',
@@ -243,7 +286,7 @@ try {
                     });
 
                     const dontAskAgainChecked = document.getElementById('dontAskAgain')?.checked;
-                    
+
                     if (dontAskAgainChecked) {
                         localStorage.setItem('resume_builder_hide_import_prompt', 'true');
                     }
@@ -251,7 +294,7 @@ try {
                     if (result.isConfirmed) {
                         try {
                             const feedback = JSON.parse(feedbackStr);
-                            
+
                             // 1. Basics
                             const targetJobTitle = localStorage.getItem('target_job_title');
                             if (targetJobTitle) {
@@ -259,7 +302,7 @@ try {
                             } else if (feedback.DetectedJobTitle) {
                                 this.resume.title = feedback.DetectedJobTitle;
                             }
-                            
+
                             if (feedback.Location) this.resume.location = feedback.Location;
                             if (feedback.Email) this.resume.email = feedback.Email;
                             if (feedback.Phone) this.resume.phone = feedback.Phone;
@@ -267,7 +310,7 @@ try {
                             if (feedback.ProfessionalSummary || feedback.Summary) {
                                 this.resume.summary = feedback.ProfessionalSummary || feedback.Summary;
                             }
-                            
+
                             // 2. Education
                             if (feedback.Education && Array.isArray(feedback.Education) && feedback.Education.length > 0) {
                                 this.resume.education = feedback.Education.map(edu => ({
@@ -328,33 +371,33 @@ try {
                             if (feedback.SkillsSoft) {
                                 this.resume.skills_soft = Array.isArray(feedback.SkillsSoft) ? feedback.SkillsSoft : feedback.SkillsSoft.split(/[,\n]/).map(s => s.trim()).filter(s => s);
                             }
-                            
+
                             // 6. Others
                             if (feedback.Certifications && Array.isArray(feedback.Certifications)) {
-                                this.resume.certifications = feedback.Certifications.map(c => ({ 
-                                    name: typeof c === 'string' ? c : (c.name || c.Name || '') 
+                                this.resume.certifications = feedback.Certifications.map(c => ({
+                                    name: typeof c === 'string' ? c : (c.name || c.Name || '')
                                 })).filter(c => c.name);
                             }
                             if (feedback.Languages && Array.isArray(feedback.Languages)) {
-                                this.resume.languages = feedback.Languages.map(l => ({ 
-                                    name: typeof l === 'string' ? l : (l.name || l.Name || '') 
+                                this.resume.languages = feedback.Languages.map(l => ({
+                                    name: typeof l === 'string' ? l : (l.name || l.Name || '')
                                 })).filter(l => l.name);
                             }
 
                             // 7. Extra
                             if (feedback.AdditionalInfo && Array.isArray(feedback.AdditionalInfo)) {
-                                this.resume.extra_info = feedback.AdditionalInfo.map(i => ({ 
-                                    content: typeof i === 'string' ? i : (i.content || i.Content || '') 
+                                this.resume.extra_info = feedback.AdditionalInfo.map(i => ({
+                                    content: typeof i === 'string' ? i : (i.content || i.Content || '')
                                 })).filter(i => i.content);
                             } else if (feedback.ExtraInfo && typeof feedback.ExtraInfo === 'string') {
                                 this.resume.extra_info = feedback.ExtraInfo.split('\n')
                                     .filter(line => line.trim())
                                     .map(line => ({ content: line.trim() }));
                             }
-                            
+
                             // Trigger immediate save to session
                             localStorage.setItem('resume_builder_session', JSON.stringify(this.resume));
-                            
+
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Full Import Complete',
@@ -371,7 +414,7 @@ try {
             async setUserFromToken() {
                 const token = localStorage.getItem('token');
                 if (!token) return;
-                
+
                 try {
                     // Try backend first
                     const apiUrl = (window.icp && window.icp.apiUrl) ? window.icp.apiUrl('/api/auth/me') : '/api/auth/me';
@@ -381,6 +424,7 @@ try {
                     this.userEmail = me.email || '';
                     // Use has_analyzed from backend OR session flag set after upload
                     this.hasAnalyzed = !!me.has_analyzed || localStorage.getItem('session_has_analyzed') === 'true';
+                    this.isAdmin = (me.role === 'admin' || me.role === 'super_admin');
                     // Update resume name if it was default
                     if (this.resume.name === 'FULL NAME') {
                         this.resume.name = this.userName;
@@ -397,6 +441,7 @@ try {
                         this.userName = payload.name || 'Guest';
                         this.userEmail = payload.email || '';
                         this.hasAnalyzed = !!payload.has_analyzed || localStorage.getItem('session_has_analyzed') === 'true';
+                        this.isAdmin = (payload.role === 'admin' || payload.role === 'super_admin');
                         if (this.resume.name === 'FULL NAME') {
                             this.resume.name = this.userName;
                         }
@@ -512,87 +557,65 @@ try {
                 const themeClass = this.currentTheme.className;
                 const fileName = rawName.replace(/\s+/g, '_') + '_Resume';
 
-                // ── ATS Path: clean popup print ─────────────────────────────────────────
+                // ── ATS Path: server-side PDF via Jinja2 + xhtml2pdf ────────────────────
                 if (result.isConfirmed) {
-                    const resumeHTML = el.innerHTML;
+                    Swal.fire({
+                        title: 'Generating ATS PDF...',
+                        text: 'Building your text-based resume. This takes a moment.',
+                        allowOutsideClick: false,
+                        showCloseButton: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
 
-                    const printDoc = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>${fileName}</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { background: white; font-family: 'Times New Roman', Times, serif; color: #333; font-size: 11pt; line-height: 1.5; }
-    @page { size: A4 portrait; margin: 0; }
-    body { padding: 12mm 14mm; }
-    #resume-template { width: 100%; }
-    .resume-header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px; text-align: center; }
-    .resume-name { font-size: 22pt; font-weight: bold; color: #333; text-transform: uppercase; letter-spacing: 2px; overflow-wrap: break-word; word-break: break-word; margin-bottom: 5px; }
-    .resume-title { font-size: 12pt; color: #555; font-weight: 500; margin-bottom: 10px; }
-    .resume-contact { font-size: 10pt; color: #444; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
-    .section-title { font-size: 14pt; font-weight: bold; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 20px; margin-bottom: 10px; text-transform: uppercase; page-break-after: avoid; break-after: avoid; }
-    .resume-item { margin-bottom: 15px; page-break-inside: avoid; break-inside: avoid; }
-    .item-header { display: flex; justify-content: space-between; font-weight: bold; }
-    .item-sub { font-style: italic; color: #555; font-size: 10pt; margin-bottom: 5px; }
-    .item-desc { font-size: 10pt; line-height: 1.4; color: #444; }
-    .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 20px; margin-top: 5px; }
-    .skill-group-title { font-weight: bold; font-size: 10pt; margin-bottom: 2px; }
-    .skills-list { font-size: 10pt; color: #444; }
-    .cert-lang-row { display: flex; gap: 20px; }
-    .cert-lang-col-left, .cert-lang-col-right { flex: 1; }
-    .cert-lang-item { page-break-inside: avoid; break-inside: avoid; }
-    #resume-template::after { display: none !important; }
-    .bi::before { content: '' }
-    .theme-classic { font-family: 'Times New Roman', Times, serif; }
-    .theme-classic .resume-name { color: #333; }
-    .theme-classic .section-title { border-bottom-color: #ccc; color: #333; }
-    .theme-modern { font-family: Arial, Helvetica, sans-serif; }
-    .theme-modern .resume-header { border-bottom-color: #007BFF; }
-    .theme-modern .resume-name { color: #007BFF; letter-spacing: 1px; }
-    .theme-modern .section-title { border-bottom: 2px solid #007BFF; color: #333; text-transform: uppercase; font-size: 13pt; }
-    .theme-modern .item-header span:first-child { color: #007BFF; }
-    .theme-kendall { font-family: 'Garamond', 'Times New Roman', serif; }
-    .theme-kendall .resume-name { font-family: 'Garamond', serif; font-weight: bold; text-align: center; letter-spacing: 4px; font-size: 24pt; }
-    .theme-kendall .section-title { font-family: 'Garamond', serif; text-align: center; font-size: 14pt; letter-spacing: 2px; border-top: 1px solid #000; border-bottom: 1px solid #000; padding-top: 5px; padding-bottom: 5px; margin-top: 15px; }
-    .theme-flat { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-    .theme-flat .section-title { background-color: #f2f2f2; padding: 5px 10px; font-size: 12pt; font-weight: bold; border-left: 4px solid #333; }
-    .theme-flat .item-header span:first-child { font-weight: bold; }
-    .theme-gov { font-family: 'Times New Roman', Times, serif; }
-    .theme-gov .resume-name { font-size: 18pt; font-weight: bold; }
-    .theme-gov .section-title { font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 2px; margin-bottom: 8px; text-transform: uppercase; }
-    .theme-gov .item-header { font-weight: normal; }
-    .theme-gov .item-header span:first-child { font-weight: bold; }
-    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  </style>
-</head>
-<body>
-  <div id="resume-template" class="${themeClass}">
-    ${resumeHTML}
-  </div>
-  <script>
-    window.onload = function() {
-      setTimeout(function() {
-        window.print();
-        window.onafterprint = function() { window.close(); };
-      }, 250);
-    };
-  <\/script>
-</body>
-</html>`;
+                    try {
+                        const token = localStorage.getItem('token');
+                        const apiUrl = window.icp ? window.icp.apiUrl('/api/resume/builder/download-pdf') : '/api/resume/builder/download-pdf';
 
-                    const printWin = window.open('', '_blank', 'width=900,height=700,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no');
-                    if (!printWin) {
+                        // Use axios with responseType:'blob' so the binary PDF is
+                        // handled correctly and auth interceptors apply automatically
+                        const response = await axios.post(
+                            apiUrl,
+                            {
+                                resume: this.resume,
+                                theme_class: this.currentTheme.className,
+                            },
+                            {
+                                headers: {
+                                    'Authorization': 'Bearer ' + token,
+                                },
+                                responseType: 'blob',
+                            }
+                        );
+
+                        if (response.status !== 200) {
+                            // Try to read error detail from the blob
+                            const text = await response.data.text();
+                            let detail = `Server error ${response.status}`;
+                            try { detail = JSON.parse(text).detail || detail; } catch(_) {}
+                            throw new Error(detail);
+                        }
+
+                        // Trigger browser download from the binary response
+                        const blob = response.data;
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${(this.resume.name || 'Resume').replace(/\s+/g, '_')}_Resume.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+                        Swal.close();
+                    } catch (err) {
+                        console.error('ATS PDF Error:', err);
                         Swal.fire({
-                            icon: 'warning',
-                            title: 'Popup Blocked',
-                            html: 'Please allow popups for this site, then try again.',
+                            icon: 'error',
+                            title: 'PDF Generation Failed',
+                            text: err.message || 'Could not generate PDF. Please try again.',
                             confirmButtonColor: '#8b5cf6'
                         });
-                        return;
                     }
-                    printWin.document.write(printDoc);
-                    printWin.document.close();
                     return;
                 }
 
@@ -635,7 +658,7 @@ try {
                         clone.style.cssText = [
                             'width:794px',
                             'min-height:auto',
-                            'padding:57px',     // ≈15mm at 96dpi
+                            'padding:57px',
                             'box-sizing:border-box',
                             'transform:none',
                             'box-shadow:none',
@@ -727,8 +750,10 @@ try {
                     // 297mm is approximately 1122.5 pixels at 96 DPI
                     // However, since we work in mm, let's keep it in mm logic
                     const totalHeightMm = element.offsetHeight * (25.4 / 96); 
-                    this.totalPages = Math.max(1, Math.ceil(totalHeightMm / 297));
-                    
+                    // Subtract bottom 10mm padding so the margin area doesn't trigger a new page
+                    const usableHeightMm = totalHeightMm - 10;
+                    this.totalPages = Math.max(1, Math.ceil(usableHeightMm / 297));
+
                     if (this.currentPage > this.totalPages) {
                         this.currentPage = this.totalPages;
                     }
@@ -756,7 +781,7 @@ try {
                 if (!bullet || bullet.trim().length === 0) return '';
                 if (bullet.trim().length < 10) return 'Expand on this point for more impact.';
                 const startsWithVerb = this.actionVerbs.some(verb => bullet.trim().toLowerCase().startsWith(verb.toLowerCase()));
-                if (!startsWithVerb) return ''; // Removed as requested
+                if (!startsWithVerb) return '';
                 return '';
             },
 
@@ -865,7 +890,7 @@ try {
             },
         }
     });
-    
+
     app.mount('#app');
     console.log("Vue App Instance Created and Mounted to #app");
 } catch (error) {

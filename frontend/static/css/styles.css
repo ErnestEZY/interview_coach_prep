@@ -1572,6 +1572,15 @@ html {
     z-index: 100;
 }
 
+.resume-preview-viewport {
+    position: relative;
+    padding: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
 .resume-preview-wrapper {
     position: relative;
     width: 100%;
@@ -1581,13 +1590,14 @@ html {
     align-items: center;
     justify-content: flex-start; /* Align to top */
     overflow-y: auto; /* Allow vertical scrolling within the preview */
-    overflow-x: hidden;
+    overflow-x: auto;
     scroll-behavior: smooth;
 }
 
 /* Custom scrollbar for the preview wrapper */
 .resume-preview-wrapper::-webkit-scrollbar {
     width: 8px;
+    height: 8px;
 }
 .resume-preview-wrapper::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
@@ -1602,10 +1612,10 @@ html {
 
 #resume-template {
     width: 210mm;
-    min-height: 267mm; /* A4 height (297) - 15mm top - 15mm bottom */
-    margin: 0 auto;
+    min-height: 297mm; /* Full A4 height like real PDF */
+    margin: 0;
     background: white !important;
-    padding: 15mm !important; /* 15mm — visible content area, standard A4 look */
+    padding: 6mm 5mm !important; /* Match resume_pdf.html exactly */
     color: #333 !important;
     line-height: 1.5;
     font-size: 11pt;
@@ -1613,9 +1623,31 @@ html {
     position: relative;
     transform-origin: top center;
     box-sizing: border-box;
-    box-shadow: 0 0 30px rgba(0,0,0,0.6);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     display: flex;
     flex-direction: column;
+}
+
+/* Bottom margin UX reminder only */
+#resume-template::after {
+    content: '';
+    position: absolute;
+    bottom: 10mm;
+    left: 10mm;
+    right: 10mm;
+    height: 0;
+    border-top: 1px dashed rgba(200, 200, 200, 0.7);
+    pointer-events: none;
+}
+
+.resume-preview-viewport {
+    position: relative;
+    padding: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-bottom: 60px;
 }
 
 

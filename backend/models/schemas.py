@@ -85,3 +85,55 @@ class InterviewSession(BaseModel):
     transcript: List[InterviewTurn]
     created_at: datetime
     ended_at: Optional[datetime] = None
+
+# ── Resume Builder PDF Generation ───────────────────────────────────────────
+
+class ResumeEducation(BaseModel):
+    school: str = ""
+    degree: str = ""
+    date: str = ""
+    gpa: str = ""
+    location: str = ""
+
+class ResumeExperience(BaseModel):
+    company: str = ""
+    position: str = ""
+    date: str = ""
+    bullets: List[str] = []
+
+class ResumeProject(BaseModel):
+    name: str = ""
+    tech: str = ""
+    bullets: List[str] = []
+
+class ResumeCertification(BaseModel):
+    name: str = ""
+
+class ResumeLanguage(BaseModel):
+    name: str = ""
+
+class ResumeExtraInfo(BaseModel):
+    content: str = ""
+
+class ResumeBuilderData(BaseModel):
+    name: str = ""
+    title: str = ""
+    email: str = ""
+    phone: str = ""
+    location: str = ""
+    website: str = ""
+    summary: str = ""
+    education: List[ResumeEducation] = []
+    experience: List[ResumeExperience] = []
+    projects: List[ResumeProject] = []
+    skills_tech: List[str] = []
+    skills_tools: List[str] = []
+    skills_soft: List[str] = []
+    skills_other: List[str] = []
+    certifications: List[ResumeCertification] = []
+    languages: List[ResumeLanguage] = []
+    extra_info: List[ResumeExtraInfo] = []
+
+class ResumePDFRequest(BaseModel):
+    resume: ResumeBuilderData
+    theme_class: str = "theme-classic"

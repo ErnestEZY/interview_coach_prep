@@ -31,52 +31,52 @@
   </div>
 
   <div id="app" v-cloak>
-    <nav class="navbar navbar-dark glass-nav">
-      <div class="container d-flex align-items-center">
+    <nav class="navbar navbar-expand-lg navbar-dark glass-nav">
+      <div class="container">
         <div class="d-flex align-items-center gap-3">
           <a class="navbar-brand fw-bold fs-4 mb-0" href="/">
             <span class="text-primary">I</span>CP
           </a>
-            <div class="d-flex gap-2">
-              <template v-if="!logged">
-                <div class="d-flex gap-2">
-                  <a class="btn btn-outline-light btn-sm" href="/static/pages/login.html">Login</a>
-                  <a class="btn btn-outline-light btn-sm" href="/static/pages/register.html">Register</a>
-                </div>
-              </template>
-              <template v-if="logged">
-                <div class="dropdown">
-                  <a class="btn btn-primary btn-sm px-3 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <div class="d-flex gap-2">
+            <template v-if="!logged">
+              <div class="d-flex gap-2">
+                <a class="btn btn-outline-light btn-sm" href="/static/pages/login.html">Login</a>
+                <a class="btn btn-outline-light btn-sm" href="/static/pages/register.html">Register</a>
+              </div>
+            </template>
+            <template v-if="logged">
+              <div class="d-flex gap-2 align-items-center">
+                <a v-if="!isAdmin" class="btn btn-primary btn-sm px-3" :href="dashboardUrl">{{ dashboardText }}</a>
+                
+                <!-- Web Account Dropdown -->
+                <div class="dropdown d-none d-md-inline-block">
+                  <button class="btn btn-outline-light btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle me-1"></i>
                     Account
-                  </a>
+                  </button>
                   <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 dropdown-menu-wide">
                     <li class="px-3 py-2 dropdown-item-profile">
                       <div class="fw-bold text-primary small text-uppercase mb-1">{{ isAdmin ? 'Admin Profile' : 'User Profile' }}</div>
                       <div class="text-white fw-semibold text-break">{{ userName }}</div>
                       <div class="text-secondary smaller user-email-text text-break">{{ userEmail }}</div>
                     </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li class="px-3 pb-2">
-                        <div class="fw-bold text-primary small text-uppercase mb-2">Download App</div>
+                    <li v-if="!isAdmin"><hr class="dropdown-divider"></li>
+                    <li v-if="!isAdmin" class="px-3 pb-2">
                         <div class="d-grid gap-2">
-                          <button onclick="installPWA()" class="btn btn-primary btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
-                            <i class="bi bi-phone-fill"></i>
-                            <span>Web App (PWA)</span>
-                          </button>
-                          <a href="/downloads/msi/installer" class="btn btn-outline-info btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm text-decoration-none">
-                            <i class="bi bi-windows"></i>
-                            <span>Windows MSI File</span>
-                          </a>
-                          <a href="/downloads/apk/app-release.apk" class="btn btn-outline-success btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm text-decoration-none">
-                            <i class="bi bi-android2"></i>
-                            <span>Android APK</span>
-                          </a>
+                          <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                             <i class="bi bi-download"></i>
+                             <span>Download</span>
+                           </button>
                         </div>
                       </li>
                   </ul>
                 </div>
-              </template>
-            </div>
+              </div>
+            </template>
+          </div>
+        </div>
+        <!-- Desktop Right Menu -->
+        <div class="ms-auto d-none d-md-flex gap-2 align-items-center">
         </div>
       </div>
     </nav>
@@ -111,8 +111,8 @@
               </template>
               <template v-if="logged">
                 <div class="col-md-8">
-                  <a href="/static/pages/dashboard.html" class="btn btn-primary btn-lg w-100 py-3 rounded-pill shadow fw-bold">
-                    Continue to Dashboard
+                  <a :href="dashboardUrl" class="btn btn-primary btn-lg w-100 py-3 rounded-pill shadow fw-bold">
+                    {{ dashboardText }}
                   </a>
                 </div>
               </template>

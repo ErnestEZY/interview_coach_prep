@@ -20,7 +20,7 @@ const app = createApp({
         },
         dashboardText() {
             return (this.role === 'admin' || this.role === 'super_admin') 
-                ? 'Go to Admin Dashboard' 
+                ? 'Back to Dashboard' 
                 : 'Go to Dashboard';
         },
         isAdmin() {
@@ -28,6 +28,13 @@ const app = createApp({
         }
     },
     mounted() {
+        // Prevent back button to authenticated pages when logged out
+        this._popstateHandler = () => {
+            history.pushState(null, '', window.location.href);
+        };
+        window.addEventListener('popstate', this._popstateHandler);
+        history.pushState(null, '', window.location.href);
+
         this.checkAuth();
         this._authListener = () => {
             this.checkAuth();
@@ -36,6 +43,7 @@ const app = createApp({
     },
     beforeUnmount() {
         if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
+        if (this._popstateHandler) window.removeEventListener('popstate', this._popstateHandler);
     },
     methods: {
         async checkAuth() {

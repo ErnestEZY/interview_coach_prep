@@ -154,3 +154,40 @@ class TestMyResumes:
                          headers={"Authorization": f"Bearer {make_jwt(UID)}"})
         assert r.status_code == 200
         assert isinstance(r.json(), list)
+
+
+class TestDownloadPDF:
+    @pytest.mark.asyncio
+    async def test_download_pdf_returns_pdf(self, ac):
+        patch_all_db(users_val=BASE_USER)
+        with patch("backend.controllers.resume_routes.generate_resume_pdf_async",
+                   new_callable=AsyncMock, return_value=b"%PDF-1.4 test"):
+            payload = {
+                "resume": {
+                    "name": "John Doe",
+                    "education": [],
+                    "experience": [],
+                    "projects": [],
+                    "certifications": [],
+                    "languages": [],
+                    "extra_info": []
+                },
+                "theme_class": "theme-classic"
+            }
+            r = await ac.post("/api/resume/builder/download-pdf",
+                              json=payload,
+                              headers={"Authorization": f"Bearer {make_jwt(UID)}"})
+        assert r.status_code == 200
+        assert r.headers["Content-Type"] == "application/pdf"
+        assert r.headers["Content-Disposition"].startswith("attachment")
+        assert r.content.startswith(b"%PDF")
+
+    @pytest.mark.asyncio
+    async def test_download_pdf_unauthenticated_returns_401(self, ac):
+        payload = {
+            "resume": {"name": "John"},
+            "theme_class": "theme-classic"
+        }
+        r = await ac.post("/api/resume/builder/download-pdf",
+                          json=payload)
+        assert r.status_code == 401
