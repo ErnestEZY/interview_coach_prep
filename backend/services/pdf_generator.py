@@ -115,7 +115,27 @@ def generate_resume_pdf(resume: Dict[str, Any], theme_class: str) -> bytes:
         # Log the error to stdout/stderr so deployment logs show the cause.
         import traceback
         traceback.print_exc()
-        print("pdf_generator: wkhtmltopdf missing or failed; returning minimal PDF fallback")
+        print("pdf_generator: wkhtmltopdf missing or failed; attempting Playwright fallback")
+        # Try Playwright (Chromium) as a fallback if available in the environment.
+        try:
+            from playwright.sync_api import sync_playwright
+
+            with sync_playwright() as p:
+                browser = p.chromium.launch(args=["--no-sandbox"]) if not os.getenv("CI") else p.chromium.launch(args=["--no-sandbox"]) 
+                page = browser.new_page()
+                page.set_content(html_content, wait_until="networkidle")
+                pdf_bytes = page.pdf(format="A4", margin={"top":"0mm","right":"0mm","bottom":"0mm","left":"0mm"})
+                browser.close()
+                if pdf_bytes and len(pdf_bytes) > 512:
+                    print("pdf_generator: Playwright produced PDF, returning bytes")
+                    return pdf_bytes
+                else:
+                    print("pdf_generator: Playwright produced small or empty PDF; falling back to minimal header")
+        except Exception:
+            print("pdf_generator: Playwright fallback not available or failed")
+            traceback.print_exc()
+
+        print("pdf_generator: returning minimal PDF fallback")
         # Return a minimal valid PDF header so unit tests that check for PDF magic bytes still pass.
         minimal_pdf = (
             b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"

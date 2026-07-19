@@ -65,6 +65,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
+      - name: Install Playwright browsers
+        run: |
+          python -m playwright install chromium
+
       - name: Unit Tests
         run: python -m pytest tests/unit/ -v --tb=short --junitxml=test-results/unit.xml
         env:
