@@ -178,16 +178,20 @@
                     </div>
                 </div>
 
-                <!-- Search tips — always visible, helpful for idle and no-result states -->
-                <div class="d-flex align-items-start gap-3 mt-3 px-1 search-tips-bar">
-                    <i class="bi bi-lightbulb fs-5 mt-1 search-tips-icon"></i>
-                    <div class="small text-secondary">
-                        <span class="fw-semibold text-white">Search tips:</span>
-                        use full city names (e.g. <em>Kuala Lumpur</em> not <em>KL</em>),
-                        try broader keywords (e.g. <em>Developer</em> instead of <em>Python Developer</em>),
-                        double-check your spelling,
-                        or leave the location empty to search nationwide.
+                <!-- Search tips & Reset -->
+                <div class="d-flex align-items-start justify-content-between gap-3 mt-3 px-1 search-tips-bar">
+                    <div class="d-flex gap-2">
+                        <i class="bi bi-lightbulb fs-5 mt-1 search-tips-icon"></i>
+                        <div class="small text-secondary">
+                            <span class="fw-semibold text-white">Search tips:</span>
+                            use full city names (e.g. <em>Kuala Lumpur</em>),
+                            try broader keywords,
+                            or leave location empty.
+                        </div>
                     </div>
+                    <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 text-nowrap" @click="resetSearch" title="Clear auto-filled search data">
+                        <i class="bi bi-arrow-counterclockwise"></i> Start Fresh
+                    </button>
                 </div>
                 
                 <div class="text-center mt-4" v-if="hasAnalyzed">

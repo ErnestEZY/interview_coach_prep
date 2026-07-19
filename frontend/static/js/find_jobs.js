@@ -470,6 +470,36 @@ const app = createApp({
             const s = totalSeconds % 60;
             return `${m}:${s.toString().padStart(2, '0')}`;
         },
+        resetSearch() {
+            localStorage.removeItem('target_job_title');
+            localStorage.removeItem('target_location');
+            localStorage.setItem('resume_autoload_disabled', 'true');
+            if (this.syncInterval) clearInterval(this.syncInterval);
+            
+            const findInputs = (doc) => {
+                let s = doc.getElementById('s');
+                let l = doc.getElementById('l');
+                if (!s || !l) {
+                    const allInputs = Array.from(doc.querySelectorAll('input:not([type="hidden"])'));
+                    if (!s) s = allInputs.find(i => i.name === 's' || i.name === 'q' || i.name === 'keywords' || i.id === 's');
+                    if (!l) l = allInputs.find(i => i.name === 'l' || i.id === 'l');
+                }
+                return { s, l };
+            };
+            
+            const { s, l } = findInputs(document);
+            if (s) s.value = '';
+            if (l) l.value = '';
+            
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Search reset. You can start fresh.',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        },
         startTimer() {
             if (this.timerId) return;
             const token = window.icp && window.icp.state ? window.icp.state.token : localStorage.getItem("token");
