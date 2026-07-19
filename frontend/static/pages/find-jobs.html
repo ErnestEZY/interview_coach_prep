@@ -157,9 +157,9 @@
     <div class="container py-5" id="main" role="main">
         <div class="row justify-content-center">
             <div class="col-lg-10">
-                <div class="text-center mb-5">
+                <div class="text-center mb-3">
                     <h2 class="fw-bold mb-2">Find Your Dream Job</h2>
-                    <p class="text-secondary">Explore opportunities tailored to your skills and preferences</p>
+                    <p class="text-secondary mb-0">Explore opportunities tailored to your skills and preferences</p>
                 </div>
 
                 <!-- Light Reminder -->
@@ -171,8 +171,15 @@
                     </div>
                 </div>
 
+                <!-- Job Search Widget Container -->
+                <div class="card border-0 overflow-hidden cj-widget-wrapper cj-search-box-wrapper shadow-sm">
+                    <div class="card-body p-4">
+                        <div id="search-box-container"></div>
+                    </div>
+                </div>
+
                 <!-- Search tips — always visible, helpful for idle and no-result states -->
-                <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 search-tips-bar shadow-sm">
+                <div class="d-flex align-items-center gap-3 mt-4 p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 search-tips-bar shadow-sm">
                     <i class="bi bi-search fs-4 text-primary opacity-75"></i>
                     <div class="small text-secondary mb-0">
                         <span class="fw-semibold text-white">Search Tips:</span>
@@ -180,13 +187,6 @@
                         try broader keywords (e.g. <em>Developer</em> instead of <em>Python Developer</em>),
                         double-check your spelling,
                         or leave the location empty to search nationwide.
-                    </div>
-                </div>
-
-                <!-- Job Search Widget Container -->
-                <div class="card border-0 overflow-hidden cj-widget-wrapper cj-search-box-wrapper shadow-sm">
-                    <div class="card-body p-4">
-                        <div id="search-box-container"></div>
                     </div>
                 </div>
                 
