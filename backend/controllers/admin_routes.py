@@ -291,8 +291,13 @@ async def verify_passphrase(payload: dict = Body(...)):
     passphrase = payload.get("passphrase")
     if not passphrase:
         raise HTTPException(status_code=400, detail="Passphrase required")
-    # Support both uppercase and lowercase env var names if present
-    secret = os.getenv("ICP_ADMIN_SECRET_2024") or os.getenv("icp_admin_secret_2024")
+    # Support new `ICP-passphrase` env var and keep previous names as fallbacks
+    secret = (
+        os.getenv("ICP-passphrase")
+        or os.getenv("ICP_ADMIN_SECRET_2024")
+        or os.getenv("icp_admin_secret_2024")
+        or os.getenv("icp-passphrase")
+    )
     if not secret or passphrase != secret:
         raise HTTPException(status_code=401, detail="Incorrect passphrase")
     return {"ok": True}
