@@ -24,8 +24,28 @@ jobs:
 
       - name: Install wkhtmltopdf (system dependency for PDF generation)
         run: |
+          set -eux
           sudo apt-get update
-          sudo apt-get install -y wkhtmltopdf
+          sudo apt-get install -y wget ca-certificates fontconfig libfreetype6 libxrender1 libxext6 libx11-6 xz-utils
+          # Try apt first
+          if ! sudo apt-get install -y wkhtmltopdf; then
+            echo "apt install wkhtmltopdf failed or not available, trying official .deb releases"
+            WKDEB=""
+            for tag in trixie bookworm bullseye buster; do
+              url="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.${tag}_amd64.deb"
+              echo "Trying $url"
+              if wget -q -O /tmp/wkhtml.deb "$url"; then
+                WKDEB=/tmp/wkhtml.deb
+                break
+              fi
+            done
+            if [ -n "$WKDEB" ]; then
+              sudo dpkg -i "$WKDEB" || sudo apt-get update && sudo apt-get install -y -f
+              rm -f "$WKDEB"
+            else
+              echo "Could not install wkhtmltopdf via apt or .deb; tests that require wkhtmltopdf may fail"
+            fi
+          fi
 
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
