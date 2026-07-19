@@ -291,7 +291,7 @@
           <div v-if="!targetJobTitle || (!fileName && !persistedFileName)" class="btn-overlay-trigger" @click="promptResumeFields"></div>
         </div>
         <div class="text-center">
-          <a href="#" class="text-secondary small text-decoration-underline" style="opacity: 0.6; font-size: 11px;" @click.prevent="clearBrowserCache">Having trouble? Clear browser cache & reload</a>
+          <a href="#" class="text-secondary small text-decoration-underline clear-cache-link" @click.prevent="clearBrowserCache">Having trouble? Clear browser cache & reload</a>
         </div>
       </form>
     </div>
