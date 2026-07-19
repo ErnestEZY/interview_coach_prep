@@ -58,6 +58,19 @@ def generate_resume_pdf(resume: Dict[str, Any], theme_class: str) -> bytes:
         which_path = shutil.which("wkhtmltopdf")
         if which_path:
             wkhtmltopdf_path = which_path
+    # Hardcoded Linux fallback paths (installed by the official .deb package)
+    if not wkhtmltopdf_path and sys.platform != "win32":
+        linux_fallbacks = [
+            "/usr/local/bin/wkhtmltopdf",
+            "/usr/bin/wkhtmltopdf",
+        ]
+        for path in linux_fallbacks:
+            if os.path.exists(path):
+                wkhtmltopdf_path = path
+                break
+
+    # Log which path was resolved (visible in Render logs)
+    print(f"pdf_generator: wkhtmltopdf resolved to: {wkhtmltopdf_path!r}")
 
     if theme_class not in _VALID_THEMES:
         theme_class = "theme-classic"
