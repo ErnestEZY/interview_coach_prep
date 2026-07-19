@@ -26,15 +26,14 @@ jobs:
         run: |
           set -eux
           sudo apt-get update
-          sudo apt-get install -y wget ca-certificates fontconfig libfreetype6 libxrender1 libxext6 libx11-6 xz-utils
-          # Try apt first
+          sudo apt-get install -y wget curl ca-certificates fontconfig libfreetype6 libxrender1 libxext6 libx11-6 xz-utils libglib2.0-0 libxrandr2 libgdk-pixbuf2.0-0 libnss3 libxcomposite1 libxdamage1 libxss1 libxtst6 libxkbcommon-x11-0 libjpeg62-turbo libpng16-16 libssl3
           if ! sudo apt-get install -y wkhtmltopdf; then
             echo "apt install wkhtmltopdf failed or not available, trying official .deb releases"
             WKDEB=""
-            for tag in trixie bookworm bullseye buster; do
+            for tag in bookworm bullseye buster; do
               url="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.${tag}_amd64.deb"
               echo "Trying $url"
-              if wget -q -O /tmp/wkhtml.deb "$url"; then
+              if curl -fsSL -o /tmp/wkhtml.deb "$url"; then
                 WKDEB=/tmp/wkhtml.deb
                 break
               fi
@@ -45,29 +44,45 @@ jobs:
             else
               echo "Could not install wkhtmltopdf via .deb; trying linux-generic tarball"
               TARBALL_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1_linux-generic-amd64.tar.xz"
-              if wget -q -O /tmp/wkhtml.tar.xz "$TARBALL_URL"; then
-                mkdir -p /tmp/wkhtml_install
-                tar -xJf /tmp/wkhtml.tar.xz -C /tmp/wkhtml_install
-                if [ -f /tmp/wkhtml_install/wkhtmltox/bin/wkhtmltopdf ]; then
-                  sudo cp /tmp/wkhtml_install/wkhtmltox/bin/wkhtmltopdf /usr/local/bin/
-                  sudo chmod +x /usr/local/bin/wkhtmltopdf
-                  echo "Installed wkhtmltopdf from tarball"
-                else
-                  echo "Tarball extracted but wkhtmltopdf binary not found"
-                fi
-                rm -rf /tmp/wkhtml* || true
+              curl -fsSL -o /tmp/wkhtml.tar.xz "$TARBALL_URL"
+              mkdir -p /tmp/wkhtml_install
+              tar -xJf /tmp/wkhtml.tar.xz -C /tmp/wkhtml_install
+              WKHTML_BIN=$(find /tmp/wkhtml_install -type f -name wkhtmltopdf | head -n 1)
+              if [ -n "$WKHTML_BIN" ]; then
+                sudo cp "$WKHTML_BIN" /usr/local/bin/
+                sudo chmod +x /usr/local/bin/wkhtmltopdf
+                sudo ln -sf /usr/local/bin/wkhtmltopdf /usr/bin/wkhtmltopdf
+                echo "Installed wkhtmltopdf from tarball: $WKHTML_BIN"
               else
-                echo "Could not download linux-generic tarball; wkhtmltopdf not installed"
+                echo "Tarball extracted but wkhtmltopdf binary not found"
+                find /tmp/wkhtml_install -maxdepth 3 -type f | sort
               fi
+              rm -rf /tmp/wkhtml* || true
             fi
           fi
+          command -v wkhtmltopdf
+          wkhtmltopdf --version
+          ldd "$(command -v wkhtmltopdf)" | grep 'not found' || true
 
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
-      - name: Install Playwright browsers
+      - name: Verify wkhtmltopdf + pdfkit
         run: |
-          python -m playwright install chromium
+          python - <<'PY'
+          import pdfkit, tempfile, os
+          html = "<html><body><p>CI wkhtmltopdf smoke test</p></body></html>"
+          with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as f:
+              f.write(html)
+              file_path = f.name
+          try:
+              pdf = pdfkit.from_file(file_path, False)
+              if not isinstance(pdf, (bytes, bytearray)) or not pdf.startswith(b"%PDF"):
+                  raise SystemExit("wkhtmltopdf smoke test failed: generated output is not a PDF")
+          finally:
+              os.unlink(file_path)
+          print("wkhtmltopdf/pdfkit smoke test passed")
+          PY
 
       - name: Unit Tests
         run: python -m pytest tests/unit/ -v --tb=short --junitxml=test-results/unit.xml

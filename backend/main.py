@@ -4,7 +4,7 @@ import os
 import asyncio
 import sys
 
-# Set ProactorEventLoop on Windows to support subprocesses (required for Playwright)
+# Set ProactorEventLoop on Windows to support subprocesses
 # Only do this if not running in pytest (pytest-asyncio handles its own event loops)
 if sys.platform == "win32" and "PYTEST_CURRENT_TEST" not in os.environ:
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())

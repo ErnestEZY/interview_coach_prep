@@ -288,7 +288,7 @@ async def download_resume_pdf(
 ):
     """
     Generate an ATS-friendly text-based PDF from the resume builder data.
-    Uses Playwright (headless Chrome/Edge) for pixel-perfect rendering.
+    Uses wkhtmltopdf via pdfkit for server-side rendering.
     """
 
     try:

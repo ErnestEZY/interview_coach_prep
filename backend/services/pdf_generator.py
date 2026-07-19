@@ -86,67 +86,28 @@ def generate_resume_pdf(resume: Dict[str, Any], theme_class: str) -> bytes:
         f.write(html_content)
         temp_html_path = f.name
 
-    # Configure pdfkit with our wkhtmltopdf path (if found). If not found,
-    # produce a helpful error in production while allowing tests to use the
-    # minimal-PDF fallback.
-    config = None
-    if wkhtmltopdf_path:
-        config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
-    else:
-        # Diagnostic logging
+    # Configure pdfkit with our wkhtmltopdf path (if found).
+    if not wkhtmltopdf_path:
         print("pdf_generator: wkhtmltopdf not found. Diagnostics:")
         print("  WKHTMLTOPDF_PATH:", os.getenv("WKHTMLTOPDF_PATH"))
         print("  WKHTMLTOPDF_CMD:", os.getenv("WKHTMLTOPDF_CMD"))
-        import shutil as _sh
-        print("  which wkhtmltopdf:", _sh.which("wkhtmltopdf"))
-        # If running under pytest, return the minimal PDF fallback (keeps unit tests green)
-        if os.getenv("PYTEST_CURRENT_TEST"):
-            print("pdf_generator: running under pytest — returning minimal PDF fallback")
-        else:
-            raise RuntimeError(
-                "wkhtmltopdf executable not found. Install wkhtmltopdf in the container or set WKHTMLTOPDF_PATH env var."
-            )
+        print("  which wkhtmltopdf:", shutil.which("wkhtmltopdf"))
+        raise RuntimeError(
+            "wkhtmltopdf executable not found. Install wkhtmltopdf in the container or set WKHTMLTOPDF_PATH env var."
+        )
+
+    config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
 
     try:
         pdf_bytes = pdfkit.from_file(temp_html_path, False, options=options, configuration=config)
         return pdf_bytes
-    except OSError:
-        # wkhtmltopdf not available (CI or minimal env) or failed to run.
-        # Log the error to stdout/stderr so deployment logs show the cause.
+    except Exception:
+        # wkhtmltopdf unavailable or failed to run.
         import traceback
         traceback.print_exc()
-        print("pdf_generator: wkhtmltopdf missing or failed; attempting Playwright fallback")
-        # Try Playwright (Chromium) as a fallback if available in the environment.
-        try:
-            from playwright.sync_api import sync_playwright
-
-            with sync_playwright() as p:
-                browser = p.chromium.launch(args=["--no-sandbox"]) if not os.getenv("CI") else p.chromium.launch(args=["--no-sandbox"]) 
-                page = browser.new_page()
-                page.set_content(html_content, wait_until="networkidle")
-                pdf_bytes = page.pdf(format="A4", margin={"top":"0mm","right":"0mm","bottom":"0mm","left":"0mm"})
-                browser.close()
-                if pdf_bytes and len(pdf_bytes) > 512:
-                    print("pdf_generator: Playwright produced PDF, returning bytes")
-                    return pdf_bytes
-                else:
-                    print("pdf_generator: Playwright produced small or empty PDF; falling back to minimal header")
-        except Exception:
-            print("pdf_generator: Playwright fallback not available or failed")
-            traceback.print_exc()
-
-        print("pdf_generator: returning minimal PDF fallback")
-        # Return a minimal valid PDF header so unit tests that check for PDF magic bytes still pass.
-        minimal_pdf = (
-            b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n"
-            b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
-            b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
-            b"3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << >> /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n"
-            b"4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n"
-            b"xref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000060 00000 n \n0000000117 00000 n \n0000000200 00000 n \n"
-            b"trailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n300\n%%EOF"
+        raise RuntimeError(
+            "wkhtmltopdf failed to generate PDF. See deployment logs for details."
         )
-        return minimal_pdf
     finally:
         # Clean up temp file
         try:

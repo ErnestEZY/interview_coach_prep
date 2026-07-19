@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install system dependencies including Nginx, curl, and Tesseract for OCR.
 # wkhtmltopdf is not available in some Debian releases via apt, so download
-# and install an official .deb if needed (tries several release builds).
+# and install the official Linux generic tarball when needed.
 RUN apt-get update && apt-get install -y \
         nginx \
         curl \
@@ -26,24 +26,41 @@ RUN apt-get update && apt-get install -y \
         libxext6 \
         libx11-6 \
         libfreetype6 \
+        libglib2.0-0 \
+        libxrandr2 \
+        libgdk-pixbuf2.0-0 \
+        libnss3 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxss1 \
+        libxtst6 \
+        libxkbcommon-x11-0 \
+        libjpeg62-turbo \
+        libpng16-16 \
+        libssl3 \
+        xz-utils \
+        wget \
         && \
         apt-get clean && rm -rf /var/lib/apt/lists/* \
         && \
         set -eux; \
-        WKDEB=""; \
-        for tag in trixie bookworm bullseye buster; do \
-            url="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.${tag}_amd64.deb"; \
-            echo "Trying $url"; \
-            if curl -fsSL -o /tmp/wkhtml.deb "$url"; then \
-                WKDEB=/tmp/wkhtml.deb; break; \
-            fi; \
-        done; \
-        if [ -n "$WKDEB" ]; then \
-            dpkg -i "$WKDEB" || apt-get update && apt-get install -y -f; \
-            rm -f "$WKDEB"; \
+        TARBALL_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1_linux-generic-amd64.tar.xz"; \
+        wget -q -O /tmp/wkhtml.tar.xz "$TARBALL_URL"; \
+        mkdir -p /tmp/wkhtml_install; \
+        tar -xJf /tmp/wkhtml.tar.xz -C /tmp/wkhtml_install; \
+        WKHTML_BIN=$(find /tmp/wkhtml_install -type f -name wkhtmltopdf | head -n 1); \
+        if [ -n "$WKHTML_BIN" ]; then \
+            cp "$WKHTML_BIN" /usr/local/bin/; \
+            chmod +x /usr/local/bin/wkhtmltopdf; \
+            ln -sf /usr/local/bin/wkhtmltopdf /usr/bin/wkhtmltopdf; \
         else \
-            echo "Could not find wkhtmltopdf .deb for tried releases; continuing without it."; \
-        fi
+            echo "Could not extract wkhtmltopdf binary from tarball"; \
+            find /tmp/wkhtml_install -type f | sort; \
+        fi; \
+        rm -rf /tmp/wkhtml* || true; \
+        command -v wkhtmltopdf; \
+        wkhtmltopdf --version; \
+        if command -v wkhtmltopdf; then ldd "$(command -v wkhtmltopdf)" | grep 'not found' || true; fi
 
 # Copy backend requirements first to leverage Docker cache
 COPY backend/requirements.txt .
