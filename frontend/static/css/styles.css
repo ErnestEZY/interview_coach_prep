@@ -1838,9 +1838,9 @@ html {
     }
 
     .resume-preview-viewport {
-        transform: scale(calc((100vw - 30px) / 794)) !important; /* Dynamically scale A4 width (794px) to fit screen width */
+        transform: scale(0.45) !important; /* Larger fixed scale for better readability on mobile */
         transform-origin: top center;
-        margin-bottom: calc(-1122px * (1 - ((100vw - 30px) / 794))); /* Adjust margin to prevent huge blank space below */
+        margin-bottom: calc(-1122px * (1 - 0.45)); /* Adjust margin for 0.45 scale */
     }
 }
 
@@ -2503,9 +2503,9 @@ html {
         justify-content: center; /* Explicitly centered */
     }
     #resume-template {
-        transform: scale(calc((100vw - 30px) / 794));
+        transform: scale(0.45);
         transform-origin: top center;
-        margin-bottom: calc(-1122px * (1 - ((100vw - 30px) / 794)));
+        margin-bottom: calc(-1122px * (1 - 0.45));
     }
 }
 
