@@ -160,8 +160,9 @@ class TestDownloadPDF:
     @pytest.mark.asyncio
     async def test_download_pdf_returns_pdf(self, ac):
         patch_all_db(users_val=BASE_USER)
+        fake_pdf = b"%PDF-1.4\n" + b"0" * 1024
         with patch("backend.controllers.resume_routes.generate_resume_pdf_async",
-                   new_callable=AsyncMock, return_value=b"%PDF-1.4 test"):
+                   new_callable=AsyncMock, return_value=fake_pdf):
             payload = {
                 "resume": {
                     "name": "John Doe",
