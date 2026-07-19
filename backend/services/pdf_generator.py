@@ -1,12 +1,11 @@
 """
-Server-side ATS-friendly PDF generation using wkhtmltopdf (Qt WebKit).
+Server-side ATS-friendly PDF generation using WeasyPrint (pure Python).
 Produces text-based PDFs matching the live builder preview exactly.
-Lightweight, great for Render's free tier!
+No system binary required — works on Render's free tier out of the box!
 """
 
 import os
 import io
-import tempfile
 from typing import Any, Dict
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -31,46 +30,11 @@ _VALID_THEMES = {
 
 def generate_resume_pdf(resume: Dict[str, Any], theme_class: str) -> bytes:
     """
-    Generate PDF using wkhtmltopdf (via pdfkit).
-    Returns raw PDF bytes (text-based, matches preview exactly!
+    Generate PDF using WeasyPrint (pure Python — no system binary needed).
+    Returns raw PDF bytes (text-based, matches preview exactly!).
     """
-    import pdfkit
-
-    # Path to wkhtmltopdf (if not in PATH)
-    wkhtmltopdf_path = None
-    import sys
-    import shutil
-    # Windows common install locations
-    if sys.platform == "win32":
-        possible_paths = [
-            r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe",
-            r"C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe"
-        ]
-        for path in possible_paths:
-            if os.path.exists(path):
-                wkhtmltopdf_path = path
-                break
-    # Respect explicit env var if set (common on some installers)
-    if not wkhtmltopdf_path:
-        wkhtmltopdf_path = os.getenv("WKHTMLTOPDF_PATH") or os.getenv("WKHTMLTOPDF_CMD")
-    # Try to find in PATH
-    if not wkhtmltopdf_path:
-        which_path = shutil.which("wkhtmltopdf")
-        if which_path:
-            wkhtmltopdf_path = which_path
-    # Hardcoded Linux fallback paths (installed by the official .deb package)
-    if not wkhtmltopdf_path and sys.platform != "win32":
-        linux_fallbacks = [
-            "/usr/local/bin/wkhtmltopdf",
-            "/usr/bin/wkhtmltopdf",
-        ]
-        for path in linux_fallbacks:
-            if os.path.exists(path):
-                wkhtmltopdf_path = path
-                break
-
-    # Log which path was resolved (visible in Render logs)
-    print(f"pdf_generator: wkhtmltopdf resolved to: {wkhtmltopdf_path!r}")
+    from weasyprint import HTML, CSS
+    from weasyprint.text.fonts import FontConfiguration
 
     if theme_class not in _VALID_THEMES:
         theme_class = "theme-classic"
@@ -79,54 +43,18 @@ def generate_resume_pdf(resume: Dict[str, Any], theme_class: str) -> bytes:
     template = _JINJA_ENV.get_template("resume_pdf.html")
     html_content = template.render(resume=resume, theme_class=theme_class)
 
-    # wkhtmltopdf options (perfect match preview)
-    options = {
-        "page-size": "A4",
-        "margin-top": "0mm",
-        "margin-right": "0mm",
-        "margin-bottom": "0mm",
-        "margin-left": "0mm",
-        "encoding": "UTF-8",
-        "no-outline": None,
-        "enable-local-file-access": None,  # Allow local files (if any)
-        "quiet": "",
-    }
+    print(f"pdf_generator: rendering PDF with WeasyPrint, theme={theme_class!r}")
 
-    # Write HTML to temp file (avoids issues with long strings)
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".html", delete=False, encoding="utf-8"
-    ) as f:
-        f.write(html_content)
-        temp_html_path = f.name
+    font_config = FontConfiguration()
 
-    # Configure pdfkit with our wkhtmltopdf path (if found).
-    if not wkhtmltopdf_path:
-        print("pdf_generator: wkhtmltopdf not found. Diagnostics:")
-        print("  WKHTMLTOPDF_PATH:", os.getenv("WKHTMLTOPDF_PATH"))
-        print("  WKHTMLTOPDF_CMD:", os.getenv("WKHTMLTOPDF_CMD"))
-        print("  which wkhtmltopdf:", shutil.which("wkhtmltopdf"))
-        raise RuntimeError(
-            "wkhtmltopdf executable not found. Install wkhtmltopdf in the container or set WKHTMLTOPDF_PATH env var."
-        )
+    # WeasyPrint renders HTML directly from string — no temp file needed
+    pdf_bytes = HTML(string=html_content, base_url=_TEMPLATE_DIR).write_pdf(
+        font_config=font_config,
+        presentational_hints=True,
+    )
 
-    config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
-
-    try:
-        pdf_bytes = pdfkit.from_file(temp_html_path, False, options=options, configuration=config)
-        return pdf_bytes
-    except Exception:
-        # wkhtmltopdf unavailable or failed to run.
-        import traceback
-        traceback.print_exc()
-        raise RuntimeError(
-            "wkhtmltopdf failed to generate PDF. See deployment logs for details."
-        )
-    finally:
-        # Clean up temp file
-        try:
-            os.unlink(temp_html_path)
-        except Exception:
-            pass
+    print(f"pdf_generator: PDF generated successfully, size={len(pdf_bytes)} bytes")
+    return pdf_bytes
 
 
 # Wrapper to make it async (for FastAPI compatibility)

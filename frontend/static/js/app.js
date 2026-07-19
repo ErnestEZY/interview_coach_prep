@@ -520,59 +520,74 @@ Object.assign(window.icp, {
   }
 });
 
-// Global Startup Check: Clear sessions if server has restarted
+// Global Startup Check: Validate session when server has restarted.
+// Instead of blindly clearing localStorage on every server restart,
+// we verify the token is still valid. If it is, keep the user logged in.
+// Only clear if the token is actually invalid (401) or missing.
 (function checkStartup() {
   fetch(apiUrl('/api/meta/startup_id'))
     .then(r => r.ok ? r.json() : null)
     .then(j => {
       if (j && j.startup_id) {
         const prev = localStorage.getItem('startup_id') || '';
-        // Force logout if startup_id changed (or is missing) to ensure fresh session on server restart.
-        // IMPORTANT: skip the clear if a token was JUST set (within the last 5 seconds) —
-        // this prevents the startup check from wiping a freshly-issued login token
-        // when the admin/login page clears startup_id on load (making prev always "").
         if (prev !== j.startup_id) {
-          // Skip the wipe if a login just completed — detected via sessionStorage flag
-          // set by setToken(). Do NOT remove the flag here — checkStartup can fire
-          // multiple times (page load + auth:changed event), and consuming the flag
-          // on the first call would leave the second call unprotected.
-          // The flag is only cleared by clearToken() on logout or by the destination
-          // page loading fresh.
-          if (sessionStorage.getItem('icp_just_logged_in') === '1') {
-            localStorage.setItem('startup_id', j.startup_id);
+          // startup_id changed — server restarted. Check if our token is still valid.
+          const token = localStorage.getItem('token');
+          localStorage.setItem('startup_id', j.startup_id);
+
+          if (!token || token === 'null' || token === 'undefined') {
+            // No token at all — nothing to preserve
+            window.dispatchEvent(new CustomEvent("auth:changed"));
             return;
           }
-          localStorage.clear(); 
-          localStorage.setItem('startup_id', j.startup_id);
-          window.dispatchEvent(new CustomEvent("auth:changed"));
-          // Force redirect to home if they were on a protected page
-          try {
-            const currentPath = window.location.pathname || '';
-            const safePaths = [
-              'login.html', 
-              'register.html', 
-              'reset_password.html', 
-              'forgot_password.html', 
-              'resume_builder.html',
-              'find-jobs.html',
-              'about.html'
-            ];
-            
-            const isSafe = currentPath === '/' || safePaths.some(p => currentPath.includes(p));
-            
-            if (!isSafe) {
-               window.location.href = "/";
-             }
-           } catch (e) {
-             // Silent fail for redirect logic
-           }
+
+          if (sessionStorage.getItem('icp_just_logged_in') === '1') {
+            // User just logged in — token is definitely fresh, keep everything
+            return;
+          }
+
+          // Validate token against the backend
+          fetch(apiUrl('/api/auth/me'), {
+            headers: { 'Authorization': 'Bearer ' + token }
+          })
+          .then(r => {
+            if (r.ok) {
+              // Token is still valid even after server restart — keep user logged in
+              console.log('[checkStartup] Server restarted but token is still valid. Keeping session.');
+            } else {
+              // Token rejected (401 / 403) — clear session
+              console.log('[checkStartup] Server restarted and token is invalid. Clearing session.');
+              icpState.clearToken();
+              window.dispatchEvent(new CustomEvent("auth:changed"));
+              try {
+                const currentPath = window.location.pathname || '';
+                const safePaths = [
+                  'login.html',
+                  'register.html',
+                  'reset_password.html',
+                  'forgot_password.html',
+                  'about.html'
+                ];
+                const isSafe = currentPath === '/' || safePaths.some(p => currentPath.includes(p));
+                if (!isSafe) {
+                  window.location.href = '/static/pages/login.html';
+                }
+              } catch (e) {}
+            }
+          })
+          .catch(() => {
+            // Network error — don't log the user out, let the axios interceptor handle 401s
+            console.warn('[checkStartup] Could not validate token (network error). Keeping session.');
+          });
         } else {
+          // startup_id unchanged — no action needed
           localStorage.setItem('startup_id', j.startup_id);
         }
       }
     })
     .catch(() => {});
 })();
+
 
 // Admin login via documented, mature methods
 (() => {

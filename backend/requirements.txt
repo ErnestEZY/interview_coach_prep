@@ -21,7 +21,7 @@ httpx>=0.28.1
 slowapi==0.1.9
 pytest==8.3.3
 pytest-asyncio==0.24.0
-pdfkit>=1.0.0
+weasyprint>=60.0
 diskcache==5.6.3
 numpy>=1.24.0
 truststore>=0.10.4
