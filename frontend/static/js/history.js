@@ -48,20 +48,18 @@ const app = createApp({
             const currentPath = window.location.pathname;
             const isAllowed = this._allowedUserRoutes.some(route => currentPath.includes(route));
             if (!isAllowed) {
-                // Push multiple entries to prevent back button
+                // If the new path isn't allowed, push the current URL back and go forward
                 history.replaceState(null, '', location.href);
-                for (let i = 0; i < 5; i++) {
-                    history.pushState(null, '', location.href);
-                }
+                history.pushState(null, '', location.href);
+                history.go(1);
             } else {
+                // If it is allowed, just push the state again
                 history.pushState(null, '', location.href);
             }
         };
         // Initialize history
         history.replaceState(null, '', location.href);
-        for (let i = 0; i < 5; i++) {
-            history.pushState(null, '', location.href);
-        }
+        history.pushState(null, '', location.href);
         window.addEventListener('popstate', this._popstateHandler);
         
         // Named listener for auth changes
