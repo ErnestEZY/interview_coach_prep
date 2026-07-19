@@ -22,6 +22,11 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - name: Install wkhtmltopdf (system dependency for PDF generation)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wkhtmltopdf
+
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
