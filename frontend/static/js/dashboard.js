@@ -241,6 +241,39 @@ const app = createApp({
 
   checkAdmin() {},
 
+    async clearBrowserCache() {
+      const result = await Swal.fire({
+        title: 'Clear Cache & Restart?',
+        text: 'This will wipe saved session data and reload the application to fix persistent issues.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, clear it!'
+      });
+
+      if (result.isConfirmed) {
+        // Clear all storage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Unregister service workers
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+            }
+          } catch (e) {
+            console.error('SW unregistration failed:', e);
+          }
+        }
+        
+        // Force reload without cache if possible
+        window.location.href = '/static/pages/login.html?reset=' + new Date().getTime();
+      }
+    },
+
     async initDashboard() {
       try {
         this.isLoading = true;
