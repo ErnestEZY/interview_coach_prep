@@ -40,10 +40,25 @@ jobs:
               fi
             done
             if [ -n "$WKDEB" ]; then
-              sudo dpkg -i "$WKDEB" || sudo apt-get update && sudo apt-get install -y -f
+              sudo dpkg -i "$WKDEB" || (sudo apt-get update && sudo apt-get install -y -f)
               rm -f "$WKDEB"
             else
-              echo "Could not install wkhtmltopdf via apt or .deb; tests that require wkhtmltopdf may fail"
+              echo "Could not install wkhtmltopdf via .deb; trying linux-generic tarball"
+              TARBALL_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1_linux-generic-amd64.tar.xz"
+              if wget -q -O /tmp/wkhtml.tar.xz "$TARBALL_URL"; then
+                mkdir -p /tmp/wkhtml_install
+                tar -xJf /tmp/wkhtml.tar.xz -C /tmp/wkhtml_install
+                if [ -f /tmp/wkhtml_install/wkhtmltox/bin/wkhtmltopdf ]; then
+                  sudo cp /tmp/wkhtml_install/wkhtmltox/bin/wkhtmltopdf /usr/local/bin/
+                  sudo chmod +x /usr/local/bin/wkhtmltopdf
+                  echo "Installed wkhtmltopdf from tarball"
+                else
+                  echo "Tarball extracted but wkhtmltopdf binary not found"
+                fi
+                rm -rf /tmp/wkhtml* || true
+              else
+                echo "Could not download linux-generic tarball; wkhtmltopdf not installed"
+              fi
             fi
           fi
 
