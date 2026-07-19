@@ -44,6 +44,8 @@ RUN apt-get update && apt-get install -y \
         apt-get clean && rm -rf /var/lib/apt/lists/* \
         && \
         set -eux; \
+        command -v curl; \
+        command -v nginx; \
         TARBALL_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1_linux-generic-amd64.tar.xz"; \
         wget -q -O /tmp/wkhtml.tar.xz "$TARBALL_URL"; \
         mkdir -p /tmp/wkhtml_install; \

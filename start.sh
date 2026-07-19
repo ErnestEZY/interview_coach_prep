@@ -1,4 +1,5 @@
 #!/bin/bash
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 # Start Uvicorn in the background
 # We bind to 127.0.0.1 because Nginx is in the same container and will proxy to it
@@ -9,8 +10,15 @@ PID_UVICORN=$!
 
 # Wait for Uvicorn to start with a timeout (30 seconds)
 echo "Waiting for Uvicorn to start..."
+if [ ! -x "/usr/bin/curl" ]; then
+  echo "ERROR: /usr/bin/curl is not available"
+fi
+if [ ! -x "/usr/sbin/nginx" ]; then
+  echo "ERROR: /usr/sbin/nginx is not available"
+fi
+
 timeout=30
-while ! curl -s http://127.0.0.1:8000/healthz > /dev/null; do
+while ! /usr/bin/curl -s http://127.0.0.1:8000/healthz > /dev/null; do
   if [ $timeout -le 0 ]; then
     echo "Uvicorn failed to start within 30 seconds or healthz not available."
     break
@@ -23,4 +31,4 @@ echo "Proceeding to start Nginx..."
 # Start Nginx in the foreground
 # This keeps the container running
 echo "Starting Nginx..."
-nginx -g "daemon off;"
+/usr/sbin/nginx -g "daemon off;"
