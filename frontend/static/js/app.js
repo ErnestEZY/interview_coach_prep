@@ -590,14 +590,26 @@ Object.assign(window.icp, {
         if (!value) {
           return 'You need to enter the passphrase!';
         }
-        // The secret passphrase (only you know this!)
-        if (value !== 'icp_admin_secret_2024') {
-          return 'Incorrect passphrase!';
-        }
+        // Defer actual verification to the backend which holds the secret in env
+        return null;
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
+        // Send passphrase to backend for verification
+        fetch('/api/admin/verify_passphrase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passphrase: result.value })
+        }).then(async (res) => {
+          if (res.ok) {
+            window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
+          } else {
+            const body = await res.json().catch(() => ({}));
+            Swal.fire({ icon: 'error', title: 'Access Denied', text: body.detail || 'Incorrect passphrase!' });
+          }
+        }).catch(() => {
+          Swal.fire({ icon: 'error', title: 'Error', text: 'Verification failed. Please try again.' });
+        });
       }
     });
   };

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, Form, Body
 from fastapi.responses import Response
 import base64
 from bson import ObjectId
+import os
 from ..core.security import get_current_user, DYNAMIC_JWT_SECRET
 from ..core.db import resumes, interviews, users, fs
 import jwt
@@ -280,3 +281,18 @@ async def metrics(current=Depends(get_current_user)):
     ensure_admin_role(current)
     count = await interviews.count_documents({})
     return {"interview_count": count}
+
+
+@router.post("/verify_passphrase")
+async def verify_passphrase(payload: dict = Body(...)):
+    """Verify an admin passphrase supplied by the frontend against an env var.
+    The actual secret must live in the environment only (e.g. `.env` during deploy).
+    """
+    passphrase = payload.get("passphrase")
+    if not passphrase:
+        raise HTTPException(status_code=400, detail="Passphrase required")
+    # Support both uppercase and lowercase env var names if present
+    secret = os.getenv("ICP_ADMIN_SECRET_2024") or os.getenv("icp_admin_secret_2024")
+    if not secret or passphrase != secret:
+        raise HTTPException(status_code=401, detail="Incorrect passphrase")
+    return {"ok": True}
