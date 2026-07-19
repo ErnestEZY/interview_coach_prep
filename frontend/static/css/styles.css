@@ -1808,8 +1808,8 @@ html {
     }
 
     .container-fluid.px-3.px-md-5 {
-        padding-left: 3rem !important; /* Exact same margin from PC (px-5 = 3rem) */
-        padding-right: 3rem !important;
+        padding-left: 1rem !important; /* Reduced padding on mobile */
+        padding-right: 1rem !important;
     }
 
     .builder-card {
@@ -1838,8 +1838,9 @@ html {
     }
 
     .resume-preview-viewport {
-        transform: scale(0.28) !important; /* Shrink down further to fit safe margins */
+        transform: scale(calc((100vw - 30px) / 794)) !important; /* Dynamically scale A4 width (794px) to fit screen width */
         transform-origin: top center;
+        margin-bottom: calc(-1122px * (1 - ((100vw - 30px) / 794))); /* Adjust margin to prevent huge blank space below */
     }
 }
 
@@ -2502,8 +2503,9 @@ html {
         justify-content: center; /* Explicitly centered */
     }
     #resume-template {
-        transform: scale(0.65);
-        margin-bottom: -105mm;
+        transform: scale(calc((100vw - 30px) / 794));
+        transform-origin: top center;
+        margin-bottom: calc(-1122px * (1 - ((100vw - 30px) / 794)));
     }
 }
 
