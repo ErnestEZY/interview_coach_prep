@@ -4,20 +4,38 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including Nginx, curl, and Tesseract for OCR
+# Install system dependencies including Nginx, curl, and Tesseract for OCR.
+# wkhtmltopdf is not available in some Debian releases via apt, so download
+# and install an official .deb if needed (tries several release builds).
 RUN apt-get update && apt-get install -y \
-    nginx \
-    curl \
-    tesseract-ocr \
-    libtesseract-dev \
-    poppler-utils \
-    build-essential \
-    pkg-config \
-    libcairo2-dev \
-    wkhtmltopdf \
-    && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        nginx \
+        curl \
+        tesseract-ocr \
+        libtesseract-dev \
+        poppler-utils \
+        build-essential \
+        pkg-config \
+        libcairo2-dev \
+        ca-certificates \
+        gnupg2 \
+        && \
+        apt-get clean && rm -rf /var/lib/apt/lists/* \
+        && \
+        set -eux; \
+        WKDEB=""; \
+        for tag in trixie bookworm bullseye buster; do \
+            url="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.${tag}_amd64.deb"; \
+            echo "Trying $url"; \
+            if curl -fsSL -o /tmp/wkhtml.deb "$url"; then \
+                WKDEB=/tmp/wkhtml.deb; break; \
+            fi; \
+        done; \
+        if [ -n "$WKDEB" ]; then \
+            dpkg -i "$WKDEB" || apt-get update && apt-get install -y -f; \
+            rm -f "$WKDEB"; \
+        else \
+            echo "Could not find wkhtmltopdf .deb for tried releases; continuing without it."; \
+        fi
 
 # Copy backend requirements first to leverage Docker cache
 COPY backend/requirements.txt .
