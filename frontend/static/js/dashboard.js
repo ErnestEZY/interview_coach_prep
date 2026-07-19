@@ -248,7 +248,7 @@ const app = createApp({
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
+        cancelButtonColor: '#8b5cf6',
         confirmButtonText: 'Yes, clear it!'
       });
 
