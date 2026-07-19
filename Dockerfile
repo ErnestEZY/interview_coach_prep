@@ -4,31 +4,30 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies.
-# WeasyPrint (pure-Python PDF renderer) needs Pango + Cairo for font/layout.
-# Tesseract is needed for OCR. No binary PDF tool required.
+# Install system dependencies including wkhtmltopdf (available in Bookworm repos),
+# Nginx for reverse proxy, and Tesseract for OCR.
 RUN apt-get update && apt-get install -y \
         nginx \
         curl \
         wget \
+        wkhtmltopdf \
         tesseract-ocr \
         libtesseract-dev \
         poppler-utils \
         build-essential \
         pkg-config \
-        libcairo2 \
         libcairo2-dev \
-        libpango-1.0-0 \
-        libpangocairo-1.0-0 \
-        libgdk-pixbuf2.0-0 \
-        libffi-dev \
-        shared-mime-info \
-        fonts-liberation \
-        fonts-dejavu-core \
         ca-certificates \
         gnupg2 \
         fontconfig \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+        fonts-liberation \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && echo "wkhtmltopdf installed at: $(which wkhtmltopdf)" \
+    && wkhtmltopdf --version
+
+# Tell the Python PDF generator exactly where wkhtmltopdf lives.
+# This is the standard apt install path on Debian/Ubuntu.
+ENV WKHTMLTOPDF_PATH=/usr/bin/wkhtmltopdf
 
 # Copy backend requirements first to leverage Docker cache
 COPY backend/requirements.txt .
