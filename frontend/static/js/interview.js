@@ -121,7 +121,7 @@ const app = createApp({
             '/static/pages/dashboard.html',
             '/static/pages/history.html',
             '/static/pages/resume_builder.html',
-            '/static/pages/find_jobs.html',
+            '/static/pages/find-jobs.html',
             '/static/pages/interview.html'
         ];
         // Check current URL on load

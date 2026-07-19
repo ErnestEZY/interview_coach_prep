@@ -85,7 +85,7 @@ window.setupSessionTimer = function(vueInstance) {
         'dashboard.html',
         'history.html',
         'resume_builder.html',
-        'find_jobs.html',
+        'find-jobs.html',
         'interview.html'
       ];
       var adminRoutes = [

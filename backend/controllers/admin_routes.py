@@ -253,7 +253,7 @@ async def get_resume_file_open(resume_id: str, token: str = Query(...)):
         fid = r.get("file_id")
         if fid:
             print(f"DEBUG: file_open - Attempting to open GridFS stream for {fid}")
-            stream = fs.open_download_stream(ObjectId(fid))
+            stream = await fs.open_download_stream(ObjectId(fid))
             raw = await stream.read()
             print(f"DEBUG: file_open - Successfully read {len(raw)} bytes from GridFS")
         elif r.get("file_b64"):

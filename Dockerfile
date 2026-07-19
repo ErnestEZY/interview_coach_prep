@@ -46,20 +46,10 @@ RUN apt-get update && apt-get install -y \
         set -eux; \
         command -v curl; \
         command -v nginx; \
-        TARBALL_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1_linux-generic-amd64.tar.xz"; \
-        wget -q -O /tmp/wkhtml.tar.xz "$TARBALL_URL"; \
-        mkdir -p /tmp/wkhtml_install; \
-        tar -xJf /tmp/wkhtml.tar.xz -C /tmp/wkhtml_install; \
-        WKHTML_BIN=$(find /tmp/wkhtml_install -type f -name wkhtmltopdf | head -n 1); \
-        if [ -n "$WKHTML_BIN" ]; then \
-            cp "$WKHTML_BIN" /usr/local/bin/; \
-            chmod +x /usr/local/bin/wkhtmltopdf; \
-            ln -sf /usr/local/bin/wkhtmltopdf /usr/bin/wkhtmltopdf; \
-        else \
-            echo "Could not extract wkhtmltopdf binary from tarball"; \
-            find /tmp/wkhtml_install -type f | sort; \
-        fi; \
-        rm -rf /tmp/wkhtml* || true; \
+        DEB_URL="https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6.1-3/wkhtmltox_0.12.6.1-3.bookworm_amd64.deb"; \
+        wget -q -O /tmp/wkhtml.deb "$DEB_URL"; \
+        apt-get install -y /tmp/wkhtml.deb; \
+        rm -f /tmp/wkhtml.deb; \
         command -v wkhtmltopdf; \
         wkhtmltopdf --version; \
         if command -v wkhtmltopdf; then ldd "$(command -v wkhtmltopdf)" | grep 'not found' || true; fi
