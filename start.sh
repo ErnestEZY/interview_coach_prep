@@ -1,55 +1,58 @@
 #!/bin/bash
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-PORT=${PORT:-8000}
+PORT=${PORT:-10000}
 
-# If Nginx is installed, we serve Uvicorn on 127.0.0.1:8000 and proxy through Nginx.
-# Otherwise, bind Uvicorn directly to the Render-assigned PORT.
-if [ -x "/usr/sbin/nginx" ]; then
+# Detect nginx using PATH search — more portable than hardcoded /usr/sbin/nginx
+NGINX_BIN=$(command -v nginx 2>/dev/null || echo "")
+
+if [ -n "$NGINX_BIN" ]; then
+  # Nginx is present: Uvicorn stays on loopback, Nginx proxies and faces the world
+  BACKEND_HOST="127.0.0.1"
   BACKEND_PORT=8000
   PROXY_MODE=yes
+  echo "Nginx found at: ${NGINX_BIN} — running in proxy mode"
 else
-  BACKEND_PORT=${PORT}
+  # No Nginx: Uvicorn must bind to 0.0.0.0 so Render's port scanner can reach it
+  BACKEND_HOST="0.0.0.0"
+  BACKEND_PORT="${PORT}"
   PROXY_MODE=no
+  echo "Nginx not found — Uvicorn will serve directly on 0.0.0.0:${PORT}"
 fi
 
 # Start Uvicorn in the background
-echo "Starting Uvicorn on 127.0.0.1:${BACKEND_PORT}..."
-uvicorn backend.main:app --host 127.0.0.1 --port ${BACKEND_PORT} --log-level warning &
+echo "Starting Uvicorn on ${BACKEND_HOST}:${BACKEND_PORT}..."
+uvicorn backend.main:app --host "${BACKEND_HOST}" --port "${BACKEND_PORT}" --log-level warning &
 PID_UVICORN=$!
 
-# Wait for Uvicorn to start with a timeout (30 seconds)
+# Wait up to 30 s for Uvicorn's /healthz to respond
 echo "Waiting for Uvicorn to start..."
-timeout=30
+TIMEOUT=30
 while true; do
-  if [ $timeout -le 0 ]; then
-    echo "Uvicorn failed to start within 30 seconds or healthz not available."
+  if [ "${TIMEOUT}" -le 0 ]; then
+    echo "Uvicorn did not become healthy within 30 s; proceeding anyway."
     break
   fi
-  if [ -x "/usr/bin/curl" ]; then
-    /usr/bin/curl -s http://127.0.0.1:${BACKEND_PORT}/healthz > /dev/null && break
+  if command -v curl > /dev/null 2>&1; then
+    curl -sf "http://127.0.0.1:${BACKEND_PORT}/healthz" > /dev/null 2>&1 && break
   else
-    python - <<PY
-import urllib.request
-import sys
+    python3 - <<PY
+import urllib.request, sys
 try:
-    urllib.request.urlopen(f'http://127.0.0.1:{BACKEND_PORT}/healthz', timeout=1)
+    urllib.request.urlopen('http://127.0.0.1:${BACKEND_PORT}/healthz', timeout=1)
     sys.exit(0)
 except Exception:
     sys.exit(1)
 PY
-    if [ $? -eq 0 ]; then
-      break
-    fi
+    [ $? -eq 0 ] && break
   fi
   sleep 1
-  timeout=$((timeout-1))
+  TIMEOUT=$((TIMEOUT - 1))
 done
 
 if [ "${PROXY_MODE}" = "yes" ]; then
-  echo "Proceeding to start Nginx..."
-  echo "Starting Nginx..."
-  /usr/sbin/nginx -g "daemon off;"
+  echo "Starting Nginx in the foreground..."
+  exec "${NGINX_BIN}" -g "daemon off;"
 else
-  echo "Nginx not available, serving directly with Uvicorn on port ${PORT}."
-  wait ${PID_UVICORN}
+  echo "Serving directly via Uvicorn on port ${PORT}."
+  wait "${PID_UVICORN}"
 fi
