@@ -162,24 +162,18 @@
                     <p class="text-secondary mb-0">Explore opportunities tailored to your skills and preferences</p>
                 </div>
 
-                <!-- Light Reminder -->
-                <div v-if="showResumeReminder" class="alert glass-card border-0 d-flex align-items-center mb-4 text-white" role="alert">
+                <!-- Light Reminder (Popup Toast) -->
+                <div v-if="showResumeReminder" class="alert glass-card border-0 d-flex align-items-center mb-0 text-white position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg animate-slide-down z-3 w-100" style="max-width: 500px;" role="alert">
                     <i class="bi bi-lightbulb-fill text-warning fs-4 me-3"></i>
                     <div>
                         <div class="fw-bold">Tip: Tailor your search</div>
                         <div class="small opacity-75">Upload and analyze your resume in the <a href="/static/pages/dashboard.html" class="text-info text-decoration-underline">Dashboard</a> to automatically fill these search fields with your best keywords.</div>
                     </div>
-                </div>
-
-                <!-- Job Search Widget Container -->
-                <div class="card border-0 overflow-hidden cj-widget-wrapper cj-search-box-wrapper shadow-sm">
-                    <div class="card-body p-4">
-                        <div id="search-box-container"></div>
-                    </div>
+                    <button type="button" class="btn-close btn-close-white ms-auto" aria-label="Close" @click="showResumeReminder = false"></button>
                 </div>
 
                 <!-- Search tips — always visible, helpful for idle and no-result states -->
-                <div class="d-flex align-items-center gap-3 mt-4 p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 search-tips-bar shadow-sm">
+                <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3 bg-dark bg-opacity-50 border border-secondary border-opacity-25 search-tips-bar shadow-sm">
                     <i class="bi bi-search fs-4 text-primary opacity-75"></i>
                     <div class="small text-secondary mb-0">
                         <span class="fw-semibold text-white">Search Tips:</span>
@@ -187,6 +181,13 @@
                         try broader keywords (e.g. <em>Developer</em> instead of <em>Python Developer</em>),
                         double-check your spelling,
                         or leave the location empty to search nationwide.
+                    </div>
+                </div>
+
+                <!-- Job Search Widget Container -->
+                <div class="card border-0 overflow-hidden cj-widget-wrapper cj-search-box-wrapper shadow-sm">
+                    <div class="card-body p-4">
+                        <div id="search-box-container"></div>
                     </div>
                 </div>
                 
