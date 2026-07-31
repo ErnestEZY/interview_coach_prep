@@ -1,21 +1,76 @@
-MIT License
+Copyright (c) 2026 ErnestEZY (Eh Zhong Yu). All Rights Reserved.
 
-Copyright (c) 2026 ErnestEZY
+================================================================================
+PROPRIETARY SOURCE-AVAILABLE LICENSE
+================================================================================
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software and its source code are the exclusive intellectual property of
+ErnestEZY (Eh Zhong Yu). By accessing, viewing, or using this repository,
+you agree to the following terms:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+--------------------------------------------------------------------------------
+1. PERMITTED USES
+--------------------------------------------------------------------------------
+- You MAY view the source code for personal education and reference.
+- You MAY fork or clone this repository solely for private, non-commercial
+  study purposes, provided no public redistribution occurs.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+--------------------------------------------------------------------------------
+2. PROHIBITED USES — ALL RIGHTS RESERVED
+--------------------------------------------------------------------------------
+The following are STRICTLY PROHIBITED without explicit prior written permission
+from the copyright holder:
+
+- Copying, reproducing, or duplicating any part of this codebase in another
+  project (public or private).
+- Distributing, sublicensing, selling, or transferring this software or any
+  derivative works.
+- Using this software or any portion of it for commercial purposes.
+- Representing this work, in whole or in part, as your own (plagiarism).
+- Modifying and re-publishing under a different name or project.
+
+--------------------------------------------------------------------------------
+3. CREATIVE COMMONS — CC BY-NC-ND 4.0
+--------------------------------------------------------------------------------
+The design, documentation, and non-functional creative elements of this project
+are additionally licensed under the Creative Commons Attribution-NonCommercial-
+NoDerivatives 4.0 International License (CC BY-NC-ND 4.0).
+
+You are free to share (copy and redistribute) the material in any medium or
+format ONLY under the following terms:
+  - Attribution: You must give appropriate credit to ErnestEZY.
+  - NonCommercial: You may not use the material for commercial purposes.
+  - NoDerivatives: You may not remix, transform, or build upon the material.
+  - No additional restrictions may be applied.
+
+Full license text: https://creativecommons.org/licenses/by-nc-nd/4.0/
+
+--------------------------------------------------------------------------------
+4. BUSINESS SOURCE LICENSE (BUSL) — CHANGE DATE: 2030-01-01
+--------------------------------------------------------------------------------
+The licensor hereby grants you the right to copy, modify, create derivative
+works, redistribute, and make non-production use of the Licensed Work.
+
+The licensor may make an Additional Use Grant, above, permitting limited
+production use.
+
+Effective on the Change Date (2030-01-01), or the fourth anniversary of the
+first publicly available distribution of a specific version of the Licensed
+Work under this License, whichever comes first, the Licensor hereby grants
+you rights under the terms of the MIT License.
+
+For all other uses, the Licensor expressly reserves all rights.
+
+--------------------------------------------------------------------------------
+5. DISCLAIMER
+--------------------------------------------------------------------------------
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THIS SOFTWARE.
+
+--------------------------------------------------------------------------------
+6. CONTACT
+--------------------------------------------------------------------------------
+For permissions, licensing enquiries, or collaboration:
+  GitHub: https://github.com/ErnestEZY
+================================================================================
