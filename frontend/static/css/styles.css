@@ -2480,6 +2480,15 @@ html {
     cursor: not-allowed;
 }
 
+/* AI Assist Quota Indicator */
+.assist-quota-badge {
+    font-size: 0.85rem;
+}
+.assist-quota-reset {
+    font-size: 0.65rem;
+}
+
+
 /* --- Mobile Responsiveness for Resume Builder --- */
 @media (max-width: 1200px) {
     .resume-preview-container {
