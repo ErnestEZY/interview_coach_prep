@@ -137,7 +137,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             "name": doc.get("name"),
             "target_job_title": doc.get("target_job_title", ""),
             "target_location": doc.get("target_location", ""),
-            "has_analyzed": doc.get("has_analyzed", False)
+            "has_analyzed": doc.get("has_analyzed", False),
+            "daily_assist_count": doc.get("daily_assist_count", 0)
         }
     except jwt.ExpiredSignatureError:
         print("DEBUG: Token expired")
@@ -160,6 +161,7 @@ async def ensure_admin():
             "weekly_reset_at": now,
             "daily_resume_count": 0,
             "daily_interview_count": 0,
+            "daily_assist_count": 0,
             "daily_reset_at": now,
         }
         await users.insert_one(super_doc)

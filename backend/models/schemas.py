@@ -31,9 +31,10 @@ class User(BaseModel):
     # Weekly quota for questions
     weekly_question_count: int = 0
     weekly_reset_at: Optional[datetime] = None
-    # Daily limits for resume analysis and interview sessions
+    # Daily limits for resume analysis, interview sessions, and AI assist
     daily_resume_count: int = 0
     daily_interview_count: int = 0
+    daily_assist_count: int = 0
     daily_reset_at: Optional[datetime] = None
     # Flags for dashboard state
     has_analyzed: bool = False

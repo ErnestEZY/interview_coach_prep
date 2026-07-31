@@ -510,7 +510,17 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <p class="text-secondary small mb-4">Fill in your details and our AI Coach will help you build a professional profile context for your interviews.</p>
+            <div class="d-flex justify-content-between align-items-start mb-4">
+              <div class="w-75">
+                <p class="text-secondary small mb-1">Fill in your details and our AI Coach will help you build a professional profile context for your interviews.</p>
+              </div>
+              <div class="text-end" v-if="assistQuota !== null">
+                <div class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 mb-1 fs-6">
+                  ✨ {{ assistQuota }} Assists Left
+                </div>
+                <div class="small text-secondary" style="font-size: 0.7rem;">(Resets daily, max 30)</div>
+              </div>
+            </div>
             
             <form id="manualBuilderForm" @submit.prevent="submitManualProfile()">
               <div class="row g-3">
@@ -535,6 +545,10 @@
                     </span>
                   </div>
                   <input type="text" class="form-control rounded-3" v-model="manualData.experience" placeholder="e.g. 1 year, 6 months, Fresh Graduate" required maxlength="15" @input="manualData.experience = manualData.experience.replace(/[^0-9a-zA-Z\s]/g, '')">
+                  <div class="coach-tip mt-1">
+                    <i class="bi bi-lightbulb text-warning"></i>
+                    <span class="small text-white-50">Tip: E.g., '1 year', 'Fresh Graduate'.</span>
+                  </div>
                 </div>
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-end mb-1">
@@ -542,7 +556,7 @@
                     <div class="d-flex align-items-center gap-2">
                       <button type="button" class="btn btn-ai-assist btn-xs" @click="assistManualField('summary')" :disabled="assistLoading.summary" title="AI writing assist">
                         <span v-if="assistLoading.summary" class="spinner-border spinner-border-sm" role="status"></span>
-                        <span v-else>✨ Improve</span>
+                        <span v-else>✨ Improve <span v-if="assistQuota !== null" class="opacity-75">({{ assistQuota }})</span></span>
                       </button>
                       <span class="char-counter" :class="{'near-limit': manualData.summary.length > 450, 'at-limit': manualData.summary.length >= 500}">
                         {{ manualData.summary.length }}/500
@@ -562,7 +576,7 @@
                     <div class="d-flex align-items-center gap-2">
                       <button type="button" class="btn btn-ai-assist btn-xs" @click="assistManualField('skills')" :disabled="assistLoading.skills" title="AI writing assist">
                         <span v-if="assistLoading.skills" class="spinner-border spinner-border-sm" role="status"></span>
-                        <span v-else>✨ Improve</span>
+                        <span v-else>✨ Improve <span v-if="assistQuota !== null" class="opacity-75">({{ assistQuota }})</span></span>
                       </button>
                       <span class="char-counter" :class="{'near-limit': manualData.skills.length > 250, 'at-limit': manualData.skills.length >= 300}">
                         {{ manualData.skills.length }}/300
@@ -582,7 +596,7 @@
                     <div class="d-flex align-items-center gap-2">
                       <button type="button" class="btn btn-ai-assist btn-xs" @click="assistManualField('achievement')" :disabled="assistLoading.achievement" title="AI writing assist">
                         <span v-if="assistLoading.achievement" class="spinner-border spinner-border-sm" role="status"></span>
-                        <span v-else>✨ Improve</span>
+                        <span v-else>✨ Improve <span v-if="assistQuota !== null" class="opacity-75">({{ assistQuota }})</span></span>
                       </button>
                       <span class="char-counter" :class="{'near-limit': manualData.achievement.length > 450, 'at-limit': manualData.achievement.length >= 500}">
                         {{ manualData.achievement.length }}/500

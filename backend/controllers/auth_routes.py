@@ -1,4 +1,4 @@
-﻿import os
+import os
 from fastapi import APIRouter, HTTPException, Depends, status, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timezone, timedelta
@@ -190,6 +190,7 @@ async def verify_email(payload: dict):
         "weekly_reset_at": now,
         "daily_resume_count": 0,
         "daily_interview_count": 0,
+        "daily_assist_count": 0,
         "daily_reset_at": now,
     }
     

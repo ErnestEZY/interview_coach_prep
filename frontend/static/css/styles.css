@@ -1608,7 +1608,7 @@ html {
     align-items: center;
     justify-content: flex-start; /* Align to top */
     overflow-y: auto; /* Allow vertical scrolling within the preview */
-    overflow-x: auto;
+    overflow-x: hidden;
     scroll-behavior: smooth;
 }
 
@@ -3034,3 +3034,217 @@ html {
   background: rgba(255,255,255,0.05) !important;
 }
 /* ── End history inline style replacements ───────────────────────────────── */
+
+/* Guided Profile Builder Modal Fix */
+.modal-backdrop {
+  z-index: 10040 !important;
+    background: rgba(30, 41, 59, 0.85) !important;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Ensure the widget contents blend with our dark wrapper */
+#job-box-container .cj-job-box, 
+.cj-search-box-wrapper .cj-search-box {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Target internal Careerjet elements to ensure text is visible on dark background */
+#job-box-container .cj-job-box *, 
+.cj-search-box-wrapper .cj-search-box * {
+    color: #f8fafc !important;
+    background-color: transparent !important;
+}
+
+/* Specific styling for links inside the widget to make them pop on dark bg */
+#job-box-container .cj-job-box a {
+    color: #60a5fa !important; /* Brighter blue for links */
+    text-decoration: none;
+}
+
+#job-box-container .cj-job-box a:hover {
+    color: var(--accent-primary-aa) !important;
+    text-decoration: underline;
+}
+ :root {
+   --bg-dark: #0f172a;
+   --text-secondary-aa: #cbd5e1;
+   --accent-primary-aa: #60a5fa;
+   --accent-info-aa: #22d3ee;
+ }
+ 
+ .loader-text {
+   color: var(--text-secondary-aa);
+ }
+ 
+.text-secondary {
+  color: var(--text-secondary-aa) !important;
+}
+ 
+ .history-panel-bg { background-color: rgba(15, 23, 42, 0.8) !important; }
+ .history-details-bg { background-color: rgba(15, 23, 42, 0.8) !important; }
+ .transcript-list { max-height: 400px; overflow-y: auto; }
+ .question-title { color: var(--accent-info-aa); }
+ .readiness-box-primary { background-color: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.2); }
+ .readiness-score-glow { text-shadow: 0 0 15px rgba(34, 211, 238, 0.4); }
+ .readiness-box-secondary { background-color: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
+ .readiness-mini-label { font-size: 0.7rem; letter-spacing: 0.05em; }
+ .feedback-section { background-color: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); }
+ .feedback-mini-label { font-size: 0.7rem; letter-spacing: 0.05em; }
+ .feedback-text { font-size: 0.85rem; opacity: 0.9; white-space: pre-wrap; }
+ .feedback-note { font-size: 0.7rem; opacity: 0.5; }
+
+.otp-visual {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  padding: 12px;
+  background: #1a263b;
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+}
+
+.otp-visual:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+
+.btn-overlay-trigger {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.otp-box {
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #eef3ff;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+.otp-visual:hover .otp-box {
+  border-color: rgba(13, 110, 253, 0.5);
+  background: rgba(13, 110, 253, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.otp-placeholder {
+  opacity: 0.25;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.otp-input-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  outline: none;
+}
+
+
+/* ── Inline style replacements ───────────────────────────────────────────── */
+
+/* Progress bar at zero width (N/A score state in interview) */
+.progress-bar-zero { width: 0% !important; }
+
+/* Find-jobs search tips bar */
+.search-tips-bar {
+  background: rgba(251, 191, 36, 0.07);
+  border-left: 3px solid rgba(251, 191, 36, 0.5);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.search-tips-icon {
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+/* Verify page – OTP attempt warning colour */
+.otp-attempt-warning { color: #f87171; }
+
+/* Verify page – resend button states */
+.resend-btn-base {
+  vertical-align: baseline;
+  font-size: inherit;
+  cursor: pointer;
+}
+.resend-btn-disabled-state {
+  cursor: not-allowed !important;
+  opacity: 0.55 !important;
+}
+
+/* Verify page – cooldown countdown */
+.resend-cooldown { font-variant-numeric: tabular-nums; }
+
+/* Resume builder – cert/lang two-column layout (replaces inline flex) */
+.cert-lang-row {
+  display: flex;
+  gap: 0;
+  margin-top: 4px;
+}
+.cert-lang-col-left {
+  flex: 0 0 50%;
+  width: 50%;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+.cert-lang-col-right {
+  flex: 0 0 50%;
+  width: 50%;
+  padding-left: 0;
+  box-sizing: border-box;
+}
+
+/* ── End inline style replacements ───────────────────────────────────────── */
+
+/* ── History page inline style replacements ─────────────────────────────── */
+.history-score-label   { font-size: 0.6rem;  letter-spacing: 1px; }
+.history-score-label-sm{ font-size: 0.55rem; letter-spacing: 0.5px; }
+.history-score-value   { font-size: 1.1rem;  line-height: 1; }
+.history-score-suffix  { font-size: 0.7rem; }
+.history-section-label { font-size: 0.65rem; }
+.history-breakdown-label{ font-size: 0.55rem; }
+.history-vr            { height: 35px; }
+.history-progress-mini {
+  height: 3px !important;
+  background: rgba(255,255,255,0.05) !important;
+}
+/* ── End history inline style replacements ───────────────────────────────── */
+
+/* Guided Profile Builder Modal Fix */
+.modal-backdrop {
+  z-index: 10040 !important;
+}
+.modal {
+  z-index: 10050 !important;
+}
+
+/* Make the manual builder modal slightly smaller */
+#manualBuilderModal .modal-dialog.modal-lg {
+  max-width: 700px;
+}
+
+/* Prevent auto-expanding textareas from growing too large */
+.auto-expand-textarea {
+  max-height: 150px;
+  overflow-y: auto !important;
+}

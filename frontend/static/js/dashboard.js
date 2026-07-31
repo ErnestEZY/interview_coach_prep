@@ -32,6 +32,7 @@ const app = createApp({
         skills: false,
         achievement: false,
       },
+      assistQuota: null,
       consent: false,
       showInfoTooltip: false,
       isSubmitted: false,
@@ -159,6 +160,9 @@ const app = createApp({
         this.userName = me.name || 'Guest';
         this.userEmail = me.email || '';
         this.isAdmin = (me.role === 'admin' || me.role === 'super_admin');
+        if (me.daily_assist_count !== undefined) {
+          this.assistQuota = 30 - me.daily_assist_count;
+        }
       } catch (_) {
         try {
           const base64Url = token.split('.')[1];
@@ -949,6 +953,9 @@ const app = createApp({
         const improved = this._stripMarkdown(response.data?.result || '');
         if (improved) {
           this.manualData[field] = improved;
+        }
+        if (response.data?.remaining_quota !== undefined) {
+          this.assistQuota = response.data.remaining_quota;
         }
       } catch (err) {
         const msg = err.response?.data?.detail || 'AI assist failed. Please try again.';

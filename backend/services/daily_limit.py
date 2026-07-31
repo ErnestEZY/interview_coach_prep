@@ -46,7 +46,8 @@ async def check_daily_limit(user_id: str, limit_type: str, max_attempts: int):
                 "daily_reset_at": now_my,
                 "daily_resume_count": 0,
                 "daily_interview_count": 0,
-                "daily_question_count": 0
+                "daily_question_count": 0,
+                "daily_assist_count": 0
             }}
         )
         return True, max_attempts

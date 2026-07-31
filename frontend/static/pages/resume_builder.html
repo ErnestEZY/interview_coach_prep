@@ -100,27 +100,33 @@
     <span class="ms-2 small text-warning" v-show="sessionTime <= 60">Time is running out!</span>
   </div>
 
-  <div class="container-fluid px-3 px-md-5 py-4">
-    <div class="text-center mb-4 px-2">
+  <div class="container-fluid px-3 px-md-5 pt-3 pb-4">
+    <div class="text-center mb-4 mb-md-2 px-2">
         <h2 class="text-white fw-bold mb-0">Profile Crafter</h2>
-        <p class="text-white-50 small mb-0">Build your resume with ATS-friendly themes.</p>
+        <p class="text-white-50 small mb-2">Build your resume with ATS-friendly themes.</p>
+        <div v-if="assistQuota !== null" class="d-inline-flex flex-column align-items-center">
+            <div class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 mb-1" style="font-size: 0.85rem;">
+                ✨ {{ assistQuota }} Assists Left
+            </div>
+            <div class="small text-secondary" style="font-size: 0.65rem;">(Resets daily, max 30)</div>
+        </div>
     </div>
 
     <div class="row g-4 justify-content-evenly">
         <!-- Form Column -->
         <div class="col-xl-5">
-            <div class="text-center mb-3">
-                <h5 class="text-white fw-bold mb-0 text-decoration-underline">Resume Information</h5>
+            <div class="d-flex justify-content-center align-items-center mb-3 px-2">
+                <h5 class="text-white fw-bold mb-0 text-decoration-underline text-center">Resume Information</h5>
             </div>
             <div class="builder-card">
                 <ul class="nav nav-pills gap-1 justify-content-center" id="pills-tab" role="tablist">
-                    <li class="nav-item" role="presentation"><button class="nav-link active" id="pills-basics-tab" data-bs-toggle="pill" data-bs-target="#tab-basics" type="button" role="tab" aria-controls="tab-basics" aria-selected="true" title="Basic Personal Information">Basics</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-edu-tab" data-bs-toggle="pill" data-bs-target="#tab-edu" type="button" role="tab" aria-controls="tab-edu" aria-selected="false" title="Educational Background">Education</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-exp-tab" data-bs-toggle="pill" data-bs-target="#tab-exp" type="button" role="tab" aria-controls="tab-exp" aria-selected="false" title="Work Experience">Experience</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-projects-tab" data-bs-toggle="pill" data-bs-target="#tab-projects" type="button" role="tab" aria-controls="tab-projects" aria-selected="false" title="Key Projects and Portfolio">Projects</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-skills-tab" data-bs-toggle="pill" data-bs-target="#tab-skills" type="button" role="tab" aria-controls="tab-skills" aria-selected="false" title="Technical and Soft Skills">Skills</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-others-tab" data-bs-toggle="pill" data-bs-target="#tab-others" type="button" role="tab" aria-controls="tab-others" aria-selected="false" title="Certifications and Languages">Others</button></li>
-                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-extra-tab" data-bs-toggle="pill" data-bs-target="#tab-extra" type="button" role="tab" aria-controls="tab-extra" aria-selected="false" title="Additional Information">Extra</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link active" id="pills-basics-tab" data-bs-toggle="pill" data-bs-target="#tab-basics" type="button" role="tab" aria-controls="tab-basics" aria-selected="true">Basics</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-edu-tab" data-bs-toggle="pill" data-bs-target="#tab-edu" type="button" role="tab" aria-controls="tab-edu" aria-selected="false">Education</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-exp-tab" data-bs-toggle="pill" data-bs-target="#tab-exp" type="button" role="tab" aria-controls="tab-exp" aria-selected="false">Experience</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-projects-tab" data-bs-toggle="pill" data-bs-target="#tab-projects" type="button" role="tab" aria-controls="tab-projects" aria-selected="false">Projects</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-skills-tab" data-bs-toggle="pill" data-bs-target="#tab-skills" type="button" role="tab" aria-controls="tab-skills" aria-selected="false">Skills</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-others-tab" data-bs-toggle="pill" data-bs-target="#tab-others" type="button" role="tab" aria-controls="tab-others" aria-selected="false">Others</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="pills-extra-tab" data-bs-toggle="pill" data-bs-target="#tab-extra" type="button" role="tab" aria-controls="tab-extra" aria-selected="false">Extra</button></li>
                 </ul>
 
                 <div class="tab-content" id="pills-tabContent">
@@ -191,7 +197,7 @@
                                             <label for="resume-summary" class="form-label mb-0">Summary</label>
                                             <button type="button" class="btn btn-ai-assist btn-xs" @click="assistSummary()" :disabled="assistState.summary" title="AI improves your summary">
                                                 <span v-if="assistState.summary" class="spinner-border spinner-border-sm" role="status"></span>
-                                                <span v-else>✨ Improve</span>
+                                                <span v-else>✨ Improve <span v-if="assistQuota !== null" class="opacity-75">({{ assistQuota }})</span></span>
                                             </button>
                                         </div>
                                         <div class="input-container-relative">
@@ -312,7 +318,7 @@
                                                     :disabled="assistState.experience[index]"
                                                     title="AI rewrites all bullets using Google XYZ format">
                                                     <span v-if="assistState.experience[index]" class="spinner-border spinner-border-sm" role="status"></span>
-                                                    <span v-else>✨ Improve</span>
+                                                    <span v-else>✨ Improve <span v-if="assistQuota !== null" class="opacity-75">({{ assistQuota }})</span></span>
                                                 </button>
                                                 <button @click="addBullet('experience', index)" class="btn btn-xs btn-outline-success" :disabled="exp.bullets && exp.bullets.length >= 4" title="Add a bullet point">+ Add</button>
                                             </div>
@@ -382,7 +388,7 @@
                                                     :disabled="assistState.projects[index]"
                                                     title="AI rewrites all bullets using Google XYZ format">
                                                     <span v-if="assistState.projects[index]" class="spinner-border spinner-border-sm" role="status"></span>
-                                                    <span v-else>✨ Improve</span>
+                                                    <span v-else>✨ Improve <span v-if="assistQuota !== null" class="opacity-75">({{ assistQuota }})</span></span>
                                                 </button>
                                                 <button @click="addBullet('projects', index)" class="btn btn-xs btn-outline-success" :disabled="proj.bullets && proj.bullets.length >= 4" title="Add a bullet point">+ Add</button>
                                             </div>

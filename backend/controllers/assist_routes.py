@@ -11,6 +11,7 @@ from typing import List, Optional
 
 from ..core.security import get_current_user
 from ..services.assist import improve_summary, improve_bullets, improve_manual_field
+from ..services.daily_limit import check_daily_limit, increment_daily_limit
 
 router = APIRouter(prefix="/api/assist", tags=["assist"])
 
@@ -39,10 +40,12 @@ class ManualFieldRequest(BaseModel):
 
 class TextResponse(BaseModel):
     result: str
+    remaining_quota: Optional[int] = None
 
 
 class BulletsResponse(BaseModel):
     result: List[str]
+    remaining_quota: Optional[int] = None
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -53,12 +56,17 @@ async def assist_summary(
     current_user: dict = Depends(get_current_user),
 ):
     """Improve a professional summary field."""
+    can_assist, remaining = await check_daily_limit(current_user["id"], "daily_assist_count", 30)
+    if not can_assist:
+        raise HTTPException(status_code=429, detail="Daily AI assist limit reached (30/30). Resets at 00:00 Malaysia Time.")
+
     text = body.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Please write something first before using AI assist.")
     try:
         result = improve_summary(text, body.job_title or "", body.char_limit or 250)
-        return {"result": result}
+        await increment_daily_limit(current_user["id"], "daily_assist_count")
+        return {"result": result, "remaining_quota": remaining - 1}
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
@@ -74,6 +82,10 @@ async def assist_bullets(
     current_user: dict = Depends(get_current_user),
 ):
     """Improve experience or project bullet points."""
+    can_assist, remaining = await check_daily_limit(current_user["id"], "daily_assist_count", 30)
+    if not can_assist:
+        raise HTTPException(status_code=429, detail="Daily AI assist limit reached (30/30). Resets at 00:00 Malaysia Time.")
+
     bullets = [b.strip() for b in body.bullets if b.strip()]
     if not bullets:
         raise HTTPException(status_code=400, detail="Please write at least one bullet point before using AI assist.")
@@ -84,7 +96,8 @@ async def assist_bullets(
             body.section or "experience",
             body.char_limit or 250,
         )
-        return {"result": result}
+        await increment_daily_limit(current_user["id"], "daily_assist_count")
+        return {"result": result, "remaining_quota": remaining - 1}
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
@@ -100,6 +113,10 @@ async def assist_manual_field(
     current_user: dict = Depends(get_current_user),
 ):
     """Improve a manual profile form field (summary, skills, achievement)."""
+    can_assist, remaining = await check_daily_limit(current_user["id"], "daily_assist_count", 30)
+    if not can_assist:
+        raise HTTPException(status_code=429, detail="Daily AI assist limit reached (30/30). Resets at 00:00 Malaysia Time.")
+
     text = body.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Please write something first before using AI assist.")
@@ -110,7 +127,8 @@ async def assist_manual_field(
             body.job_title or "",
             body.char_limit or 500,
         )
-        return {"result": result}
+        await increment_daily_limit(current_user["id"], "daily_assist_count")
+        return {"result": result, "remaining_quota": remaining - 1}
     except ValueError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:

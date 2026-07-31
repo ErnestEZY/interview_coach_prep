@@ -33,6 +33,7 @@ try {
                     experience: {},   // keyed by entry index
                     projects: {},     // keyed by entry index
                 },
+                assistQuota: null,
                 resume: {
                     name: 'FULL NAME',
                     title: 'Professional Title',
@@ -425,6 +426,9 @@ try {
                     // Use has_analyzed from backend OR session flag set after upload
                     this.hasAnalyzed = !!me.has_analyzed || localStorage.getItem('session_has_analyzed') === 'true';
                     this.isAdmin = (me.role === 'admin' || me.role === 'super_admin');
+                    if (me.daily_assist_count !== undefined) {
+                        this.assistQuota = 30 - me.daily_assist_count;
+                    }
                     // Update resume name if it was default
                     if (this.resume.name === 'FULL NAME') {
                         this.resume.name = this.userName;
@@ -811,6 +815,9 @@ try {
                     );
                     const improved = this._stripMarkdown(res.data?.result || '');
                     if (improved) this.resume.summary = improved;
+                    if (res.data?.remaining_quota !== undefined) {
+                        this.assistQuota = res.data.remaining_quota;
+                    }
                 } catch (err) {
                     const msg = err.response?.data?.detail || 'AI assist failed. Please try again.';
                     Swal.fire({ icon: 'error', title: 'Assist Failed', text: msg, confirmButtonColor: '#8b5cf6' });
@@ -863,6 +870,9 @@ try {
                         const updated = [...improved];
                         while (updated.length < entry.bullets.length) updated.push('');
                         this.resume[section][index].bullets = updated.slice(0, entry.bullets.length);
+                    }
+                    if (res.data?.remaining_quota !== undefined) {
+                        this.assistQuota = res.data.remaining_quota;
                     }
                 } catch (err) {
                     const msg = err.response?.data?.detail || 'AI assist failed. Please try again.';

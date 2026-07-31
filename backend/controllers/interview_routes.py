@@ -358,6 +358,7 @@ async def reset_quota(current=Depends(get_current_user)):
                 "daily_question_count": 0,
                 "daily_resume_count": 0,
                 "daily_interview_count": 0,
+                "daily_assist_count": 0,
                 "daily_reset_at": now
             }
         }
