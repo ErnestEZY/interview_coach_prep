@@ -1,76 +1,96 @@
-Copyright (c) 2026 ErnestEZY (Eh Zhong Yu). All Rights Reserved.
+Copyright (c) 2026 Eh Zhong Yu (ErnestEZY). All Rights Reserved.
 
-================================================================================
-PROPRIETARY SOURCE-AVAILABLE LICENSE
-================================================================================
+PolyForm Strict License 1.0.0
 
-This software and its source code are the exclusive intellectual property of
-ErnestEZY (Eh Zhong Yu). By accessing, viewing, or using this repository,
-you agree to the following terms:
+https://polyformproject.org/licenses/strict/1.0.0
 
---------------------------------------------------------------------------------
-1. PERMITTED USES
---------------------------------------------------------------------------------
-- You MAY view the source code for personal education and reference.
-- You MAY fork or clone this repository solely for private, non-commercial
-  study purposes, provided no public redistribution occurs.
+Acceptance
 
---------------------------------------------------------------------------------
-2. PROHIBITED USES — ALL RIGHTS RESERVED
---------------------------------------------------------------------------------
-The following are STRICTLY PROHIBITED without explicit prior written permission
-from the copyright holder:
+In order to get any license under these terms, you must agree to them as
+both strict obligations and conditions to all your licenses.
 
-- Copying, reproducing, or duplicating any part of this codebase in another
-  project (public or private).
-- Distributing, sublicensing, selling, or transferring this software or any
-  derivative works.
-- Using this software or any portion of it for commercial purposes.
-- Representing this work, in whole or in part, as your own (plagiarism).
-- Modifying and re-publishing under a different name or project.
+Copyright License
 
---------------------------------------------------------------------------------
-3. CREATIVE COMMONS — CC BY-NC-ND 4.0
---------------------------------------------------------------------------------
-The design, documentation, and non-functional creative elements of this project
-are additionally licensed under the Creative Commons Attribution-NonCommercial-
-NoDerivatives 4.0 International License (CC BY-NC-ND 4.0).
+The licensor grants you a copyright license for the software to do
+everything you might do with the software that would otherwise infringe
+the licensor's copyright in it for any permitted purpose, other than
+distributing the software or making changes or new works based on the
+software.
 
-You are free to share (copy and redistribute) the material in any medium or
-format ONLY under the following terms:
-  - Attribution: You must give appropriate credit to ErnestEZY.
-  - NonCommercial: You may not use the material for commercial purposes.
-  - NoDerivatives: You may not remix, transform, or build upon the material.
-  - No additional restrictions may be applied.
+Patent License
 
-Full license text: https://creativecommons.org/licenses/by-nc-nd/4.0/
+The licensor grants you a patent license for the software that covers
+patent claims the licensor can license, or becomes able to license, that
+you would infringe by using the software.
 
---------------------------------------------------------------------------------
-4. BUSINESS SOURCE LICENSE (BUSL) — CHANGE DATE: 2030-01-01
---------------------------------------------------------------------------------
-The licensor hereby grants you the right to copy, modify, create derivative
-works, redistribute, and make non-production use of the Licensed Work.
+Noncommercial Purposes
 
-The licensor may make an Additional Use Grant, above, permitting limited
-production use.
+Any noncommercial purpose is a permitted purpose.
 
-Effective on the Change Date (2030-01-01), or the fourth anniversary of the
-first publicly available distribution of a specific version of the Licensed
-Work under this License, whichever comes first, the Licensor hereby grants
-you rights under the terms of the MIT License.
+Personal Uses
 
-For all other uses, the Licensor expressly reserves all rights.
+Personal use for research, experiment, and testing for the benefit of
+public knowledge, personal study, private entertainment, hobby projects,
+amateur pursuits, or religious observance, without any anticipated
+commercial application, is use for a permitted purpose.
 
---------------------------------------------------------------------------------
-5. DISCLAIMER
---------------------------------------------------------------------------------
-THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
-DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THIS SOFTWARE.
+Noncommercial Organizations
 
---------------------------------------------------------------------------------
-6. CONTACT
---------------------------------------------------------------------------------
-For permissions, licensing enquiries, or collaboration:
-  GitHub: https://github.com/ErnestEZY
-================================================================================
+Use by any charitable organization, educational institution, public
+research organization, public safety or health organization, environmental
+protection organization, or government institution is use for a permitted
+purpose regardless of the source of funding or obligations resulting from
+the funding.
+
+Fair Use
+
+You may have "fair use" rights for the software under the law. These terms
+do not limit them.
+
+No Other Rights
+
+These terms do not allow you to sublicense or transfer any of your licenses
+to anyone else, or prevent the licensor from granting licenses to anyone
+else. These terms do not imply any other licenses.
+
+Patent Defense
+
+If you make any written claim that the software infringes or contributes to
+infringement of any patent, your patent license for the software granted
+under these terms ends immediately. If your company makes such a claim,
+your patent license ends immediately for work on behalf of your company.
+
+Violations
+
+The first time you are notified in writing that you have violated any of
+these terms, or done anything with the software not covered by your
+licenses, your licenses can nonetheless continue if you come into full
+compliance with these terms, and take practical steps to correct past
+violations, within 32 days of receiving notice. Otherwise, all your
+licenses end immediately.
+
+No Liability
+
+As far as the law allows, the software comes as is, without any warranty
+or condition, and the licensor will not be liable to you for any damages
+arising out of these terms or the use or nature of the software, under any
+kind of legal claim.
+
+Definitions
+
+The licensor is the individual or entity offering these terms, and the
+software is the software the licensor makes available under these terms.
+
+You refers to the individual or entity agreeing to these terms.
+
+Your company is any legal entity, sole proprietorship, or other kind of
+organization that you work for, plus all organizations that have control
+over, are under the control of, or are under common control with that
+organization. Control means ownership of substantially all the assets of an
+entity, or the power to direct its management and policies by vote,
+contract, or otherwise. Control can be direct or indirect.
+
+Your licenses are all the licenses granted to you for the software under
+these terms.
+
+Use means anything you do with the software requiring one of your licenses.
