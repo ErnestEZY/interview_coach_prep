@@ -1,9 +1,8 @@
-const CACHE_NAME = 'icp-cache-v3';
+const CACHE_NAME = 'icp-cache-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json?v=1',
   '/static/css/styles.css',
-  '/static/js/app.js',
   '/static/images/favicon-32x32.png?v=1',
   '/static/images/favicon.ico?v=1',
   '/static/images/icon-192x192.png?v=1',
@@ -14,6 +13,20 @@ const ASSETS_TO_CACHE = [
   '/static/pages/find-jobs.html',
   '/static/pages/history.html',
   '/static/pages/interview.html'
+];
+
+// These are NEVER cached — always fetched live from the network.
+// Includes all JS files that handle auth state, and all admin pages.
+const NEVER_CACHE = [
+  '/static/js/app.js',
+  '/static/js/login.js',
+  '/static/js/icp-admin-v1.js',
+  '/static/js/icp-admin-dashboard-v1.js',
+  '/static/js/icp-admin-preview-v1.js',
+  '/static/pages/icp-admin-',   // matches all admin pages by prefix
+  '/static/pages/login.html',
+  '/static/pages/register.html',
+  '/api/'                        // never cache any API response
 ];
 
 // Use Cache-First for these external libraries
@@ -58,6 +71,13 @@ self.addEventListener('fetch', (event) => {
   
   // Only handle GET requests with http/https schemes
   if (event.request.method !== 'GET' || !url.protocol.startsWith('http')) return;
+
+  // Never cache auth JS, admin pages, or any API calls — always go to network
+  const neverCache = NEVER_CACHE.some(pattern => url.pathname.startsWith(pattern) || url.pathname.includes(pattern));
+  if (neverCache) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   // Strategy for CDN assets: Cache-First
   const isCDN = CDN_URLS.some(domain => url.hostname.includes(domain));

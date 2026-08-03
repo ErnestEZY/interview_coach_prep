@@ -10,10 +10,14 @@ const app = createApp({
         };
     },
     mounted() {
-        // Clear any existing token/session
+        // Wipe any stale token from memory AND storage the moment this page loads.
+        // This covers the case where the admin was previously logged in and the
+        // in-memory icpState.token still holds the admin token from localStorage
+        // (set at app.js parse time), even though the inline script cleared localStorage.
         if (window.icp && window.icp.state) {
-            window.icp.state.clearToken();
+            window.icp.state.token = "";
         }
+        try { localStorage.clear(); sessionStorage.clear(); } catch(_) {}
         // Clear old session data
         try {
             localStorage.removeItem('resume_feedback');
@@ -46,6 +50,11 @@ const app = createApp({
             }
             localStorage.clear();
             sessionStorage.clear();
+            // Explicitly zero out the in-memory token so the axios interceptor
+            // does not attach a stale admin token to the /api/auth/me call below
+            if (window.icp && window.icp.state) {
+                window.icp.state.token = "";
+            }
             
             if (this.loading) return;
             this.loading = true;

@@ -12,10 +12,13 @@ const app = createApp({
         };
     },
     mounted() {
-        // Clear any existing token/session
+        // Wipe any stale in-memory token immediately — the inline script on this page
+        // clears localStorage, but icpState.token was already read at app.js parse time.
+        // Zeroing it here ensures the axios interceptor never sends a stale token.
         if (window.icp && window.icp.state) {
-            window.icp.state.clearToken();
+            window.icp.state.token = "";
         }
+        try { localStorage.clear(); sessionStorage.clear(); } catch(_) {}
         this.checkAuth();
         this._authListener = () => this.checkAuth();
         window.addEventListener('auth:changed', this._authListener);
@@ -43,7 +46,7 @@ const app = createApp({
         async login() {
             // CLEAR ALL EXISTING SESSION DATA BEFORE ANYTHING ELSE
             if (window.icp && window.icp.state) {
-                window.icp.state.clearToken();
+                window.icp.state.token = "";
             }
             localStorage.clear();
             sessionStorage.clear();

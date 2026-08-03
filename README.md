@@ -83,7 +83,7 @@ ICP is an AI-powered career preparation platform designed to help job seekers ma
 *   **Desktop App**: A native desktop application built with **Tauri**, located in the `src-tauri/` directory. See [DESKTOP_APP.md](DESKTOP_APP.md) for setup instructions.
 
 ## 📄 License
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the PolyForm Strict License 1.0.0. See `LICENSE` for more information.
 
 ---
 *Built with ❤️ for better career preparation.*

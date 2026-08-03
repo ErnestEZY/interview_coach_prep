@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login</title>
   <meta name="mobile-web-app-capable" content="yes">
+  <!-- Prevent bfcache from restoring stale admin session state -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
   <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png?v=1">
   <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico?v=1">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png?v=1">
@@ -29,11 +32,22 @@
   <script>
     (function() {
       try {
+        // Wipe ALL localStorage and sessionStorage before app.js loads.
+        // This prevents stale admin tokens or session flags from bleeding
+        // into the normal user login flow (e.g. after navigating back from admin portal).
         const keys = Object.keys(localStorage);
         keys.forEach(function(k) { if (k !== 'startup_id') localStorage.removeItem(k); });
-        sessionStorage.removeItem('icp_just_logged_in');
+        sessionStorage.clear();
       } catch(_) {}
     })();
+
+    // If this page is restored from the bfcache (back/forward navigation),
+    // force a full reload so the inline clear script above actually runs fresh.
+    window.addEventListener('pageshow', function(e) {
+      if (e.persisted) {
+        window.location.reload();
+      }
+    });
   </script>
   <script src="/static/js/app.js?v=1.8"></script>
 

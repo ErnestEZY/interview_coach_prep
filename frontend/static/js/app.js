@@ -169,7 +169,7 @@ const icpState = {
     } catch (_) {}
 
     this.token = "";
-    sessionStorage.removeItem('icp_just_logged_in');
+    sessionStorage.clear();  // wipe all session state — prevents admin/user bleed-over
     localStorage.removeItem("token");
     try {
       // Forcefully remove everything related to the user session
@@ -218,7 +218,8 @@ if (window.axios) {
     // 3. There isn't already an Authorization header set
     if (
       icpState.token && 
-      !config.url.includes('/api/auth/login') && 
+      !config.url.includes('/api/auth/login') &&
+      !config.url.includes('/api/auth/admin_login') && 
       !config.headers['Authorization']
     ) {
       config.headers['Authorization'] = 'Bearer ' + icpState.token;
@@ -541,6 +542,7 @@ Object.assign(window.icp, {
 // Admin login via documented, mature methods
 (() => {
   // Helper function to show passphrase prompt
+  // Exposed on window so icp-admin-hub-v1.html can trigger the same flow
   const showPassphrasePrompt = () => {
     Swal.fire({
       title: 'Admin Access',
@@ -567,18 +569,43 @@ Object.assign(window.icp, {
           body: JSON.stringify({ passphrase: result.value })
         }).then(async (res) => {
           if (res.ok) {
+            // Go straight to the portal — no second login needed.
+            // Clear any stale state first so the portal starts clean.
+            try {
+              const ks = Object.keys(localStorage);
+              ks.forEach(function(k) { if (k !== 'startup_id') localStorage.removeItem(k); });
+              sessionStorage.clear();
+            } catch(_) {}
             window.location.href = atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s');
           } else {
             const body = await res.json().catch(() => ({}));
-            Swal.fire({ icon: 'error', title: 'Access Denied', text: body.detail || 'Incorrect passphrase!' });
+            Swal.fire({
+              icon: 'error',
+              title: 'Access Denied',
+              text: body.detail || 'Incorrect passphrase!'
+            }).then(() => {
+              window.location.href = '/';
+            });
           }
         }).catch(() => {
-          Swal.fire({ icon: 'error', title: 'Error', text: 'Verification failed. Please try again.' });
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Verification failed. Please try again.'
+          }).then(() => {
+            window.location.href = '/';
+          });
         });
+      }  else {
+        // Cancelled or dismissed — send back to home
+        window.location.href = '/';
       }
     });
   };
-  
+
+  // Expose so icp-admin-hub-v1.html can trigger the same flow without double-login
+  window.showPassphrasePrompt = showPassphrasePrompt;
+
   // 1. Secret query parameter: ?portal=admin (for easy documentation)
   // Use sessionStorage to prevent running this multiple times
   if (!sessionStorage.getItem('admin_portal_handled')) {
