@@ -111,7 +111,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         user_id = payload.get("sub")
         role = payload.get("role")
         if not user_id:
-            print(f"DEBUG: Token decode success but no sub. Payload: {payload}")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
         
         # Try finding by ObjectId first (standard), then by str (fallback)
@@ -128,7 +127,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             doc = await users.find_one({"_id": safe_user_id})
             
         if not doc:
-            print(f"DEBUG: User not found in DB. ID: {user_id} (type: {type(user_id)})")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
         return {
             "id": str(doc["_id"]), 
@@ -141,10 +139,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             "daily_assist_count": doc.get("daily_assist_count", 0)
         }
     except jwt.ExpiredSignatureError:
-        print("DEBUG: Token expired")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except Exception as e:
-        print(f"DEBUG: Invalid token error: {e}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 async def ensure_admin():

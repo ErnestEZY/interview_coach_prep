@@ -53,13 +53,6 @@ async def check_admin_ip(email: str, ip_address: str) -> Dict[str, Any]:
         if last_ip and last_ip != clean_ip:
             is_anomaly = True
             
-    # DEBUG LOG for verification during testing
-    print(f"[SECURITY DEBUG] Admin IP Check for {email}:")
-    print(f"  - Current IP: {clean_ip}")
-    print(f"  - Is in Allowlist: {is_allowed}")
-    print(f"  - Previous IP: {last_ip}")
-    print(f"  - Is Anomaly: {is_anomaly}")
-
     return {
         "is_allowed": is_allowed,
         "is_anomaly": is_anomaly,
@@ -70,18 +63,8 @@ async def trigger_admin_alert(email: str, ip_address: str, reason: str):
     """Sends an email alert for suspicious admin activity."""
     alert_msg = f"Security Alert for Admin Account: {email}\n\nReason: {reason}\nIP Address: {ip_address}\nTimestamp: {get_malaysia_time()}"
     
-    # VISUAL CONSOLE ALERT
-    print(f"\n{'='*60}")
-    print(f"!!! SECURITY ALERT TRIGGERED !!!")
-    print(f"Admin: {email}")
-    print(f"Reason: {reason}")
-    print(f"IP: {ip_address}")
-    print(f"{'='*60}\n")
-    
+    # VISUAL CONSOLE ALERT — kept for production monitoring
     logger.critical(alert_msg)
     
-    # send_admin_alert now fetches admin emails from the database automatically
     subject = f"Security Alert: Suspicious Admin Activity ({email})"
-    print(f"[DEBUG] Calling send_admin_alert for {email}...")
     await send_admin_alert(subject, alert_msg, offender_email=email)
-    print(f"[DEBUG] send_admin_alert call completed.")
