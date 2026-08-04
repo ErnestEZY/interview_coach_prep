@@ -8,8 +8,6 @@
   <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link rel="stylesheet" href="/static/css/styles.css">
   <style>
     body { background: #0f172a; margin: 0; overflow: hidden; }
@@ -87,40 +85,43 @@
     <div class="hub-status" id="hub-status">Initialising...</div>
   </div>
 
-  <script src="/static/js/app.js?v=1.8"></script>
-
   <script>
     (function () {
       const bar    = document.getElementById('hub-bar');
       const status = document.getElementById('hub-status');
       const hub    = document.getElementById('hub');
 
-      // 3-stage fill: 30% → 65% → 100%, then prompt
-      bar.style.width    = '30%';
+      // 4-stage fill: 20% → 45% → 75% → 100%
+      bar.style.width    = '20%';
       status.textContent = 'Initialising...';
 
       setTimeout(function () {
-        bar.style.width    = '65%';
+        bar.style.width    = '45%';
+        status.textContent = 'Verifying access...';
+      }, 700);
+
+      setTimeout(function () {
+        bar.style.width    = '75%';
         status.textContent = 'Loading resources...';
-      }, 600);
+      }, 1500);
 
       setTimeout(function () {
         bar.style.width    = '100%';
         status.textContent = 'Ready.';
-      }, 1300);
+      }, 2300);
+
+      setTimeout(function () {
+        status.textContent = 'Redirecting...';
+      }, 2600);
 
       setTimeout(function () {
         hub.classList.add('fade-out');
         setTimeout(function () {
-          if (typeof window.showPassphrasePrompt === 'function') {
-            window.showPassphrasePrompt();
-          } else {
-            window.location.replace(
-              atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s')
-            );
-          }
+          window.location.replace(
+            atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s')
+          );
         }, 400);
-      }, 1800);
+      }, 2900);
     })();
   </script>
 

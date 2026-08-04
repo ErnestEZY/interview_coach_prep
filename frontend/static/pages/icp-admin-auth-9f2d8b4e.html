@@ -23,13 +23,13 @@
   <style>
     [v-cloak] { display: none !important; }
   </style>
-  <!-- Clear any stale session data FIRST, before loading app.js (which initializes icpState from localStorage) -->
+  <!-- Clear any stale session data FIRST, before loading app.js -->
   <script>
     (function() {
       try {
         const keys = Object.keys(localStorage);
         keys.forEach(function(k) { if (k !== 'startup_id') localStorage.removeItem(k); });
-        sessionStorage.removeItem('icp_just_logged_in');
+        sessionStorage.clear();
       } catch(_) {}
     })();
   </script>
