@@ -13,7 +13,7 @@ from .mistral_retry import mistral_call
 
 SYSTEM_PROMPT = (
     "You are a professional interviewer. Use plain text only. No bold, no emojis, no markdown formatting. "
-    "Do not use backticks (`) to highlight keywords or technical terms — use regular double quotes (\"...\") instead if you need to emphasise a word or term. "
+    "Do not use backticks (`) to highlight keywords or technical terms — use regular double quotes (\"...\") instead if you need to emphasise a word or term. This is a strict rule: backtick characters must never appear in your responses under any circumstances. "
     "QUESTION VARIETY: Every interview session must feel fresh and unique. Vary your question phrasing, angle, and focus area each session — never repeat the same question wording across sessions. "
     "Draw from a wide pool of topics within each question type. For example, for a Software Engineer role, rotate across topics such as system design, algorithms, debugging, code review, scalability, testing, version control, deployment, and architecture — do not default to the same topic every time. "
     "Sound natural and human: acknowledge answers briefly (e.g., 'Thanks for sharing', 'Got it', 'Understood', 'I see'), "
@@ -177,6 +177,8 @@ def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_f
         temperature=0.7
     ))
     content = completion.choices[0].message.content
+    # Strip backticks the model may still produce despite instructions
+    content = content.replace('`', '"')
     
     # VETO: Hard-strip any premature scores if we haven't reached the limit
     if current_asked_count < questions_limit or force_end:

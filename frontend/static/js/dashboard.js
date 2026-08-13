@@ -450,14 +450,37 @@ const app = createApp({
       const file = this.selectedFile || (this.$refs.fileInput ? this.$refs.fileInput.files[0] : null);
       
       if (!file) {
-        Swal.fire({
-          icon: 'error',
-          title: 'File Not Found',
-          text: 'Please re-upload your resume file to save your profile for review.',
-          confirmButtonColor: '#8b5cf6'
+        // File was cleared after original analysis — ask user to re-select it
+        const { isConfirmed } = await Swal.fire({
+          icon: 'info',
+          title: 'Re-select Your Resume',
+          text: 'Your resume file is no longer in memory. Please select the same file again to submit it for admin review.',
+          confirmButtonText: 'Choose File',
+          showCancelButton: true,
+          cancelButtonText: 'Cancel',
+          confirmButtonColor: '#8b5cf6',
+          cancelButtonColor: '#475569'
         });
-        return;
+        if (!isConfirmed) return;
+
+        // Programmatically trigger the file input
+        const fileInput = this.$refs.fileInput;
+        if (!fileInput) return;
+        fileInput.value = '';
+
+        // Wait for the user to pick a file
+        const picked = await new Promise(resolve => {
+          fileInput.onchange = (e) => resolve(e.target.files[0] || null);
+          fileInput.click();
+        });
+
+        if (!picked) return;
+        this.selectedFile = picked;
+        this.fileName = picked.name;
       }
+
+      const finalFile = this.selectedFile || (this.$refs.fileInput ? this.$refs.fileInput.files[0] : null);
+      if (!finalFile) return;
 
       Swal.fire({
         title: 'Saving Profile...',
@@ -467,7 +490,7 @@ const app = createApp({
       });
 
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', finalFile);
       fd.append('job_title', jt);
       fd.append('consent', 'true');
       fd.append('skip_analysis', 'true');
