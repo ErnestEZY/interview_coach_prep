@@ -453,28 +453,56 @@ const app = createApp({
         // File was cleared after original analysis — ask user to re-select it
         const { isConfirmed } = await Swal.fire({
           icon: 'info',
-          title: 'Re-select Your Resume',
-          text: 'Your resume file is no longer in memory. Please select the same file again to submit it for admin review.',
-          confirmButtonText: 'Choose File',
+          title: 'One More Step',
+          html: `
+            <p style="color:#475569; font-size:0.95rem; margin-bottom:0.5rem;">
+              To protect your privacy, your resume file is not stored in the browser between sessions.
+            </p>
+            <p style="color:#475569; font-size:0.95rem; margin-bottom:0;">
+              Please re-select your resume file <strong>(PDF, DOCX, or DOC)</strong> to complete the submission for admin review. Your analysis results will not be affected.
+            </p>
+          `,
+          confirmButtonText: '📂 Choose File',
           showCancelButton: true,
-          cancelButtonText: 'Cancel',
+          cancelButtonText: 'Maybe Later',
           confirmButtonColor: '#8b5cf6',
           cancelButtonColor: '#475569'
         });
         if (!isConfirmed) return;
 
-        // Programmatically trigger the file input
+        // Programmatically trigger the existing file input (already has accept=".pdf,.docx,.doc")
         const fileInput = this.$refs.fileInput;
         if (!fileInput) return;
+        fileInput.accept = '.pdf,.docx,.doc';
         fileInput.value = '';
 
         // Wait for the user to pick a file
         const picked = await new Promise(resolve => {
-          fileInput.onchange = (e) => resolve(e.target.files[0] || null);
+          const onChange = (e) => {
+            fileInput.removeEventListener('change', onChange);
+            resolve(e.target.files[0] || null);
+          };
+          fileInput.addEventListener('change', onChange);
           fileInput.click();
         });
 
         if (!picked) return;
+
+        // Validate format
+        const allowed = ['application/pdf',
+                         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                         'application/msword'];
+        const ext = picked.name.split('.').pop().toLowerCase();
+        if (!allowed.includes(picked.type) && !['pdf','docx','doc'].includes(ext)) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Invalid File Format',
+            text: 'Only PDF, DOCX, or DOC files are accepted. Please select a valid resume file.',
+            confirmButtonColor: '#8b5cf6'
+          });
+          return;
+        }
+
         this.selectedFile = picked;
         this.fileName = picked.name;
       }
