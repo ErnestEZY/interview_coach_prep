@@ -128,21 +128,18 @@ const app = createApp({
             });
             const scores = data.map(it => it.readiness_score);
 
-            // Calculate Categories for Radar Chart
-            // Based on Interview Engine: 1. Technical Accuracy (40%), 2. Communication & Depth (40%), 3. Role Alignment (20%)
-            // Since we only have the final score, we'll use a simplified version based on session history
-            // if we want to be realistic, we'd need to extract these from the AI response, 
-            // but for a lightweight FYP dashboard, we'll derive them from the score and feedback keywords
+            // Use real breakdown scores from DB when available
+            // Use real breakdown scores from DB when available, fall back to derived values
             const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-            
-            // Mocking radar data based on overall performance to show balance
-            // In a real app, these would come from specific fields in the interview DB doc
+            const lastItem = data[data.length - 1];
+            const bd = lastItem?.readiness_breakdown || {};
+
             const radarData = {
-                technical: Math.min(100, avgScore + (Math.random() * 10 - 5)),
-                communication: Math.min(100, avgScore + (Math.random() * 10 - 5)),
-                situational: Math.min(100, avgScore + (Math.random() * 10 - 5)),
-                behavioral: Math.min(100, avgScore + (Math.random() * 10 - 5)),
-                confidence: Math.min(100, avgScore + (Math.random() * 10 - 5))
+                technical:     bd.TechnicalScore     !== undefined ? Math.round((bd.TechnicalScore / 30) * 100)     : Math.min(100, avgScore + (Math.random() * 10 - 5)),
+                communication: bd.CommunicationScore !== undefined ? Math.round((bd.CommunicationScore / 30) * 100) : Math.min(100, avgScore + (Math.random() * 10 - 5)),
+                situational:   bd.AlignmentScore     !== undefined ? Math.round((bd.AlignmentScore / 20) * 100)     : Math.min(100, avgScore + (Math.random() * 10 - 5)),
+                behavioral:    bd.RelevanceScore     !== undefined ? Math.round((bd.RelevanceScore / 20) * 100)     : Math.min(100, avgScore + (Math.random() * 10 - 5)),
+                confidence:    Math.min(100, avgScore + (Math.random() * 10 - 5))
             };
 
             // Common Mistakes Bar Chart Data

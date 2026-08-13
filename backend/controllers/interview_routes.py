@@ -397,6 +397,7 @@ async def detail(session_id: str, current=Depends(get_current_user)):
         "ended_at": s.get("ended_at"),
         "transcript": s.get("transcript", []),
         "readiness_score": s.get("readiness_score"),
+        "readiness_breakdown": s.get("readiness_breakdown"),
         "readiness_feedback": s.get("readiness_feedback"),
     }
 
