@@ -582,6 +582,12 @@ const app = createApp({
 
             this.isStarting = true;
             try {
+                // Clear any paused session reference from localStorage so it doesn't
+                // auto-restore on next page load. The paused session remains in MongoDB
+                // and is still resumable from History at any time.
+                try { localStorage.removeItem('interview_session_id'); } catch (_) {}
+                try { localStorage.removeItem('interview_remaining_time'); } catch (_) {}
+
                 const fd = new FormData();
                 const localFeedbackStr = localStorage.getItem('resume_feedback');
                 const storedJobTitle = localStorage.getItem('target_job_title') || '';
@@ -1297,12 +1303,13 @@ const app = createApp({
                     this.transcript.push({ role, content: t.text });
                 });
                 
-                // Restore remaining time if available
+                // Restore remaining time — guard against 0 to prevent immediate end
                 const storedTime = localStorage.getItem('interview_remaining_time');
                 if (storedTime) {
-                    this.interviewTime = parseInt(storedTime);
+                    const parsed = parseInt(storedTime);
+                    this.interviewTime = (parsed > 30) ? parsed : parseInt(this.questionLimit) * 120;
                 }
-                
+
                 // Resume timers
                 this.startInterviewTimer();
                 this.resetInactivityTimer();
@@ -1437,12 +1444,8 @@ try {
         console.log('Force cleared resume data - null/undefined detected');
     }
     
-    // Additional cache clearing for safety
-    if (localStorage.getItem('interview_session_id')) {
-        console.log('Clearing stale session data');
-        localStorage.removeItem('interview_session_id');
-        localStorage.removeItem('interview_remaining_time');
-    }
+    // Additional cache clearing for safety — only clear if the session is already done
+    // Do NOT blindly clear interview_session_id here as it breaks pause/resume restoration
     
 } catch (e) {
     console.log('Error checking resume data:', e);
