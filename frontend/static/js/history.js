@@ -104,12 +104,12 @@ const app = createApp({
                 .filter(it => typeof it.readiness_score === 'number')
                 .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-            if (data.length < 2) {
+            if (data.length < 3) {
                 Swal.fire({
                     icon: 'info',
                     title: 'Not Enough Data',
                     html: `
-                        <p class="text-dark fw-medium mb-4">Complete at least <strong>2 full interview sessions</strong> to unlock your progress analysis chart.</p>
+                        <p class="text-dark fw-medium mb-4">Complete at least <strong>3 full interview sessions</strong> to unlock your progress analysis chart.</p>
                         <div class="d-grid gap-2 col-8 mx-auto">
                             <a href="/static/pages/interview.html" class="btn btn-primary">
                                 <i class="bi bi-play-circle me-2"></i>Start Mock Interview
