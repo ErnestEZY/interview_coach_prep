@@ -527,6 +527,40 @@ try {
                 const el = document.getElementById('resume-template');
                 if (!el) return;
 
+                // Block download only if ALL meaningful fields are completely empty
+                const r = this.resume;
+                const hasAnyContent =
+                    (r.name || '').trim() ||
+                    (r.summary || '').trim() ||
+                    (r.title || '').trim() ||
+                    (r.email || '').trim() ||
+                    (r.phone || '').trim() ||
+                    (r.skillsTech || r.skills || '').trim() ||
+                    (Array.isArray(r.experience) && r.experience.some(e =>
+                        (e.company || '').trim() || (e.position || '').trim() ||
+                        (e.bullets || []).some(b => (b || '').trim())
+                    )) ||
+                    (Array.isArray(r.education) && r.education.some(e =>
+                        (e.school || '').trim() || (e.degree || '').trim()
+                    )) ||
+                    (Array.isArray(r.projects) && r.projects.some(p =>
+                        (p.name || '').trim()
+                    ));
+
+                if (!hasAnyContent) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Resume is Empty',
+                        html: `
+                            <p class="mb-2">Your resume has no content to export.</p>
+                            <p class="text-secondary small mb-0">Please fill in at least your <strong>name</strong> and one other section before downloading.</p>
+                        `,
+                        confirmButtonText: 'Got it',
+                        confirmButtonColor: '#8b5cf6'
+                    });
+                    return;
+                }
+
                 // Ask user which download type they want
                 const result = await Swal.fire({
                     title: 'Download Resume',

@@ -47,15 +47,9 @@ backend/__pycache__/
 backend/routes/__pycache__/
 backend/services/__pycache__/
 backend/tests/__pycache__/
+admin_tools/
+dev_tools/
 scripts/__pycache__/
-backend/resets_limit.py
-backend/resets_quota.py
-reset_lockout.py
-reset_limits.py
-reset_quota.py
-resets_limit.py
-resets_quota.py
-create_admin_cli.py
 scripts/seed_sample_data.py
 scripts/download_models.py
 backend/migrate_resume_breakdown.py
