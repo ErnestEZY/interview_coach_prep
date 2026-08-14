@@ -129,11 +129,11 @@ app.include_router(job_router)
 app.include_router(assist_router)
 
 # --- Admin Portal Entry Route ---
-@app.get("/icp/admin/x7k2mP9a")
-async def admin_portal():
-    """Obscured admin hub entry point. Works on both localhost and Render."""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/static/pages/icp-admin-hub-v1.html", status_code=302)
+# Obscured URL — only known admins have this link. Hidden from Swagger docs.
+# Must be defined BEFORE app.mount("/static") so FastAPI handles it first.
+@app.get("/icp/admin/x7k2mP9a", include_in_schema=False)
+async def admin_portal_entry():
+    return FileResponse("frontend/static/pages/icp-admin-hub-v1.html")
 
 # --- App Download Routes ---
 @app.get("/downloads/apk/app-release.apk")
