@@ -128,6 +128,13 @@ app.include_router(admin_router)
 app.include_router(job_router)
 app.include_router(assist_router)
 
+# --- Admin Portal Entry Route ---
+@app.get("/admin/portal")
+async def admin_portal():
+    """Clean URL entry point for the admin hub page. Works on both localhost and Render."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/static/pages/icp-admin-hub-v1.html", status_code=302)
+
 # --- App Download Routes ---
 @app.get("/downloads/apk/app-release.apk")
 async def download_apk():
