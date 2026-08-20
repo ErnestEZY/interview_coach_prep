@@ -100,6 +100,7 @@ const app = createApp({
                 this.loadVideoDevices().then(() => this.startCamera());
             } else {
                 this.stopCamera();
+                this.videoDevices = [];
             }
         },
         mic(newVal) {

@@ -64,12 +64,6 @@
       right: 0;
       z-index: 2;
     }
-    /* Hide device pickers on smaller screens (mobile/tablet up to 1450px) */
-    @media (max-width: 1450px) {
-      .device-picker {
-        display: none !important;
-      }
-    }
     #interviewVideo {
       width: 100%;
       height: 100%;
@@ -241,21 +235,35 @@
                   <span class="small fw-bold text-uppercase tracking-wider text-secondary">Session Configuration</span>
                 </div>
                 <div class="d-flex flex-column gap-2">
-                  <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
-                    <div class="d-flex align-items-center gap-2 me-2">
-                      <label class="text-secondary small fw-bold">Questions:</label>
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <div class="d-flex align-items-center gap-1">
+                      <label class="text-secondary small fw-bold text-nowrap">Questions:</label>
                       <select class="form-select form-select-sm bg-dark text-light border-secondary question-limit-select" title="Choose the number of questions for this session" aria-label="Select number of questions" v-model="questionLimit" :disabled="sessionId">
                         <option value="10">10</option>
                         <option value="15">15</option>
                         <option value="20">20</option>
                       </select>
                     </div>
-                    <div class="d-flex align-items-center gap-2 me-2">
-                      <label class="text-secondary small fw-bold">Difficulty:</label>
+                    <div class="d-flex align-items-center gap-1">
+                      <label class="text-secondary small fw-bold text-nowrap">Difficulty:</label>
                       <select class="form-select form-select-sm bg-dark text-light border-secondary difficulty-select" title="Choose the interview difficulty level" aria-label="Select interview difficulty" v-model="difficulty" :disabled="sessionId">
                         <option value="Beginner">Beginner</option>
                         <option value="Intermediate">Intermediate</option>
                         <option value="Advanced">Advanced</option>
+                      </select>
+                    </div>
+                    <!-- Camera dropdown only — sits beside Difficulty when camera is enabled -->
+                    <div class="d-flex align-items-center gap-1 device-picker" v-if="useCamera">
+                      <label class="text-secondary small fw-bold text-nowrap">Camera:</label>
+                      <select class="form-select form-select-sm bg-dark text-light border-secondary camera-device-select"
+                              v-model="selectedCameraId"
+                              @change="onCameraDeviceChange"
+                              aria-label="Select camera device"
+                              :disabled="!videoDevices.length">
+                        <option v-if="!videoDevices.length" value="">Loading...</option>
+                        <option v-for="(d, idx) in videoDevices" :key="d.deviceId" :value="d.deviceId">
+                          {{ d.label || ('Camera ' + (idx + 1)) }}
+                        </option>
                       </select>
                     </div>
                   </div>
@@ -285,18 +293,6 @@
                       <label class="form-check-label text-secondary small" for="cameraToggle">
                         <i class="bi bi-camera-video-fill me-1"></i> Use Camera
                       </label>
-                    </div>
-                    
-                    <div class="d-flex align-items-center gap-2 device-picker" v-if="useCamera">
-                      <label class="text-secondary small">Camera:</label>
-                      <select class="form-select form-select-sm bg-dark text-light border-secondary" 
-                              v-model="selectedCameraId" 
-                              @change="onCameraDeviceChange"
-                              aria-label="Select camera device">
-                        <option v-for="(d, idx) in videoDevices" :key="d.deviceId" :value="d.deviceId">
-                          {{ d.label || ('Camera ' + (idx + 1)) }}
-                        </option>
-                      </select>
                     </div>
 
                     <div class="d-flex align-items-center gap-3">
