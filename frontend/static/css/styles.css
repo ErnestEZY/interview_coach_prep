@@ -1368,7 +1368,11 @@ html {
 }
 
 .question-limit-select {
-  width: 80px;
+  width: 62px;
+}
+
+.difficulty-select {
+  width: 125px;
 }
 
 /* Form switch cursor */
@@ -3260,7 +3264,12 @@ html {
 
 /* ── Interview Page — Camera Device Picker ─────────────────────────────── */
 .camera-device-select {
-  max-width: 245px;
+  max-width: 113px;
+  min-width: 80px;
+}
+
+.mic-device-select {
+  max-width: 113px;
   min-width: 80px;
 }
 
@@ -3270,7 +3279,8 @@ html {
     width: 100%;
   }
   .device-picker select,
-  .camera-device-select {
+  .camera-device-select,
+  .mic-device-select {
     max-width: 100%;
     width: 100%;
   }
@@ -3283,7 +3293,8 @@ html {
     align-items: flex-start !important;
   }
   .device-picker select,
-  .camera-device-select {
+  .camera-device-select,
+  .mic-device-select {
     max-width: 200px;
   }
 }

@@ -252,7 +252,7 @@
                         <option value="Advanced">Advanced</option>
                       </select>
                     </div>
-                    <!-- Camera dropdown only — sits beside Difficulty when camera is enabled -->
+                    <!-- Camera dropdown — shows beside Difficulty when camera is enabled -->
                     <div class="d-flex align-items-center gap-1 device-picker" v-if="useCamera">
                       <label class="text-secondary small fw-bold text-nowrap">Camera:</label>
                       <select class="form-select form-select-sm bg-dark text-light border-secondary camera-device-select"
@@ -263,6 +263,18 @@
                         <option v-if="!videoDevices.length" value="">Loading...</option>
                         <option v-for="(d, idx) in videoDevices" :key="d.deviceId" :value="d.deviceId">
                           {{ d.label || ('Camera ' + (idx + 1)) }}
+                        </option>
+                      </select>
+                    </div>
+                    <!-- Mic dropdown — shows beside Difficulty (or after Camera) when mic is enabled -->
+                    <div class="d-flex align-items-center gap-1 device-picker" v-if="mic">
+                      <label class="text-secondary small fw-bold text-nowrap">Mic:</label>
+                      <select class="form-select form-select-sm bg-dark text-light border-secondary mic-device-select"
+                              v-model="selectedMicId"
+                              @change="onAudioDeviceChange"
+                              aria-label="Select microphone device">
+                        <option v-for="(d, idx) in audioDevices" :key="d.deviceId" :value="d.deviceId">
+                          {{ d.label || ('Mic ' + (idx + 1)) }}
                         </option>
                       </select>
                     </div>
