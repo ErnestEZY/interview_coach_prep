@@ -162,7 +162,8 @@ def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_f
         else:
             custom_system += f"\nSTRICT RULE: You are currently on question #{current_asked_count + 1} of {questions_limit}."
             custom_system += f"\nYou MUST ask a high-quality, {difficulty}-level interview question now. You are NOT allowed to end the interview or provide scores."
-            custom_system += f"\nNEVER use the word 'final' or 'last' in your response. You have {questions_limit - current_asked_count - 1} more questions to ask after this one. Focus directly on the question without labeling its type."
+            custom_system += f"\nSTRICT FORBIDDEN WORDS: You must NEVER use any of the following words or phrases in this response: 'final', 'last', 'last question', 'final question', 'last one', 'wrapping up', 'to wrap', 'to conclude', 'closing question', 'one last', 'final topic'. Using any of these is a critical failure."
+            custom_system += f"\nYou still have {questions_limit - current_asked_count - 1} more question(s) to ask after this one. There is nothing final about this question."
         
         custom_system += f"\nDO NOT say goodbye, DO NOT provide a feedback summary, and DO NOT use the [FINISH] tag. If you try to end now, you are failing your task."
         custom_system += "\nWait for the user's answer before asking the next question."
@@ -182,7 +183,16 @@ def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_f
     content = completion.choices[0].message.content
     # Strip backticks the model may still produce despite instructions
     content = content.replace('`', '"')
-    
+
+    # Hard-strip "final/last question" phrasing when it's not actually the last question
+    if current_asked_count < questions_limit - 1 and not force_end:
+        import re
+        content = re.sub(
+            r'\b(final question|last question|one last question|final topic|closing question|'
+            r'to wrap (things )?up|to conclude|for our last|our final)\b',
+            '', content, flags=re.IGNORECASE
+        ).strip()
+
     # VETO: Hard-strip any premature scores if we haven't reached the limit
     if current_asked_count < questions_limit or force_end:
         import re
