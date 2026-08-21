@@ -275,18 +275,6 @@
                       </label>
                     </div>
 
-                    <div class="d-flex align-items-center gap-2 device-picker" v-if="mic">
-                      <label class="text-secondary small">Mic:</label>
-                      <select class="form-select form-select-sm bg-dark text-light border-secondary" 
-                              v-model="selectedMicId" 
-                              @change="onAudioDeviceChange"
-                              aria-label="Select microphone device">
-                        <option v-for="(d, idx) in audioDevices" :key="d.deviceId" :value="d.deviceId">
-                          {{ d.label || ('Mic ' + (idx + 1)) }}
-                        </option>
-                      </select>
-                    </div>
-
                     <!-- Camera toggle -->
                     <div class="form-check form-switch custom-switch">
                       <input class="form-check-input" type="checkbox" id="cameraToggle" v-model="useCamera" :disabled="sessionId">
