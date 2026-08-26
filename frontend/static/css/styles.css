@@ -3297,3 +3297,22 @@ html {
     min-width: 80px;
   }
 }
+
+/* ── Register Page — Agreement Checkbox ─────────────────────────────────── */
+.agree-checkbox {
+  width: 1.1em;
+  height: 1.1em;
+  margin-top: 0.2em;
+}
+
+.agree-label-active {
+  color: #cbd5e1;
+}
+
+.agree-label-inactive {
+  color: #94a3b8;
+}
+
+.agree-hint {
+  color: #f59e0b;
+}

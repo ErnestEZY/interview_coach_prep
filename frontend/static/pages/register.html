@@ -153,17 +153,17 @@
                   <input class="form-check-input shadow-none flex-shrink-0" type="checkbox"
                          v-model="form.agreed" id="agreeCheck" required
                          :disabled="!termsAccepted || !privacyAccepted"
-                         style="width:1.1em;height:1.1em;margin-top:0.2em;">
+                         class="agree-checkbox">
                   <div>
                     <label class="form-check-label small cursor-pointer d-block fw-semibold"
                            for="agreeCheck"
-                           :style="termsAccepted && privacyAccepted ? 'color:#cbd5e1' : 'color:#94a3b8'">
+                           :class="termsAccepted && privacyAccepted ? 'agree-label-active' : 'agree-label-inactive'">
                       I agree to the Terms &amp; Conditions and Privacy Policy.
                     </label>
                     <div v-if="!termsAccepted || !privacyAccepted" class="d-flex align-items-center gap-1 mt-1 flex-wrap">
                       <i class="bi bi-exclamation-circle-fill text-warning small flex-shrink-0"></i>
-                      <span class="small" style="color:#f59e0b;">
-                        Please <a href="#" class="fw-bold text-decoration-underline" style="color:#f59e0b;" @click.prevent="scrollToLegal">read &amp; accept</a> below to enable.
+                      <span class="small agree-hint">
+                        Please <a href="#" class="fw-bold text-decoration-underline agree-hint" @click.prevent="scrollToLegal">read &amp; accept</a> below to enable.
                       </span>
                     </div>
                     <div v-if="termsAccepted && privacyAccepted && !form.agreed" class="d-flex align-items-center gap-1 mt-1">
