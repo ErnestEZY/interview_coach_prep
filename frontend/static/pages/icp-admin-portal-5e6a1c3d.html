@@ -170,7 +170,7 @@
       </div>
 
       <!-- Detail View -->
-      <div v-if="detail" class="card p-4 mt-4 shadow-lg border-warning border-opacity-25 animate-fade-in">
+      <div v-if="detail" id="detail-section" class="card p-4 mt-4 shadow-lg border-warning border-opacity-25 animate-fade-in">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div class="d-flex align-items-center gap-3">
             <div class="bg-warning bg-opacity-10 p-2 rounded">
@@ -178,7 +178,13 @@
                 <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1zM11 8H5V7h6v1zm0-2H5V5h6v1zm-6 3h6v1H5V9zm0 2h6v1H5v-1z"/>
               </svg>
             </div>
-            <h5 class="mb-0 fw-bold">{{ detail.filename || '(missing)' }}</h5>
+            <h5 class="mb-0 fw-bold">
+              <a v-if="detail.file_available" href="javascript:void(0)" @click="viewResume(detail.id)" class="text-warning text-decoration-none">
+                {{ detail.filename || '(missing)' }}
+                <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+              </a>
+              <span v-else>{{ detail.filename || '(missing)' }}</span>
+            </h5>
           </div>
           <div class="d-flex align-items-center gap-2">
             <select class="form-select admin-status-select-modern" 

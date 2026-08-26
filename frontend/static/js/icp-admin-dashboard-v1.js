@@ -265,6 +265,12 @@ const app = createApp({
                     mime_type: j.mime_type || ''
                 };
                 this.tagsInput = (this.detail.tags || []).join(',');
+
+                // Scroll to detail section after Vue renders it
+                this.$nextTick(() => {
+                    const el = document.getElementById('detail-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
             } catch (err) {
                 console.error(err);
                 Swal.fire({ 

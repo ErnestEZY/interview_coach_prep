@@ -75,7 +75,14 @@ self.addEventListener('fetch', (event) => {
   // Never cache auth JS, admin pages, or any API calls — always go to network
   const neverCache = NEVER_CACHE.some(pattern => url.pathname.startsWith(pattern) || url.pathname.includes(pattern));
   if (neverCache) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return new Response('Service unavailable. Please check your connection.', {
+          status: 503,
+          statusText: 'Service Unavailable'
+        });
+      })
+    );
     return;
   }
 

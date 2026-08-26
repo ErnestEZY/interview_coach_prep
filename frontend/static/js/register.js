@@ -12,7 +12,12 @@ const app = createApp({
             },
             showPassword: false,
             showConfirmPassword: false,
-            loading: false
+            loading: false,
+            termsAccepted: false,
+            privacyAccepted: false,
+            showTermsButtons: false,
+            showPrivacyButtons: false,
+            legalHighlighted: false
         };
     },
     computed: {
@@ -41,6 +46,129 @@ const app = createApp({
     methods: {
         showTerms() { window.icp.showTerms(); },
         showPrivacy() { window.icp.showPrivacy(); },
+        scrollToLegal() {
+            const el = document.getElementById('legal-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            this.legalHighlighted = true;
+            setTimeout(() => { this.legalHighlighted = false; }, 3500);
+        },
+        expandTerms() {
+            Swal.fire({
+                title: 'Terms & Conditions',
+                html: `
+                  <div id="terms-scroll" class="text-start small overflow-auto px-2" style="max-height: 400px; line-height: 1.6;">
+                    <h6 class="fw-bold">1. Acceptance of Terms</h6>
+                    <p>By accessing or using ICP (Interview Coach Prep), you agree to be bound by these Terms and Conditions. These terms apply to all visitors, users, and others who access the service.</p>
+                    <h6 class="fw-bold">2. Service Description</h6>
+                    <p>ICP provides an AI-powered platform for interview preparation, including mock interviews, resume analysis, and career guidance. The service is provided "as is" and "as available".</p>
+                    <h6 class="fw-bold">3. User Accounts</h6>
+                    <p>You must provide accurate and complete information when creating an account. You are solely responsible for the activity that occurs on your account and must keep your password secure.</p>
+                    <h6 class="fw-bold">4. User Conduct</h6>
+                    <p>You agree not to use the service for any unlawful purpose or to conduct any activity that would violate the rights of others.</p>
+                    <h6 class="fw-bold">5. Intellectual Property</h6>
+                    <p>The Service and its original content, features, and functionality are and will remain the exclusive property of ICP and its licensors.</p>
+                    <h6 class="fw-bold">6. Limitation of Liability</h6>
+                    <p>In no event shall ICP be liable for any indirect, incidental, special, or consequential damages. AI feedback is for educational purposes only.</p>
+                    <h6 class="fw-bold">7. Termination</h6>
+                    <p>We may terminate or suspend access to our Service immediately, without prior notice, for any reason whatsoever.</p>
+                    <h6 class="fw-bold">8. Changes</h6>
+                    <p>We reserve the right to modify or replace these Terms at any time with at least 30 days' notice.</p>
+                  </div>
+                `,
+                showCloseButton: true,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Accept',
+                cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Decline',
+                confirmButtonColor: '#22c55e',
+                cancelButtonColor: '#ef4444',
+                reverseButtons: false,
+                didOpen: () => {
+                    const confirmBtn = Swal.getConfirmButton();
+                    confirmBtn.disabled = true;
+                    confirmBtn.style.opacity = '0.5';
+                    const scrollEl = document.getElementById('terms-scroll');
+                    if (scrollEl) {
+                        scrollEl.addEventListener('scroll', function onScroll() {
+                            if (scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 5) {
+                                confirmBtn.disabled = false;
+                                confirmBtn.style.opacity = '1';
+                                scrollEl.removeEventListener('scroll', onScroll);
+                            }
+                        });
+                    }
+                }
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    this.termsAccepted = true;
+                    if (!this.privacyAccepted) {
+                        setTimeout(() => { this.expandPrivacy(); }, 300);
+                    } else {
+                        this.form.agreed = true;
+                    }
+                } else if (res.isDismissed && res.dismiss === Swal.DismissReason.cancel) {
+                    this.termsAccepted = false;
+                    this.form.agreed = false;
+                }
+            });
+        },
+        expandPrivacy() {
+            Swal.fire({
+                title: 'Privacy Policy',
+                html: `
+                  <div id="privacy-scroll" class="text-start small overflow-auto px-2" style="max-height: 400px; line-height: 1.6;">
+                    <h6 class="fw-bold">1. Information We Collect</h6>
+                    <p><strong>Personal Data:</strong> We collect your name and email address for account management and security.</p>
+                    <p><strong>Professional Data:</strong> We collect resume files and interview responses that you voluntarily upload or provide to our AI engine.</p>
+                    <h6 class="fw-bold">2. How We Use Your Data</h6>
+                    <p>We use the collected data to provide AI-driven feedback, personalize your experience, maintain account security, and improve our services.</p>
+                    <h6 class="fw-bold">3. Data Sharing & Third Parties</h6>
+                    <p>We do not sell your personal data. We share necessary information with AI Services, Email Services, and Database Services only to provide the service.</p>
+                    <h6 class="fw-bold">4. Data Security</h6>
+                    <p>We implement technical and organizational security measures including encryption for passwords and secure API communication.</p>
+                    <h6 class="fw-bold">5. Your Rights</h6>
+                    <p>You have the right to access, correct, or delete your personal data at any time through your profile settings.</p>
+                    <h6 class="fw-bold">6. Cookies</h6>
+                    <p>We use local storage and essential cookies to maintain your session. We do not use tracking cookies for third-party advertising.</p>
+                    <h6 class="fw-bold">7. Children's Privacy</h6>
+                    <p>Our Service does not address anyone under the age of 15.</p>
+                  </div>
+                `,
+                showCloseButton: true,
+                showCancelButton: true,
+                confirmButtonText: '<i class="bi bi-check-lg me-1"></i> Accept',
+                cancelButtonText: '<i class="bi bi-x-lg me-1"></i> Decline',
+                confirmButtonColor: '#22c55e',
+                cancelButtonColor: '#ef4444',
+                reverseButtons: false,
+                didOpen: () => {
+                    const confirmBtn = Swal.getConfirmButton();
+                    confirmBtn.disabled = true;
+                    confirmBtn.style.opacity = '0.5';
+                    const scrollEl = document.getElementById('privacy-scroll');
+                    if (scrollEl) {
+                        scrollEl.addEventListener('scroll', function onScroll() {
+                            if (scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 5) {
+                                confirmBtn.disabled = false;
+                                confirmBtn.style.opacity = '1';
+                                scrollEl.removeEventListener('scroll', onScroll);
+                            }
+                        });
+                    }
+                }
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    this.privacyAccepted = true;
+                    if (this.termsAccepted) {
+                        this.form.agreed = true;
+                    }
+                } else if (res.isDismissed && res.dismiss === Swal.DismissReason.cancel) {
+                    this.privacyAccepted = false;
+                    this.form.agreed = false;
+                }
+            });
+        },
+        async showTermsPrompt() { this.expandTerms(); },
+        async showPrivacyPrompt() { this.expandPrivacy(); },
         promptFields() {
             if (!this.form.email || !this.form.password || !this.form.confirmPassword || !this.form.agreed) {
                 Swal.fire({
