@@ -135,6 +135,16 @@ app.include_router(assist_router)
 async def admin_portal_entry():
     return FileResponse("frontend/static/pages/icp-admin-hub-v1.html")
 
+# --- Robots.txt ---
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    return FileResponse("frontend/robots.txt", media_type="text/plain")
+
+# --- llms.txt ---
+@app.get("/llms.txt", include_in_schema=False)
+async def llms_txt():
+    return FileResponse("frontend/llms.txt", media_type="text/plain")
+
 # --- App Download Routes ---
 @app.get("/downloads/apk/app-release.apk")
 async def download_apk():

@@ -1,0 +1,27 @@
+# Interview Coach Prep (ICP)
+
+> An AI-powered career preparation platform for job seekers, fresh graduates, and career switchers. ICP provides resume analysis, mock interviews, a resume builder, and job search integration — all in one place.
+
+## What ICP Does
+
+- **Resume Analysis** — Upload a resume and receive structured AI feedback including a quality score, strengths, weaknesses, and ATS compatibility rating.
+- **Mock Interview** — Practice with a professional AI interviewer tailored to your target job title and difficulty level. Receive a readiness score and breakdown at the end.
+- **Resume Builder** — Build and download a professional resume with multiple themes. Includes an AI writing assist feature to polish summaries and bullet points.
+- **Manual Profile** — Fill in a structured form to generate a virtual resume for analysis without uploading a file.
+- **Job Search** — Search for relevant job listings via Careerjet integration, pre-filled with your target role and location.
+- **Interview History** — Review past interview sessions, view transcripts, and track progress over time.
+
+## Key Pages
+
+- [Home](https://interview-coach-prep.onrender.com/)
+- [About](https://interview-coach-prep.onrender.com/static/pages/about.html)
+- [Login](https://interview-coach-prep.onrender.com/static/pages/login.html)
+- [Register](https://interview-coach-prep.onrender.com/static/pages/register.html)
+
+## Technology
+
+Built with FastAPI (Python), Vue.js 3, Bootstrap 5, MongoDB Atlas, and Mistral AI models (mistral-large-latest, mistral-small-latest, open-mistral-nemo, mistral-embed, ministral-14b-2512).
+
+## Usage Policy
+
+This service is intended for personal career preparation use only. Automated scraping, bulk data collection, and commercial redistribution are not permitted. See [robots.txt](https://interview-coach-prep.onrender.com/robots.txt) for crawling rules.

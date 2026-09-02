@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /static/pages/about.html
+Allow: /static/pages/login.html
+Allow: /static/pages/register.html
+
+# Disallow admin and private pages
+Disallow: /static/pages/icp-admin-
+Disallow: /icp/admin/
+Disallow: /api/
+Disallow: /downloads/
+
+Sitemap: https://interview-coach-prep.onrender.com/sitemap.xml
