@@ -11,7 +11,7 @@
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  transition: opacity 0.5s ease, visibility 0.5s ease;
+  transition: opacity 0.5s ease;
 }
 
 /* Remove default browser password toggle icon (Edge/WebView2) */
@@ -28,7 +28,7 @@ input::-webkit-credentials-auto-fill-button {
 
 .page-loader.fade-out {
   opacity: 0;
-  visibility: hidden;
+  pointer-events: none;
 }
 
 .page-loader.fade-in {
@@ -3315,4 +3315,14 @@ html {
 
 .agree-hint {
   color: #f59e0b;
+}
+
+/* ── Font Display Swap — Bootstrap Icons ────────────────────────────────── */
+/* Override Bootstrap Icons font-display to 'swap' to prevent invisible text
+   during webfont load, improving FCP and LCP scores */
+@font-face {
+  font-family: "bootstrap-icons";
+  src: url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2?dd67030699ad5c4d92bb87e64c4e92a1") format("woff2"),
+       url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff?dd67030699ad5c4d92bb87e64c4e92a1") format("woff");
+  font-display: swap;
 }
