@@ -999,6 +999,119 @@ function showAppModal() {
 // Expose IOS Hint helper
 window.icp.showIOSHint = () => showAppModal('iOS');
 
+// ── Delete Account ────────────────────────────────────────────────────────
+window.icp.showDeleteAccountPrompt = async () => {
+  // Step 1 — Warning confirmation
+  const step1 = await Swal.fire({
+    icon: 'warning',
+    title: 'Delete Account',
+    html: `
+      <p class="text-secondary small mb-2">This action is <strong class="text-danger">permanent and irreversible</strong>.</p>
+      <p class="text-secondary small mb-0">All your data will be permanently deleted including:</p>
+      <ul class="text-start text-secondary small mt-2 mb-0">
+        <li>Resume files and analysis history</li>
+        <li>All mock interview sessions and transcripts</li>
+        <li>Your profile and account details</li>
+      </ul>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Yes, delete my account',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#475569',
+  });
+
+  if (!step1.isConfirmed) return;
+
+  // Step 2 — Email confirmation input with real-time button enable/disable
+  const userEmail = window.icp && window.icp.state
+    ? (() => {
+        try {
+          const token = window.icp.state.token;
+          const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+          return payload.email || payload.sub || '';
+        } catch (_) { return ''; }
+      })()
+    : '';
+
+  const expected = `delete ${userEmail.toLowerCase()}`;
+
+  const step2 = await Swal.fire({
+    icon: 'error',
+    title: 'Confirm Deletion',
+    html: `
+      <p class="text-secondary small mb-2">This will permanently erase all your data.</p>
+      <p class="text-secondary small mb-1">To confirm, type exactly:</p>
+      <p class="fw-bold text-danger mb-3" style="font-size:0.95rem;letter-spacing:0.01em;">delete ${userEmail}</p>
+    `,
+    input: 'text',
+    inputPlaceholder: `delete ${userEmail}`,
+    inputAttributes: { autocomplete: 'off', spellcheck: 'false' },
+    showCancelButton: true,
+    confirmButtonText: 'Delete My Account',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#475569',
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const inputEl = Swal.getInput();
+      // Disable confirm button until exact text is typed
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = '0.4';
+      inputEl.addEventListener('input', () => {
+        const match = inputEl.value.trim().toLowerCase() === expected;
+        confirmBtn.disabled = !match;
+        confirmBtn.style.opacity = match ? '1' : '0.4';
+      });
+    },
+    inputValidator: (value) => {
+      if (value.trim().toLowerCase() !== expected) {
+        return `Please type exactly: delete ${userEmail}`;
+      }
+    }
+  });
+
+  if (!step2.isConfirmed) return;
+
+  // Step 3 — Call delete endpoint
+  try {
+    Swal.fire({
+      title: 'Deleting account...',
+      text: 'Permanently removing all your data.',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    await axios.delete(window.icp.apiUrl('/api/auth/account'), {
+      data: { confirmation: step2.value.trim().toLowerCase() },
+      headers: { 'Authorization': 'Bearer ' + window.icp.state.token }
+    });
+
+    // Clear all local state then redirect
+    window.icp.state.clearToken();
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'Account Deleted',
+      text: 'Your account and all associated data have been permanently deleted.',
+      confirmButtonColor: '#8b5cf6',
+      allowOutsideClick: false
+    });
+
+    window.location.replace('/');
+
+  } catch (err) {
+    const msg = err.response?.data?.detail || 'Failed to delete account. Please try again.';
+    Swal.fire({
+      icon: 'error',
+      title: 'Deletion Failed',
+      text: msg,
+      confirmButtonColor: '#8b5cf6'
+    });
+  }
+};
+
 /**
  * Inject promotion into mobile sidebar
  */
