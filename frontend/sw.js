@@ -1,4 +1,4 @@
-const CACHE_NAME = 'icp-cache-v4';
+const CACHE_NAME = 'icp-cache-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json?v=1',
@@ -19,6 +19,7 @@ const ASSETS_TO_CACHE = [
 // Includes all JS files that handle auth state, and all admin pages.
 const NEVER_CACHE = [
   '/static/js/app.js',
+  '/static/js/app.min.js',
   '/static/js/login.js',
   '/static/js/icp-admin-v1.js',
   '/static/js/icp-admin-dashboard-v1.js',

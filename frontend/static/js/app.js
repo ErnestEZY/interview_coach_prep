@@ -999,6 +999,141 @@ function showAppModal() {
 // Expose IOS Hint helper
 window.icp.showIOSHint = () => showAppModal('iOS');
 
+// ── Delete Account — long-press handler ──────────────────────────────────
+window.icp._deleteHoldTimer = null;
+
+window.icp.deleteAccountHoldStart = function (btn) {
+  btn.classList.add('delete-holding');
+  window.icp._deleteHoldTimer = setTimeout(function () {
+    btn.classList.remove('delete-holding');
+    window.icp.showDeleteAccountPrompt();
+  }, 1000);
+};
+
+window.icp.deleteAccountHoldEnd = function (btn) {
+  clearTimeout(window.icp._deleteHoldTimer);
+  window.icp._deleteHoldTimer = null;
+  btn.classList.remove('delete-holding');
+};
+
+// ── Delete Account — two-step prompt ─────────────────────────────────────
+window.icp.showDeleteAccountPrompt = async function () {
+  // Fetch email from /api/auth/me — reliable, doesn't depend on token payload structure
+  let userEmail = '';
+  try {
+    const res = await axios.get(window.icp.apiUrl('/api/auth/me'));
+    userEmail = res.data.email || '';
+  } catch (_) {
+    // Fallback: try decoding from token
+    try {
+      const p = JSON.parse(atob(window.icp.state.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      userEmail = p.email || p.sub || '';
+    } catch (_2) {}
+  }
+
+  // ── Step 1: Warning confirmation ─────────────────────────────────────
+  const step1 = await Swal.fire({
+    icon: 'warning',
+    title: 'Delete Account?',
+    background: '#1e293b',
+    color: '#f1f5f9',
+    html: `
+      <p style="color:#cbd5e1;font-size:0.9rem;margin-bottom:8px;">
+        This will <strong style="color:#f87171;">permanently delete</strong> your account,
+        all resumes, and all interview history.
+      </p>
+      <p style="color:#94a3b8;font-size:0.82rem;margin:0;">This action cannot be undone.</p>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Yes, continue',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#475569',
+  });
+
+  if (!step1.isConfirmed) return;
+
+  // ── Step 2: Type confirmation — Delete button disabled until exact text ─
+  const expected = `delete ${userEmail.toLowerCase()}`;
+
+  await Swal.fire({
+    title: 'Confirm Deletion',
+    background: '#1e293b',
+    color: '#f1f5f9',
+    html: `
+      <p style="color:#cbd5e1;font-size:0.85rem;margin-bottom:6px;">To confirm, type exactly:</p>
+      <p style="color:#f87171;font-weight:700;font-size:0.95rem;margin-bottom:12px;word-break:break-all;">
+        delete ${userEmail}
+      </p>
+      <input id="swal-delete-input" type="text" autocomplete="off" spellcheck="false"
+        placeholder="delete ${userEmail}"
+        style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #334155;
+               background:#0f172a;color:#f1f5f9;font-size:0.88rem;outline:none;">
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Delete My Account',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#475569',
+    focusConfirm: false,
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = '0.4';
+      const input = document.getElementById('swal-delete-input');
+      input.addEventListener('input', () => {
+        const match = input.value.trim().toLowerCase() === expected;
+        confirmBtn.disabled = !match;
+        confirmBtn.style.opacity = match ? '1' : '0.4';
+      });
+      input.focus();
+    },
+    preConfirm: () => {
+      const val = document.getElementById('swal-delete-input').value.trim().toLowerCase();
+      if (val !== expected) {
+        Swal.showValidationMessage(`Type exactly: delete ${userEmail}`);
+        return false;
+      }
+      return val;
+    }
+  }).then(async (result) => {
+    if (!result.isConfirmed || !result.value) return;
+
+    try {
+      Swal.fire({
+        title: 'Deleting...',
+        background: '#1e293b',
+        color: '#f1f5f9',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+      });
+      await axios.delete(window.icp.apiUrl('/api/auth/account'), {
+        data: { confirmation: result.value }
+      });
+      window.icp.state.clearToken();
+      await Swal.fire({
+        icon: 'success',
+        title: 'Account Deleted',
+        text: 'Your account and all data have been permanently deleted.',
+        background: '#1e293b',
+        color: '#f1f5f9',
+        confirmButtonColor: '#8b5cf6'
+      });
+      window.location.replace('/');
+    } catch (err) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed',
+        text: err.response?.data?.detail || 'Could not delete account. Please try again.',
+        background: '#1e293b',
+        color: '#f1f5f9',
+        confirmButtonColor: '#8b5cf6'
+      });
+    }
+  });
+};
+
 /**
  * Inject promotion into mobile sidebar
  */

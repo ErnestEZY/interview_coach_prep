@@ -589,3 +589,47 @@ async def reset_password(payload: ResetPasswordRequest):
     await reset_tokens.delete_one({"token": payload.token})
     
     return {"message": "Password updated successfully. You can now login with your new password."}
+
+@router.delete("/account")
+async def delete_account(payload: dict, current=Depends(get_current_user)):
+    """
+    Permanently delete the authenticated user account and all associated data.
+    Requires confirmation text: delete {email}
+    Hard delete — no soft delete, no cache, no recovery.
+    """
+    from ..core.db import resumes, interviews, audit_logs, pending_users, reset_tokens, fs
+
+    if current.get("role") in ("admin", "super_admin"):
+        raise HTTPException(status_code=403, detail="Admin accounts cannot be deleted through this endpoint.")
+
+    confirmation = payload.get("confirmation", "").strip().lower()
+    expected = f"delete {current['email'].lower()}"
+    if confirmation != expected:
+        raise HTTPException(status_code=400, detail=f"Confirmation text does not match. Type exactly: delete {current['email']}")
+
+    user_id = current["id"]
+    email = current["email"]
+    try:
+        user_oid = ObjectId(user_id)
+    except Exception:
+        user_oid = user_id
+
+    # Delete GridFS resume files
+    resume_docs = await resumes.find({"user_id": user_id}).to_list(length=None)
+    for r in resume_docs:
+        fid = r.get("file_id")
+        if fid:
+            try:
+                await fs.delete(ObjectId(fid))
+            except Exception:
+                pass
+
+    # Delete all user data collections
+    await resumes.delete_many({"user_id": user_id})
+    await interviews.delete_many({"user_id": user_id})
+    await reset_tokens.delete_many({"email": email})
+    await pending_users.delete_many({"email": email})
+    await audit_logs.delete_many({"user_id": user_id})
+    await users.delete_one({"_id": user_oid})
+
+    return {"message": "Account permanently deleted. No data is retained."}
