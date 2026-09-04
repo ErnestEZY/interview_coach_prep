@@ -1035,14 +1035,12 @@ window.icp.showDeleteAccountPrompt = async function () {
   const step1 = await Swal.fire({
     icon: 'warning',
     title: 'Delete Account?',
-    background: '#1e293b',
-    color: '#f1f5f9',
     html: `
-      <p style="color:#cbd5e1;font-size:0.9rem;margin-bottom:8px;">
-        This will <strong style="color:#f87171;">permanently delete</strong> your account,
+      <p style="color:#374151;font-size:0.9rem;margin-bottom:8px;">
+        This will <strong style="color:#dc2626;">permanently delete</strong> your account,
         all resumes, and all interview history.
       </p>
-      <p style="color:#94a3b8;font-size:0.82rem;margin:0;">This action cannot be undone.</p>
+      <p style="color:#6b7280;font-size:0.82rem;margin:0;">This action cannot be undone.</p>
     `,
     showCancelButton: true,
     confirmButtonText: 'Yes, continue',
@@ -1058,17 +1056,15 @@ window.icp.showDeleteAccountPrompt = async function () {
 
   await Swal.fire({
     title: 'Confirm Deletion',
-    background: '#1e293b',
-    color: '#f1f5f9',
     html: `
-      <p style="color:#cbd5e1;font-size:0.85rem;margin-bottom:6px;">To confirm, type exactly:</p>
-      <p style="color:#f87171;font-weight:700;font-size:0.95rem;margin-bottom:12px;word-break:break-all;">
+      <p style="color:#374151;font-size:0.85rem;margin-bottom:6px;">To confirm, type exactly:</p>
+      <p style="color:#dc2626;font-weight:700;font-size:0.95rem;margin-bottom:12px;word-break:break-all;">
         delete ${userEmail}
       </p>
       <input id="swal-delete-input" type="text" autocomplete="off" spellcheck="false"
         placeholder="delete ${userEmail}"
-        style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #334155;
-               background:#0f172a;color:#f1f5f9;font-size:0.88rem;outline:none;">
+        style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid #d1d5db;
+               background:#f9fafb;color:#111827;font-size:0.88rem;outline:none;box-sizing:border-box;">
     `,
     showCancelButton: true,
     confirmButtonText: 'Delete My Account',
@@ -1102,8 +1098,6 @@ window.icp.showDeleteAccountPrompt = async function () {
     try {
       Swal.fire({
         title: 'Deleting...',
-        background: '#1e293b',
-        color: '#f1f5f9',
         allowOutsideClick: false,
         showConfirmButton: false,
         didOpen: () => Swal.showLoading()
@@ -1116,8 +1110,6 @@ window.icp.showDeleteAccountPrompt = async function () {
         icon: 'success',
         title: 'Account Deleted',
         text: 'Your account and all data have been permanently deleted.',
-        background: '#1e293b',
-        color: '#f1f5f9',
         confirmButtonColor: '#8b5cf6'
       });
       window.location.replace('/');
@@ -1126,8 +1118,6 @@ window.icp.showDeleteAccountPrompt = async function () {
         icon: 'error',
         title: 'Failed',
         text: err.response?.data?.detail || 'Could not delete account. Please try again.',
-        background: '#1e293b',
-        color: '#f1f5f9',
         confirmButtonColor: '#8b5cf6'
       });
     }
