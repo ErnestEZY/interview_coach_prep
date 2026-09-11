@@ -142,6 +142,11 @@ async def admin_portal_entry():
 async def robots_txt():
     return FileResponse("frontend/robots.txt", media_type="text/plain")
 
+# --- Google Search Console Verification ---
+@app.get("/google5fbbd5716e23b9ac.html", include_in_schema=False)
+async def google_site_verification():
+    return FileResponse("frontend/google5fbbd5716e23b9ac.html", media_type="text/html")
+
 # --- llms.txt ---
 @app.get("/llms.txt", include_in_schema=False)
 async def llms_txt():
