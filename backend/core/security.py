@@ -19,6 +19,9 @@ DYNAMIC_JWT_SECRET = JWT_SECRET
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # OAuth users have no password — never match
+    if not hashed_password:
+        return False
     try:
         password_bytes = plain_password.encode('utf-8')
         hashed_bytes = hashed_password.encode('utf-8')

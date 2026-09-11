@@ -34,6 +34,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.responses import HTMLResponse, FileResponse
 from .controllers.auth_routes import router as auth_router
+from .controllers.oauth_routes import router as oauth_router
 from .controllers.resume_routes import router as resume_router
 from .controllers.interview_routes import router as interview_router
 from .controllers.admin_routes import router as admin_router
@@ -122,6 +123,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(oauth_router)
 app.include_router(resume_router)
 app.include_router(interview_router)
 app.include_router(admin_router)
@@ -183,6 +185,19 @@ async def startup():
         print("Successfully connected to MongoDB")
     except Exception as e:
         print(f"CRITICAL: Failed to connect to MongoDB: {e}")
+
+    # ── Migration: backfill auth_providers for existing users ────────────────
+    # All users registered before OAuth was introduced have no auth_providers
+    # field. Set them to ["local"] so the OAuth login check works correctly.
+    try:
+        result = await users.update_many(
+            {"auth_providers": {"$exists": False}},
+            {"$set": {"auth_providers": ["local"]}}
+        )
+        if result.modified_count > 0:
+            print(f"Migration: set auth_providers=['local'] on {result.modified_count} existing user(s).")
+    except Exception as e:
+        print(f"Warning: auth_providers migration failed: {e}")
 
     # Create TTL index for pending_users (expires after 15 minutes)
     try:
