@@ -1,14 +1,12 @@
 """
-OAuth Routes — Google and GitHub
-GET /api/auth/oauth/google          → redirect to Google consent
-GET /api/auth/oauth/google/callback → handle Google callback
+OAuth Routes — GitHub
 GET /api/auth/oauth/github          → redirect to GitHub consent
 GET /api/auth/oauth/github/callback → handle GitHub callback
 
 Flow:
-1. User clicks OAuth button → frontend navigates to /api/auth/oauth/{provider}
-2. Backend redirects to provider consent screen
-3. Provider redirects back to /api/auth/oauth/{provider}/callback with ?code=...
+1. User clicks OAuth button → frontend navigates to /api/auth/oauth/github
+2. Backend redirects to GitHub consent screen
+3. GitHub redirects back to /api/auth/oauth/github/callback with ?code=...
 4. Backend exchanges code for user info
 5. Find or create user, link provider if needed
 6. Issue JWT, redirect to /static/pages/oauth_callback.html?token=...
@@ -22,7 +20,6 @@ from urllib.parse import urlencode
 from bson import ObjectId
 
 from ..core.config import (
-    GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
     GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET,
     OAUTH_REDIRECT_BASE
 )
@@ -32,7 +29,6 @@ from ..services.utils import get_malaysia_time
 
 router = APIRouter(prefix="/api/auth/oauth", tags=["oauth"])
 
-GOOGLE_REDIRECT_URI = f"{OAUTH_REDIRECT_BASE}/api/auth/oauth/google/callback"
 GITHUB_REDIRECT_URI = f"{OAUTH_REDIRECT_BASE}/api/auth/oauth/github/callback"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -93,78 +89,6 @@ async def _find_or_create_user(email: str, name: str, provider: str, provider_id
     result = await users.insert_one(doc)
     doc["_id"] = result.inserted_id
     return doc
-
-
-# ── Google ─────────────────────────────────────────────────────────────────────
-
-@router.get("/google")
-async def google_login():
-    """Redirect user to Google OAuth consent screen."""
-    if not GOOGLE_CLIENT_ID:
-        raise HTTPException(status_code=503, detail="Google OAuth not configured.")
-    params = urlencode({
-        "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "response_type": "code",
-        "scope": "openid email profile",
-        "access_type": "online",
-    })
-    return RedirectResponse(
-        url=f"https://accounts.google.com/o/oauth2/v2/auth?{params}",
-        status_code=302
-    )
-
-
-@router.get("/google/callback")
-async def google_callback(code: str = None, error: str = None):
-    """Handle Google OAuth callback."""
-    if error or not code:
-        return _oauth_error_redirect("Google+login+was+cancelled+or+failed.")
-
-    async with httpx.AsyncClient() as client:
-        # Exchange code for tokens
-        token_resp = await client.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "code": code,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "redirect_uri": GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code",
-            }
-        )
-        if token_resp.status_code != 200:
-            return _oauth_error_redirect("Failed+to+exchange+Google+auth+code.")
-
-        token_data = token_resp.json()
-        access_token = token_data.get("access_token")
-
-        # Fetch user info
-        user_resp = await client.get(
-            "https://www.googleapis.com/oauth2/v2/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        if user_resp.status_code != 200:
-            return _oauth_error_redirect("Failed+to+fetch+Google+user+info.")
-
-        info = user_resp.json()
-        email = info.get("email")
-        name = info.get("name", "")
-        provider_id = info.get("id", "")
-
-    if not email:
-        return _oauth_error_redirect("Google+did+not+return+an+email+address.")
-
-    try:
-        user = await _find_or_create_user(email, name, "google", provider_id)
-    except ValueError as e:
-        return _oauth_error_redirect(str(e).replace(" ", "+"))
-
-    jwt = create_access_token(str(user["_id"]), user.get("role", "user"))
-    return RedirectResponse(
-        url=f"/static/pages/oauth_callback.html?token={jwt}",
-        status_code=302
-    )
 
 
 # ── GitHub ─────────────────────────────────────────────────────────────────────
