@@ -3371,3 +3371,13 @@ html {
 .delete-account-link.delete-holding {
   opacity: 1;
 }
+
+/* --- OAuth Callback Page --- */
+.oauth-callback-body {
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+}
