@@ -10,7 +10,10 @@
   </style>
 </head>
 <body>
+  <!-- Suppress offline detector before app.min.js runs -->
+  <script> window.ICP_NO_OFFLINE = true; </script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="/static/js/app.min.js?v=2.0"></script>
   <script>
     (function () {
       const params = new URLSearchParams(window.location.search);
@@ -37,9 +40,13 @@
         return;
       }
 
-      // Store token directly — no app.min.js needed here
-      localStorage.setItem('token', token);
-      sessionStorage.setItem('icp_just_logged_in', '1');
+      // Use setToken() so stale resume/feedback data is properly cleared
+      if (window.icp && window.icp.state) {
+        window.icp.state.setToken(token);
+      } else {
+        localStorage.setItem('token', token);
+        sessionStorage.setItem('icp_just_logged_in', '1');
+      }
 
       // Stage 1 — Signing in loader
       Swal.fire({

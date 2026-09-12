@@ -741,8 +741,8 @@ window.addEventListener('online', () => {
   window.location.reload();
 });
 
-// Initial check
-if (!navigator.onLine) {
+// Initial check — skip on pages that set window.ICP_NO_OFFLINE (e.g. oauth_callback)
+if (!navigator.onLine && !window.ICP_NO_OFFLINE) {
   showOfflineToast();
   showOfflineOverlay();
 }
@@ -1212,7 +1212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  setupOfflineDetection();
+  if (!window.ICP_NO_OFFLINE) { setupOfflineDetection(); }
   handleAppPromotion();
   injectSidebarPromotion();
   
