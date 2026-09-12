@@ -6,10 +6,77 @@
   <title>Signing in...</title>
   <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico?v=1">
   <style>
-    html, body { margin: 0; padding: 0; background: #0f172a; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: #0f172a; }
+
+    .signin-overlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      background: #0f172a;
+      z-index: 9999;
+      animation: fadeInUp 0.4s ease;
+    }
+
+    .dots {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    .dots span {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+
+    .dots span:nth-child(1) { background: #6366f1; }
+    .dots span:nth-child(2) { background: #8b5cf6; animation-delay: 0.2s; }
+    .dots span:nth-child(3) { background: #a78bfa; animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0);    opacity: 0.6; }
+      40%           { transform: translateY(-12px); opacity: 1;   }
+    }
+
+    .signin-label {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      font-family: sans-serif;
+      letter-spacing: 0.02em;
+    }
+
+    .signin-sub {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-family: sans-serif;
+      letter-spacing: 0.03em;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
+
+  <!-- Signing in animation — visible immediately, no JS needed to render -->
+  <div class="signin-overlay" id="signinOverlay">
+    <div class="dots">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <p class="signin-label">Signing in...</p>
+    <p class="signin-sub">Please wait while we verify your account</p>
+  </div>
+
   <!-- Suppress offline detector before app.min.js runs -->
   <script> window.ICP_NO_OFFLINE = true; </script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -21,6 +88,7 @@
       const oauthError = params.get('oauth_error');
 
       if (oauthError) {
+        document.getElementById('signinOverlay').remove();
         Swal.fire({
           icon: 'error',
           title: 'Login Failed',
@@ -48,19 +116,9 @@
         sessionStorage.setItem('icp_just_logged_in', '1');
       }
 
-      // Stage 1 — Signing in loader
-      Swal.fire({
-        title: 'Signing in...',
-        text: 'Please wait while we verify your account',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        background: '#1e293b',
-        color: '#f1f5f9',
-        didOpen: () => { Swal.showLoading(); }
-      });
-
-      // Stage 2 — Success then redirect
+      // Show success after a short delay then redirect
       setTimeout(() => {
+        document.getElementById('signinOverlay').remove();
         Swal.fire({
           icon: 'success',
           title: 'Login Successful!',
