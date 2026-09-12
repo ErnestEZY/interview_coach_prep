@@ -3381,3 +3381,8 @@ html {
   min-height: 100vh;
   margin: 0;
 }
+
+/* --- OAuth Email Required Page --- */
+.oauth-email-icon {
+  font-size: 2.5rem;
+}
