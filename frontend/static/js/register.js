@@ -169,6 +169,25 @@ const app = createApp({
         },
         async showTermsPrompt() { this.expandTerms(); },
         async showPrivacyPrompt() { this.expandPrivacy(); },
+        githubOAuth() {
+            if (!this.termsAccepted || !this.privacyAccepted) {
+                // Highlight the legal section and prompt the user to accept first
+                this.scrollToLegal();
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Agreement Required',
+                    html: 'Please read and accept the <strong>Terms &amp; Conditions</strong> and <strong>Privacy Policy</strong> below before signing up with GitHub.',
+                    confirmButtonText: 'Read &amp; Accept',
+                    confirmButtonColor: '#8b5cf6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.expandTerms();
+                    }
+                });
+                return;
+            }
+            window.location.href = '/api/auth/oauth/github';
+        },
         promptFields() {
             if (!this.form.email || !this.form.password || !this.form.confirmPassword || !this.form.agreed) {
                 Swal.fire({
