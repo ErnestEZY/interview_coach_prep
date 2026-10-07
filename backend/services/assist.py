@@ -9,14 +9,15 @@ import re
 from typing import List, Optional
 from dotenv import load_dotenv
 from .mistral_retry import mistral_call
+from .rag_engine import _build_mistral_client
 
 try:
-    from mistralai import Mistral
+    from mistralai.client.sdk import Mistral
 except (ImportError, AttributeError):
     try:
+        from mistralai import Mistral
+    except (ImportError, AttributeError):
         from mistralai.client import Mistral
-    except ImportError:
-        from mistralai import MistralClient as Mistral
 
 load_dotenv()
 
@@ -85,7 +86,7 @@ def _call_nemo(system_prompt: str, user_prompt: str, temperature: float = 0.4) -
     """Low-level call to open-mistral-nemo with automatic retry on rate limits."""
     if not MISTRAL_API_KEY:
         raise ValueError("MISTRAL_API_KEY not configured.")
-    client = Mistral(api_key=MISTRAL_API_KEY)
+    client = _build_mistral_client(MISTRAL_API_KEY)
     resp = mistral_call(lambda: client.chat.complete(
         model=ASSIST_MODEL,
         messages=[

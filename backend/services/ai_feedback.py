@@ -6,14 +6,14 @@ from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
 try:
-    from mistralai import Mistral
+    from mistralai.client.sdk import Mistral
 except (ImportError, AttributeError):
     try:
+        from mistralai import Mistral
+    except (ImportError, AttributeError):
         from mistralai.client import Mistral
-    except ImportError:
-        from mistralai import MistralClient as Mistral
 
-from .rag_engine import rag_engine
+from .rag_engine import rag_engine, _build_mistral_client
 from .mistral_retry import mistral_call
 
 load_dotenv()
@@ -203,7 +203,7 @@ async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
         rag_result = await rag_engine.retrieve_with_correction(text)
         context = "\n\n".join(rag_result.get("documents", []))
 
-        client = Mistral(api_key=MISTRAL_API_KEY)
+        client = _build_mistral_client(MISTRAL_API_KEY)
         prompt = build_resume_prompt(text, context, ocr_used)
 
         response = mistral_call(lambda: client.chat.complete(

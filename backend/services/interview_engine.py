@@ -1,15 +1,16 @@
 from datetime import datetime
 from typing import Dict, Any, List
 try:
-    from mistralai import Mistral
+    from mistralai.client.sdk import Mistral
 except (ImportError, AttributeError):
     try:
+        from mistralai import Mistral
+    except (ImportError, AttributeError):
         from mistralai.client import Mistral
-    except ImportError:
-        from mistralai import MistralClient as Mistral
 from ..core.config import MISTRAL_API_KEY
 from .cache_manager import memoize
 from .mistral_retry import mistral_call
+from .rag_engine import _build_mistral_client
 
 SYSTEM_PROMPT = (
     "You are a professional interviewer. Use plain text only. No bold, no emojis, no markdown formatting. "
@@ -96,7 +97,7 @@ def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_f
             return prefix + "Hi, thank you for joining us today. To start things off, could you please introduce yourself and explain what interests you about this specific role?"
         return f"Thank you for sharing that. Now, let's dive into our first {difficulty} level question..."
     
-    client = Mistral(api_key=MISTRAL_API_KEY)
+    client = _build_mistral_client(MISTRAL_API_KEY)
     
     is_tech = is_technical_role(job_title)
     

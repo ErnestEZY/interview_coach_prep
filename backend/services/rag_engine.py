@@ -8,12 +8,12 @@ import httpx
 from typing import List, Dict, Any
 from typing import List, Dict, Any, Optional
 try:
-    from mistralai import Mistral
+    from mistralai.client.sdk import Mistral
 except (ImportError, AttributeError):
     try:
+        from mistralai import Mistral
+    except (ImportError, AttributeError):
         from mistralai.client import Mistral
-    except ImportError:
-        from mistralai.client import MistralClient as Mistral
 
 
 def _build_mistral_client(api_key: str) -> "Mistral":
