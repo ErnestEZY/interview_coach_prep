@@ -102,3 +102,7 @@ docs/
 start.ps1
 PROJECT_AGENT_GUIDE.md
 MARKER_NOTE.md
+
+# JVM / process crash logs
+hs_err_pid*.log
+replay_pid*.log

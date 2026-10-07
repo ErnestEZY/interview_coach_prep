@@ -40,6 +40,7 @@ const app = createApp({
       _isUnmounted: false,
       showAnalysisProgress: false,
       analysisProgress: 0,
+      progressError: false,
       analysisStatus: 'Preparing analysis...',
       progressInterval: null
     };
@@ -57,6 +58,14 @@ const app = createApp({
         if (this.logged) {
             this.startTimer();
             this.setUserFromToken();
+            // Ensure progress bar and upload state are clean on every page load
+            this.showAnalysisProgress = false;
+            this.uploading = false;
+            this.progressError = false;
+            if (this.progressInterval) {
+              clearInterval(this.progressInterval);
+              this.progressInterval = null;
+            }
             this.initDashboard();
         } else {
             this.isLoading = false;
@@ -598,6 +607,10 @@ const app = createApp({
         'Polishing your feedback...',
         'Organising results...',
         'Wrapping up the analysis...',
+        'Reviewing career insights...',
+        'Fine-tuning recommendations...',
+        'Checking industry benchmarks...',
+        'Preparing your report...',
       ];
 
       // Speed zones (single 200ms interval, probabilistic skipping):
@@ -611,7 +624,7 @@ const app = createApp({
         if (this.analysisProgress < 95) {
           const p = this.analysisProgress;
           const skip =
-            p >= 30 ? (Math.random() > 0.45) :   // ~55% skip → ~450ms/step
+            p >= 30 ? (Math.random() > 0.15) :   // ~85% skip → ~1300ms/step (slow crawl — AI thinking, up to ~110s for 64 steps)
             p >= 12 ? (Math.random() > 0.67) :    // ~33% skip → ~300ms/step
                        false;                      // no skip   → ~200ms/step
           if (skip) return;
@@ -660,6 +673,21 @@ const app = createApp({
       if (this.progressInterval) {
         clearInterval(this.progressInterval);
         this.progressInterval = null;
+      }
+
+      if (!success) {
+        // Show error state briefly before hiding — prevents bar sticking at 94%
+        this.analysisProgress = 100;
+        this.analysisStatus = 'Analysis failed';
+        this.progressError = true;
+        return new Promise(resolve => {
+          setTimeout(() => {
+            this.showAnalysisProgress = false;
+            this.progressError = false;
+            this.analysisProgress = 0;
+            resolve();
+          }, 800);
+        });
       }
 
       if (success) {
@@ -787,14 +815,46 @@ const app = createApp({
       try {
         this.isSubmitted = false;
         localStorage.removeItem('resume_submitted');
-        const r = await axios.post('/api/resume/upload', fd, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
+
+        // Client-side timeout — if backend takes more than 90s, stop the bar and show error
+        const TIMEOUT_MS = 90000;
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('ANALYSIS_TIMEOUT')), TIMEOUT_MS)
+        );
+
+        const r = await Promise.race([
+          axios.post('/api/resume/upload', fd, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          }),
+          timeoutPromise
+        ]);
         
         const res = r.data;
         
+        // Detect AI error returned as 200 OK (rate limit, tier error, etc.)
+        const isAIError = res && res.feedback && (
+          (res.feedback.Advantages && res.feedback.Advantages[0] === 'Error getting AI feedback.') ||
+          (res.feedback.Advantages && res.feedback.Advantages[0] === 'AI not available.')
+        );
+
+        if (isAIError) {
+          await this.stopAnalysisProgress(false);
+          this.uploading = false;
+          Swal.fire({
+            icon: 'error',
+            title: 'Analysis Failed',
+            html: `
+              <div class="text-center">
+                <p class="mb-3">The AI service is currently unavailable due to high demand or rate limits.</p>
+                <p class="small" style="color: #475569; font-weight: 500;">Please wait 60 seconds and try uploading again.</p>
+              </div>
+            `,
+            confirmButtonText: 'Got it',
+            confirmButtonColor: '#8b5cf6'
+          });
+          return;
+        }
+
         // Wait for progress bar to hit 100% and overlay to hide
         await this.stopAnalysisProgress(true);
         this.uploading = false;
@@ -859,6 +919,23 @@ const app = createApp({
         this.uploading = false;
         const errorMsg = (err.response && err.response.data && err.response.data.detail) || err.message || 'Failed to analyze resume';
         const status = err.response ? err.response.status : 0;
+
+        // Client-side timeout
+        if (errorMsg === 'ANALYSIS_TIMEOUT') {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Analysis Timed Out',
+            html: `
+              <div class="text-center">
+                <p class="mb-3">The AI took too long to respond. This usually means the AI service is under high demand.</p>
+                <p class="small" style="color: #475569; font-weight: 500;">Please wait 30-60 seconds and try again.</p>
+              </div>
+            `,
+            confirmButtonText: 'Got it',
+            confirmButtonColor: '#8b5cf6'
+          });
+          return;
+        }
 
         if (status === 429 || errorMsg === 'AI_RATE_LIMIT') {
           Swal.fire({

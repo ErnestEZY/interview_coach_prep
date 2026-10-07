@@ -1,6 +1,6 @@
 """
 AI Writing Assist Service
-Uses open-mistral-nemo to polish/rewrite user-provided text.
+Uses google/gemma-4-26b-a4b-it:free via OpenRouter to polish/rewrite user-provided text.
 Keeps it lightweight — fast responses, low token cost.
 """
 
@@ -8,21 +8,13 @@ import os
 import re
 from typing import List, Optional
 from dotenv import load_dotenv
-from .mistral_retry import mistral_call
-from .rag_engine import _build_mistral_client
-
-try:
-    from mistralai.client.sdk import Mistral
-except (ImportError, AttributeError):
-    try:
-        from mistralai import Mistral
-    except (ImportError, AttributeError):
-        from mistralai.client import Mistral
+from openai import OpenAI
 
 load_dotenv()
 
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-ASSIST_MODEL = "open-mistral-nemo"
+from ..core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+
+ASSIST_MODEL = "google/gemma-4-26b-a4b-it:free"
 
 # Action verbs that match exactly what the resume builder UI shows to users
 _RESUME_ACTION_VERBS = (
@@ -83,11 +75,11 @@ _BASE_INSTRUCTIONS = (
 
 
 def _call_nemo(system_prompt: str, user_prompt: str, temperature: float = 0.4) -> str:
-    """Low-level call to open-mistral-nemo with automatic retry on rate limits."""
-    if not MISTRAL_API_KEY:
-        raise ValueError("MISTRAL_API_KEY not configured.")
-    client = _build_mistral_client(MISTRAL_API_KEY)
-    resp = mistral_call(lambda: client.chat.complete(
+    """Low-level call to gemma-4-26b via OpenRouter."""
+    if not OPENROUTER_API_KEY:
+        raise ValueError("OPENROUTER_API_KEY not configured.")
+    client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
+    resp = client.chat.completions.create(
         model=ASSIST_MODEL,
         messages=[
             {"role": "system", "content": system_prompt},
@@ -95,7 +87,7 @@ def _call_nemo(system_prompt: str, user_prompt: str, temperature: float = 0.4) -
         ],
         temperature=temperature,
         max_tokens=1024,
-    ))
+    )
     return resp.choices[0].message.content.strip()
 
 

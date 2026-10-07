@@ -5,20 +5,17 @@ import json
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
-try:
-    from mistralai.client.sdk import Mistral
-except (ImportError, AttributeError):
-    try:
-        from mistralai import Mistral
-    except (ImportError, AttributeError):
-        from mistralai.client import Mistral
+from openai import OpenAI
 
-from .rag_engine import rag_engine, _build_mistral_client
+from .rag_engine import rag_engine
 from .mistral_retry import mistral_call
 
 load_dotenv()
 
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+from ..core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+
+def _build_groq_client() -> OpenAI:
+    return OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
 
 
 def build_resume_prompt(text: str, context: str, ocr_used: bool = False) -> str:
@@ -82,10 +79,10 @@ def build_resume_prompt(text: str, context: str, ocr_used: bool = False) -> str:
         "  \"Disadvantages\": [...],\n"
         "  \"Suggestions\": [...]\n"
         "}\n"
-        "- \"Advantages\": a list of strings highlighting strong points. Each string MUST be a complete, professional sentence.\n"
-        "- \"Disadvantages\": a list of strings highlighting weak points. Each string MUST be a complete, professional sentence.\n"
-        "- \"Suggestions\": a list of strings for improvement. Each string MUST be a complete, highly actionable, and professional sentence (e.g., 'Include a dedicated Skills section to highlight your technical expertise' instead of just 'Include a dedicated'). NEVER provide partial or cut-off sentences.\n"
-        "- \"Keywords\": a list of 10-15 essential skills and industry keywords strictly extracted from the resume text.\n"
+        "- \"Advantages\": a list of 5 to 7 strings highlighting strong points. Each string MUST be a complete, specific, professional sentence referencing actual resume content (skills, projects, experience). Do NOT write generic praise.\n"
+        "- \"Disadvantages\": a list of 5 to 7 strings highlighting weak points. Each string MUST pinpoint an exact gap with context (e.g., 'The Experience section lacks quantified achievements — no metrics or numbers are present, making it difficult for recruiters to gauge impact.'). Do NOT write vague criticism.\n"
+        "- \"Suggestions\": a list of 5 to 7 strings for improvement. Each MUST be highly actionable and specific enough to implement immediately (e.g., 'Add measurable metrics to your internship bullets such as \"Reduced API response time by 30%\" to demonstrate tangible impact.'). Cover content, formatting, ATS, keywords, and structure. NEVER provide partial or cut-off sentences.\n"
+        "- \"Keywords\": a list of 20-25 essential skills, tools, technologies, and industry keywords extracted from the resume. Be thorough — scan ALL sections including Education, Experience, Projects, Skills, and Certifications. Include both hard skills (e.g., Python, SQL, React) and soft skills (e.g., Team Leadership, Communication) and tools/platforms (e.g., Git, Docker, Jira).\n"
         "- \"Location\": a string representing the user's current residential city or state (e.g., 'Kuala Lumpur', 'Petaling Jaya') extracted from the contact information section. Do NOT use company locations or previous work locations.\n"
         "- \"DetectedJobTitle\": a string representing the most likely target job title for this user based on their experience and skills.\n"
         "- \"Email\": user email if found.\n"
@@ -158,6 +155,16 @@ def parse_json_response(resp: str) -> Dict[str, Any]:
 
             # Update Score to match breakdown sum
             data["Score"] = impact + skill + structure + ats
+
+        # Normalise Keywords — model sometimes returns a string instead of array
+        if "Keywords" in data:
+            kw = data["Keywords"]
+            if isinstance(kw, str):
+                # Split on comma, strip whitespace, drop empty entries
+                data["Keywords"] = [k.strip() for k in kw.split(",") if k.strip()]
+            elif not isinstance(kw, list):
+                data["Keywords"] = []
+
         return data
     except json.JSONDecodeError:
         # Fallback if JSON is malformed
@@ -180,7 +187,7 @@ def parse_json_response(resp: str) -> Dict[str, Any]:
 
 
 async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
-    if not MISTRAL_API_KEY:
+    if not OPENROUTER_API_KEY:
         return {
             "IsResume": True,
             "Score": 50,
@@ -192,31 +199,26 @@ async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
             },
             "Advantages": ["AI not available."],
             "Disadvantages": ["AI not available."],
-            "Suggestions": ["Please try again later."],
+            "Suggestions": ["Error getting AI feedback."],
             "Keywords": [],
             "Location": "",
             "DetectedJobTitle": ""
         }
 
     try:
-        # Get context from RAG
+        # Full RAG + CRAG pipeline
         rag_result = await rag_engine.retrieve_with_correction(text)
         context = "\n\n".join(rag_result.get("documents", []))
 
-        # Small delay after RAG calls to stay within free-tier RPM limits
-        # before firing the main (heavier) feedback call
-        import asyncio
-        await asyncio.sleep(2.0)
-
-        client = _build_mistral_client(MISTRAL_API_KEY)
+        client = _build_groq_client()
         prompt = build_resume_prompt(text, context, ocr_used)
 
-        response = mistral_call(lambda: client.chat.complete(
-            model="mistral-small-latest",
+        response = client.chat.completions.create(
+            model="nvidia/nemotron-3-super-120b-a12b:free",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.3
-        ))
+        )
 
         return parse_json_response(response.choices[0].message.content)
     except Exception as e:
@@ -232,7 +234,7 @@ async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
             },
             "Advantages": ["Error getting AI feedback."],
             "Disadvantages": ["Error getting AI feedback."],
-            "Suggestions": ["Please try again later."],
+            "Suggestions": ["Error getting AI feedback."],
             "Keywords": [],
             "Location": "",
             "DetectedJobTitle": ""
