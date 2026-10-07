@@ -14,6 +14,7 @@ DB_NAME = os.getenv("DB_NAME", "interview_coach")
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
+MISTRAL_RAG_API_KEY = os.getenv("MISTRAL_RAG_API_KEY", "") or MISTRAL_API_KEY  # fallback to main key if not set
 SESSION_MAX_QUESTIONS = 100
 DAILY_QUESTION_LIMIT = 60
 INTERVIEW_DEFAULT_QUESTIONS = int(os.getenv("INTERVIEW_DEFAULT_QUESTIONS", "10"))

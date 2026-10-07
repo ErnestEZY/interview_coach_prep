@@ -42,7 +42,7 @@ from .controllers.job_routes import router as job_router
 from .controllers.assist_routes import router as assist_router
 from .services.rag_engine import rag_engine
 from .services.utils import get_malaysia_time
-from .core.db import interviews, pending_users, reset_tokens, client
+from .core.db import users, interviews, pending_users, reset_tokens, client
 import os
 import logging
 

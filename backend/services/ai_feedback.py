@@ -203,11 +203,16 @@ async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
         rag_result = await rag_engine.retrieve_with_correction(text)
         context = "\n\n".join(rag_result.get("documents", []))
 
+        # Small delay after RAG calls to stay within free-tier RPM limits
+        # before firing the main (heavier) feedback call
+        import asyncio
+        await asyncio.sleep(2.0)
+
         client = _build_mistral_client(MISTRAL_API_KEY)
         prompt = build_resume_prompt(text, context, ocr_used)
 
         response = mistral_call(lambda: client.chat.complete(
-            model="mistral-large-latest",
+            model="mistral-small-latest",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"},
             temperature=0.3

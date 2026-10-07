@@ -25,7 +25,7 @@ T = TypeVar("T")
 _cb_failure_count: int = 0
 _cb_open_until: float = 0.0      # epoch seconds; 0 = closed
 _CB_THRESHOLD: int = 3           # consecutive 429s to open circuit
-_CB_OPEN_SECONDS: float = 30.0   # how long to stay open
+_CB_OPEN_SECONDS: float = 60.0   # how long to stay open
 
 
 def _is_rate_limit(exc: Exception) -> bool:
@@ -36,7 +36,7 @@ def _is_rate_limit(exc: Exception) -> bool:
                                   "upstream", "overloaded"))
 
 
-def mistral_call(fn: Callable[[], T], max_retries: int = 2, wait_seconds: float = 2.0) -> T:
+def mistral_call(fn: Callable[[], T], max_retries: int = 2, wait_seconds: float = 8.0) -> T:
     """
     Call `fn()` (a zero-argument lambda wrapping a Mistral API call).
     Retries up to `max_retries` times on rate-limit / server errors.
