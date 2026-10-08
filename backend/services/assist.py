@@ -12,9 +12,12 @@ from openai import OpenAI
 
 load_dotenv()
 
-from ..core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+from ..core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, GROQ_API_KEY, GROQ_BASE_URL, BAZAARLINK_API_KEY, BAZAARLINK_BASE_URL
+from .provider_router import chat_assist
 
-ASSIST_MODEL = "google/gemma-4-26b-a4b-it:free"
+ASSIST_MODEL_PRIMARY = "nvidia/nemotron-3.5-lightning:free"
+ASSIST_MODEL_FALLBACK = "google/gemma-4-26b-a4b-it:free"
+ASSIST_MODEL = ASSIST_MODEL_PRIMARY
 
 # Action verbs that match exactly what the resume builder UI shows to users
 _RESUME_ACTION_VERBS = (
@@ -75,20 +78,13 @@ _BASE_INSTRUCTIONS = (
 
 
 def _call_nemo(system_prompt: str, user_prompt: str, temperature: float = 0.4) -> str:
-    """Low-level call to gemma-4-26b via OpenRouter."""
-    if not OPENROUTER_API_KEY:
-        raise ValueError("OPENROUTER_API_KEY not configured.")
-    client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
-    resp = client.chat.completions.create(
-        model=ASSIST_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_prompt},
-        ],
+    """BazaarLink → OpenRouter → Groq via provider_router."""
+    return chat_assist(
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
         temperature=temperature,
         max_tokens=1024,
     )
-    return resp.choices[0].message.content.strip()
 
 
 # ── Summary assist ───────────────────────────────────────────────────────────

@@ -12,10 +12,28 @@ from .mistral_retry import mistral_call
 
 load_dotenv()
 
-from ..core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+from ..core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, GROQ_API_KEY, GROQ_BASE_URL, BAZAARLINK_API_KEY, BAZAARLINK_BASE_URL
+from .provider_router import chat_main
 
 def _build_groq_client() -> OpenAI:
-    return OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
+    return OpenAI(api_key=GROQ_API_KEY, base_url=GROQ_BASE_URL)
+
+def _build_bazaarlink_client() -> OpenAI:
+    return OpenAI(api_key=BAZAARLINK_API_KEY, base_url=BAZAARLINK_BASE_URL)
+
+def _chat_with_fallback(messages: list, model_groq: str, model_bl: str, **kwargs) -> str:
+    """Try Groq first, fall back to BazaarLink on 429. Returns message content."""
+    try:
+        client = _build_groq_client()
+        resp = client.chat.completions.create(model=model_groq, messages=messages, **kwargs)
+        return resp.choices[0].message.content
+    except Exception as e:
+        if "429" in str(e) or "rate" in str(e).lower():
+            print(f"Groq 429 — switching to BazaarLink fallback")
+            client = _build_bazaarlink_client()
+            resp = client.chat.completions.create(model=model_bl, messages=messages, **kwargs)
+            return resp.choices[0].message.content
+        raise
 
 
 def build_resume_prompt(text: str, context: str, ocr_used: bool = False) -> str:
@@ -187,7 +205,7 @@ def parse_json_response(resp: str) -> Dict[str, Any]:
 
 
 async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
-    if not OPENROUTER_API_KEY:
+    if not GROQ_API_KEY:
         return {
             "IsResume": True,
             "Score": 50,
@@ -206,21 +224,38 @@ async def get_feedback(text: str, ocr_used: bool = False) -> Dict[str, Any]:
         }
 
     try:
-        # Full RAG + CRAG pipeline
-        rag_result = await rag_engine.retrieve_with_correction(text)
-        context = "\n\n".join(rag_result.get("documents", []))
+        import asyncio
 
-        client = _build_groq_client()
-        prompt = build_resume_prompt(text, context, ocr_used)
+        # Keyword-only retrieval for immediate context (instant, no API call)
+        keyword_docs = rag_engine.retrieve_keyword_only(text, top_k=3)
+        keyword_context = "\n\n".join(keyword_docs)
 
-        response = client.chat.completions.create(
-            model="nvidia/nemotron-3-super-120b-a12b:free",
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-            temperature=0.3
+        # Run main feedback call in executor (sync SDK)
+        # Groq primary → BazaarLink fallback → OpenRouter last resort
+        def _call_feedback() -> str:
+            prompt = build_resume_prompt(text, keyword_context, ocr_used)
+            return chat_main(
+                messages=[{"role": "user", "content": prompt}],
+                model_groq="qwen/qwen3.8-27b",
+                model_bl="qwen/qwen3.7-flash:free",
+                model_or="nvidia/nemotron-3-super-120b-a12b:free",
+                response_format={"type": "json_object"},
+                temperature=0.3
+            )
+        # Run CRAG and feedback concurrently using current event loop
+        loop = asyncio.get_running_loop()
+        crag_task = loop.create_task(rag_engine.retrieve_with_correction(text))
+        feedback_future = loop.run_in_executor(None, _call_feedback)
+
+        # Wait for both — CRAG failure is non-fatal
+        crag_result, raw_response = await asyncio.gather(
+            crag_task, feedback_future, return_exceptions=True
         )
 
-        return parse_json_response(response.choices[0].message.content)
+        if isinstance(raw_response, Exception):
+            raise Exception(f"Feedback call failed: {raw_response}")
+
+        return parse_json_response(raw_response)
     except Exception as e:
         print(f"Error getting AI feedback: {e}")
         return {

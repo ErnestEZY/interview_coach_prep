@@ -125,11 +125,10 @@ async def reply(session_id: str, user_text: str = Form(...), current=Depends(get
     questions_limit = s.get("questions_limit", INTERVIEW_DEFAULT_QUESTIONS)
     difficulty = s.get("difficulty", "Beginner")
 
-    # --- RAG GUARDRAIL & MONITORING ---
-    # Validate user response for quality/behavior monitoring
-    guardrail = await rag_engine.validate_input(user_text[:500])
-    if not guardrail.get("safe", True) and guardrail.get("category") == "malicious":
-        raise HTTPException(status_code=400, detail=f"Invalid input detected: {guardrail.get('reason')}")
+    # --- INPUT GUARDRAIL (keyword-only for interview — saves 1 API call per turn) ---
+    injection_keywords = ["ignore previous", "system prompt", "you are now", "jailbreak", "dan mode"]
+    if any(k in user_text.lower() for k in injection_keywords):
+        raise HTTPException(status_code=400, detail="Invalid input detected: Restricted system instructions detected.")
     # --- END GUARDRAIL ---
 
     if is_gibberish(user_text, strict=False):

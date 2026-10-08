@@ -1,13 +1,19 @@
 from datetime import datetime
 from typing import Dict, Any, List
 from openai import OpenAI
-from ..core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+from ..core.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, GROQ_API_KEY, GROQ_BASE_URL, BAZAARLINK_API_KEY, BAZAARLINK_BASE_URL
 from .cache_manager import memoize
+from .provider_router import chat_main
 
-INTERVIEW_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
-
-def _build_groq_client() -> OpenAI:
-    return OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
+def _interview_call(messages: list, temperature: float = 0.7) -> str:
+    """Groq → BazaarLink → OpenRouter for interview turns."""
+    return chat_main(
+        messages=messages,
+        model_groq="qwen/qwen3.8-27b",
+        model_bl="deepseek/deepseek-v4-flash-0731free:free",
+        model_or="nvidia/nemotron-3-super-120b-a12b:free",
+        temperature=temperature
+    )
 
 SYSTEM_PROMPT = (
     "You are a professional interviewer. Use plain text only. No bold, no emojis, no markdown formatting. "
@@ -88,13 +94,11 @@ def is_technical_role(job_title: str) -> bool:
 
 @memoize(expire=1800) # Cache for 30 minutes
 def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_feedback: Dict[str, Any] = None, questions_limit: int = 10, difficulty: str = "Beginner", current_asked_count: int = 0, force_end: bool = False) -> str:
-    if not OPENROUTER_API_KEY:
+    if not GROQ_API_KEY:
         if current_asked_count == 0:
             prefix = f"Starting your {difficulty} level interview for the {job_title} role. " if job_title else ""
             return prefix + "Hi, thank you for joining us today. To start things off, could you please introduce yourself and explain what interests you about this specific role?"
         return f"Thank you for sharing that. Now, let's dive into our first {difficulty} level question..."
-
-    client = _build_groq_client()
 
     is_tech = is_technical_role(job_title)
     
@@ -174,12 +178,7 @@ def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_f
 
     msgs = [{"role": "system", "content": custom_system}] + history
 
-    completion = client.chat.completions.create(
-        model=INTERVIEW_MODEL,
-        messages=msgs,
-        temperature=0.7
-    )
-    content = completion.choices[0].message.content
+    content = _interview_call(msgs, temperature=0.7)
     # Strip backticks the model may still produce despite instructions
     content = content.replace('`', '"')
 
@@ -210,12 +209,8 @@ def interview_reply(history: List[Dict[str, str]], job_title: str = "", resume_f
                 "role": "user", 
                 "content": f"[SYSTEM CORRECTION]: You tried to end the interview early or didn't ask a question. You have only asked {current_asked_count} questions out of {questions_limit}. You MUST continue. Please ask a high-quality, {difficulty}-level technical question about {job_title} now. Do NOT say goodbye."
             })
-            retry_completion = client.chat.completions.create(
-                model=INTERVIEW_MODEL,
-                messages=correction_msgs,
-                temperature=0.7
-            )
-            content = retry_completion.choices[0].message.content
+            retry_content = _interview_call(correction_msgs, temperature=0.7)
+            content = retry_content
             content = re.sub(r"Interview Readiness Score:.*", "", content, flags=re.IGNORECASE).strip()
             content = content.replace("[FINISH]", "").strip()
             content = re.sub(r"(Performance Feedback|Summary of Performance|Overall Feedback):.*", "", content, flags=re.IGNORECASE | re.DOTALL).strip()
