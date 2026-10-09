@@ -3,7 +3,7 @@ Provider Router — centralised multi-provider fallback utility.
 
 Rotation strategy:
   Resume / Interview  : Groq → BazaarLink (qwen) → BazaarLink (deepseek) → OpenRouter
-  CRAG / Guardrails   : Gemini → Mistral → OpenRouter
+  CRAG / Guardrails   : Gemini → OpenRouter
   AI Writing Assist   : BazaarLink → OpenRouter → Groq
 """
 
@@ -19,22 +19,11 @@ try:
 except ImportError:
     _GEMINI_AVAILABLE = False
 
-try:
-    from mistralai.client.sdk import Mistral as _Mistral
-except (ImportError, AttributeError):
-    try:
-        from mistralai import Mistral as _Mistral
-    except (ImportError, AttributeError):
-        from mistralai.client import Mistral as _Mistral
-
-import certifi, httpx
-
 from ..core.config import (
     GROQ_API_KEY, GROQ_BASE_URL,
     BAZAARLINK_API_KEY, BAZAARLINK_BASE_URL,
     OPENROUTER_API_KEY, OPENROUTER_BASE_URL,
     GEMINI_API_KEY,
-    MISTRAL_API_KEY,
 )
 
 # ── Client builders ────────────────────────────────────────────────────────
@@ -47,14 +36,6 @@ def _bazaarlink() -> OpenAI:
 
 def _openrouter() -> OpenAI:
     return OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
-
-def _mistral_client():
-    try:
-        http = httpx.Client(verify=certifi.where(), follow_redirects=True)
-        return _Mistral(api_key=MISTRAL_API_KEY, client=http)
-    except Exception:
-        http = httpx.Client(verify=False, follow_redirects=True)
-        return _Mistral(api_key=MISTRAL_API_KEY, client=http)
 
 def _is_rate_limit(e: Exception) -> bool:
     err = str(e)
@@ -129,11 +110,10 @@ def chat_main(
 def chat_crag(
     prompt: str,
     model_gemini: str = "gemini-3.5-flash-lite",
-    model_mistral: str = "mistral-small-latest",
     model_or: str = "nvidia/nemotron-3.5-lightning:free",
     retry_delay: float = 2.0,
 ) -> str:
-    """Try Gemini → Mistral → OpenRouter. Returns JSON string."""
+    """Try Gemini → OpenRouter. Mistral removed (chat always 429 on free tier)."""
 
     # 1. Gemini
     if GEMINI_API_KEY and _GEMINI_AVAILABLE:
@@ -152,28 +132,10 @@ def chat_crag(
                 return resp.text
             raise ValueError("Empty response from Gemini")
         except Exception as e:
-            print(f"[Router] Gemini CRAG failed ({type(e).__name__}) → Mistral")
+            print(f"[Router] Gemini CRAG failed ({type(e).__name__}) → OpenRouter")
             time.sleep(retry_delay)
 
-    # 2. Mistral
-    if MISTRAL_API_KEY:
-        try:
-            mc = _mistral_client()
-            resp = mc.chat.complete(
-                model=model_mistral,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-                temperature=0.0
-            )
-            content = resp.choices[0].message.content
-            if content:
-                return content
-            raise ValueError("Empty response from Mistral")
-        except Exception as e:
-            print(f"[Router] Mistral CRAG failed ({type(e).__name__}) → OpenRouter")
-            time.sleep(retry_delay)
-
-    # 3. OpenRouter
+    # 2. OpenRouter
     if OPENROUTER_API_KEY:
         resp = _openrouter().chat.completions.create(
             model=model_or,
