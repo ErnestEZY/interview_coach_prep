@@ -1,7 +1,7 @@
 """
 Unit Tests — backend/services/interview_engine.py
-Tests: is_technical_role classification, model usage verification.
-No real network calls — Mistral API is mocked.
+Tests: is_technical_role classification, provider_router usage verification.
+No real network calls — provider_router.chat_main is mocked.
 """
 import os
 import sys
@@ -53,46 +53,46 @@ class TestIsTechnicalRole:
         assert is_technical_role("software engineer") is True
 
 
-# ── Model usage ──────────────────────────────────────────────────────────────
+# ── Provider router usage ────────────────────────────────────────────────────
 
 class TestModelUsage:
-    """Verify interview_engine uses mistral-small-latest, not large or nemo."""
+    """Verify interview_engine uses provider_router.chat_main, not direct Mistral."""
 
-    def test_uses_mistral_small_latest(self):
-        """interview_reply must call mistral-small-latest."""
-        captured = {}
-
-        def fake_complete(**kwargs):
-            captured["model"] = kwargs.get("model")
-            mock_resp = MagicMock()
-            mock_resp.choices[0].message.content = (
-                "Hello! Thanks for joining. Could you introduce yourself "
-                "and share why you are interested in this role?"
-            )
-            return mock_resp
-
-        mock_client = MagicMock()
-        mock_client.chat.complete.side_effect = fake_complete
-
-        with patch("backend.services.interview_engine.Mistral", return_value=mock_client):
+    def test_uses_provider_router(self):
+        """interview_reply must call chat_main from provider_router."""
+        mock_response = (
+            "Hello! Thanks for joining. Could you introduce yourself "
+            "and share why you are interested in this role?"
+        )
+        with patch("backend.services.interview_engine.chat_main",
+                   return_value=mock_response) as mock_chat:
             from backend.services.interview_engine import interview_reply
-            interview_reply(
+            result = interview_reply(
                 history=[],
                 job_title="Software Engineer",
                 questions_limit=5,
                 difficulty="Beginner",
                 current_asked_count=0,
             )
+            mock_chat.assert_called_once()
+            assert result == mock_response
 
-        assert captured.get("model") == "mistral-small-latest", (
-            f"Expected 'mistral-small-latest', got '{captured.get('model')}'"
-        )
-
-    def test_model_constant_not_overridden(self):
-        """Confirm no accidental override — interview must not use large or nemo."""
+    def test_does_not_use_mistral_directly(self):
+        """interview_engine must not import or call Mistral directly."""
         import inspect
         import backend.services.interview_engine as ie
         src = inspect.getsource(ie)
-        assert "mistral-small-latest" in src
-        assert "mistral-large-latest" not in src
+        assert "Mistral(" not in src, "interview_engine must not instantiate Mistral directly"
+        assert "mistral-small-latest" not in src, "interview_engine must not reference Mistral model IDs"
+
+    def test_does_not_use_nemo(self):
+        import inspect
+        import backend.services.interview_engine as ie
+        src = inspect.getsource(ie)
         assert "open-mistral-nemo" not in src
+
+    def test_does_not_use_mistral_large(self):
+        import inspect
+        import backend.services.interview_engine as ie
+        src = inspect.getsource(ie)
+        assert "mistral-large-latest" not in src
