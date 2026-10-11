@@ -129,46 +129,38 @@ class TestBuildResumePrompt:
 
 
 class TestModelUsage:
-    """Verify ai_feedback uses the correct Mistral model."""
+    """Verify ai_feedback uses provider_router.chat_main, not direct Mistral."""
 
     @pytest.mark.asyncio
-    async def test_uses_mistral_large_latest(self):
-        """get_feedback must call mistral-large-latest, not small or nemo."""
+    async def test_uses_chat_main(self):
+        """get_feedback must call chat_main from provider_router."""
         import backend.services.ai_feedback as af
-        captured = {}
 
-        def fake_complete(**kwargs):
-            captured["model"] = kwargs.get("model")
-            mock_resp = MagicMock()
-            mock_resp.choices[0].message.content = (
-                '{"IsResume":true,"Score":70,'
-                '"ScoreBreakdown":{"ImpactScore":28,"SkillScore":21,'
-                '"StructureScore":14,"ATSScore":7},'
-                '"Advantages":[],"Disadvantages":[],"Suggestions":[],'
-                '"Keywords":[],"Location":"","DetectedJobTitle":""}'
-            )
-            return mock_resp
+        mock_response = (
+            '{"IsResume":true,"Score":70,'
+            '"ScoreBreakdown":{"ImpactScore":28,"SkillScore":21,'
+            '"StructureScore":14,"ATSScore":7},'
+            '"Advantages":[],"Disadvantages":[],"Suggestions":[],'
+            '"Keywords":[],"Location":"","DetectedJobTitle":""}'
+        )
 
-        mock_client = MagicMock()
-        mock_client.chat.complete.side_effect = fake_complete
-
-        with patch("backend.services.ai_feedback.Mistral", return_value=mock_client), \
+        with patch("backend.services.ai_feedback.chat_main",
+                   return_value=mock_response) as mock_chat, \
              patch("backend.services.ai_feedback.rag_engine") as mock_rag:
             mock_rag.retrieve_with_correction = AsyncMock(
                 return_value={"documents": []}
             )
+            mock_rag.retrieve_keyword_only = MagicMock(return_value=[])
             await af.get_feedback("Python developer resume text")
 
-        assert captured.get("model") == "mistral-large-latest", (
-            f"Expected 'mistral-large-latest', got '{captured.get('model')}'"
-        )
+        mock_chat.assert_called_once()
 
     def test_model_constant_not_overridden(self):
-        """Confirm no accidental override of the model string in ai_feedback."""
+        """Confirm ai_feedback does not reference old Mistral model strings."""
         import inspect
         import backend.services.ai_feedback as af
         src = inspect.getsource(af)
-        assert "mistral-large-latest" in src
-        # Must not use small or nemo for resume analysis
-        assert "mistral-small-latest" not in src
+        assert "mistral-large-latest" not in src, (
+            "ai_feedback must not reference mistral-large-latest directly"
+        )
         assert "open-mistral-nemo" not in src

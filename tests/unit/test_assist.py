@@ -135,50 +135,40 @@ class TestImproveManualField:
             result = improve_manual_field("skills", "python", char_limit=300)
         assert len(result) <= 300
 
-    def test_empty_api_key_raises_value_error(self):
-        from backend.services.assist import improve_manual_field
-        with patch("backend.services.assist.MISTRAL_API_KEY", ""):
-            with pytest.raises((ValueError, RuntimeError)):
-                improve_manual_field("summary", "text", char_limit=500)
+    def test_empty_api_key_no_crash_returns_string(self):
+        """When all providers fail, _call_nemo should raise RuntimeError."""
+        from backend.services.assist import _call_nemo
+        with patch("backend.services.assist.chat_assist",
+                   side_effect=RuntimeError("All assist providers exhausted")):
+            with pytest.raises(RuntimeError):
+                _call_nemo("system", "user")
 
 
 # ── Model usage ──────────────────────────────────────────────────────────────
 
 class TestModelUsage:
-    """Verify assist.py uses open-mistral-nemo, not large or small."""
+    """Verify assist.py uses provider_router.chat_assist, not direct Mistral."""
 
-    def test_assist_model_constant_is_nemo(self):
-        from backend.services.assist import ASSIST_MODEL
-        assert ASSIST_MODEL == "open-mistral-nemo", (
-            f"Expected 'open-mistral-nemo', got '{ASSIST_MODEL}'"
-        )
+    def test_assist_uses_chat_assist(self):
+        """_call_nemo must delegate to chat_assist from provider_router."""
+        from backend.services.assist import _call_nemo
+        with patch("backend.services.assist.chat_assist",
+                   return_value="Improved text.") as mock_assist:
+            result = _call_nemo("system prompt", "user prompt")
+            mock_assist.assert_called_once()
+            assert result == "Improved text."
 
-    def test_call_nemo_uses_assist_model(self):
-        """_call_nemo must pass ASSIST_MODEL to the Mistral client."""
-        captured = {}
-
-        def fake_complete(**kwargs):
-            captured["model"] = kwargs.get("model")
-            mock_resp = MagicMock()
-            mock_resp.choices[0].message.content = "Improved text."
-            return mock_resp
-
-        mock_client = MagicMock()
-        mock_client.chat.complete.side_effect = fake_complete
-
-        with patch("backend.services.assist.Mistral", return_value=mock_client):
-            from backend.services.assist import _call_nemo
-            _call_nemo("system prompt", "user prompt")
-
-        assert captured.get("model") == "open-mistral-nemo", (
-            f"Expected 'open-mistral-nemo', got '{captured.get('model')}'"
-        )
-
-    def test_model_constant_not_overridden(self):
-        """Confirm assist never accidentally uses large or small models."""
+    def test_does_not_use_mistral_directly(self):
+        """assist must not import or instantiate Mistral directly."""
         import inspect
         import backend.services.assist as assist_mod
         src = inspect.getsource(assist_mod)
-        assert "open-mistral-nemo" in src
+        assert "Mistral(" not in src, "assist must not instantiate Mistral directly"
+
+    def test_model_constant_not_overridden(self):
+        """Confirm assist does not reference old retired model strings."""
+        import inspect
+        import backend.services.assist as assist_mod
+        src = inspect.getsource(assist_mod)
         assert "mistral-large-latest" not in src
-        assert "mistral-small-latest" not in src
+        assert "open-mistral-nemo" not in src
