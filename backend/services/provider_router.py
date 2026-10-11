@@ -24,6 +24,7 @@ from ..core.config import (
     BAZAARLINK_API_KEY, BAZAARLINK_BASE_URL,
     OPENROUTER_API_KEY, OPENROUTER_BASE_URL,
     GEMINI_API_KEY,
+    ORCA_API_KEY, ORCA_BASE_URL,
 )
 
 # ── Client builders ────────────────────────────────────────────────────────
@@ -37,6 +38,9 @@ def _bazaarlink() -> OpenAI:
 def _openrouter() -> OpenAI:
     return OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
 
+def _orca() -> OpenAI:
+    return OpenAI(api_key=ORCA_API_KEY, base_url=ORCA_BASE_URL)
+
 def _is_rate_limit(e: Exception) -> bool:
     err = str(e)
     return any(k in err for k in ["429", "400", "500", "rate", "limit", "quota", "overload"])
@@ -48,13 +52,14 @@ def chat_main(
     model_groq: str = "qwen/qwen3.8-27b",
     model_bl: str = "qwen/qwen3.7-flash:free",
     model_bl2: str = "deepseek/deepseek-v4-flash-0731free:free",
+    model_orca: str = "deepseek/deepseek-v4-flash-free",
     model_or: str = "nvidia/nemotron-3-super-120b-a12b:free",
     response_format: Optional[dict] = None,
     temperature: float = 0.7,
     max_tokens: Optional[int] = None,
     retry_delay: float = 2.0,
 ) -> str:
-    """Try Groq → BazaarLink (qwen) → BazaarLink (deepseek) → OpenRouter."""
+    """Try Groq → BazaarLink (qwen) → BazaarLink (deepseek) → OrcaRouter → OpenRouter."""
     kwargs = {"messages": messages, "temperature": temperature}
     if response_format:
         kwargs["response_format"] = response_format
@@ -94,10 +99,22 @@ def chat_main(
                 return content
             raise ValueError("Empty response from BazaarLink deepseek")
         except Exception as e:
-            print(f"[Router] BazaarLink deepseek failed ({type(e).__name__}) → OpenRouter")
+            print(f"[Router] BazaarLink deepseek failed ({type(e).__name__}) → OrcaRouter")
             time.sleep(retry_delay)
 
-    # 4. OpenRouter
+    # 4. OrcaRouter (deepseek) — separate provider pool
+    if ORCA_API_KEY:
+        try:
+            resp = _orca().chat.completions.create(model=model_orca, **kwargs)
+            content = resp.choices[0].message.content
+            if content:
+                return content
+            raise ValueError("Empty response from OrcaRouter")
+        except Exception as e:
+            print(f"[Router] OrcaRouter failed ({type(e).__name__}) → OpenRouter")
+            time.sleep(retry_delay)
+
+    # 5. OpenRouter
     if OPENROUTER_API_KEY:
         resp = _openrouter().chat.completions.create(model=model_or, **kwargs)
         return resp.choices[0].message.content
@@ -155,12 +172,13 @@ def chat_assist(
     user_prompt: str,
     model_bl: str = "qwen/qwen3.7-flash:free",
     model_or: str = "nvidia/nemotron-3.5-lightning:free",
+    model_orca: str = "z-ai/glm-5.3-flash-free",
     model_groq: str = "qwen/qwen3.8-27b",
     temperature: float = 0.4,
     max_tokens: int = 1024,
     retry_delay: float = 2.0,
 ) -> str:
-    """Try BazaarLink → OpenRouter → Groq."""
+    """Try BazaarLink → OpenRouter → OrcaRouter → Groq."""
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": user_prompt},
@@ -188,10 +206,22 @@ def chat_assist(
                 return content.strip()
             raise ValueError("Empty response from OpenRouter")
         except Exception as e:
-            print(f"[Router] OpenRouter assist failed ({type(e).__name__}) → Groq")
+            print(f"[Router] OpenRouter assist failed ({type(e).__name__}) → OrcaRouter")
             time.sleep(retry_delay)
 
-    # 3. Groq
+    # 3. OrcaRouter (GLM Flash)
+    if ORCA_API_KEY:
+        try:
+            resp = _orca().chat.completions.create(model=model_orca, **kwargs)
+            content = resp.choices[0].message.content
+            if content:
+                return content.strip()
+            raise ValueError("Empty response from OrcaRouter")
+        except Exception as e:
+            print(f"[Router] OrcaRouter assist failed ({type(e).__name__}) → Groq")
+            time.sleep(retry_delay)
+
+    # 4. Groq
     if GROQ_API_KEY:
         resp = _groq().chat.completions.create(model=model_groq, **kwargs)
         return resp.choices[0].message.content.strip()
