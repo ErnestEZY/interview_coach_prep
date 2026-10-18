@@ -31,6 +31,12 @@ ENV/
 .coverage
 htmlcov/
 test-results/
+test-results*/
+cross_browser_results.txt
+webkit_rerun_results.txt
+chromium_rerun_results.txt
+firefox_final_results.txt
+branded_results.txt
 
 # IDEs
 .vscode/

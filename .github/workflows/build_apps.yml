@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    # Monthly cross-browser parity run (1st of each month, 02:00 UTC)
+    - cron: '0 2 1 * *'
 
 jobs:
   # ── Job 1: Backend Tests ────────────────────────────────────────────────────
@@ -179,6 +182,115 @@ jobs:
       - run: pip install ruff
       - name: Ruff lint (warn only)
         run: ruff check backend/ --output-format=github || true
+
+  # ── Job 2b: E2E Playwright Tests ───────────────────────────────────────────
+  e2e:
+    name: E2E Playwright Tests
+    runs-on: ubuntu-latest
+    services:
+      # Fallback database so the job runs even without the MONGO_URI secret.
+      # If the secret is set it takes precedence (Atlas), else localhost is used.
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Install Playwright browsers
+        run: python -m playwright install chromium --with-deps
+      - name: Start backend
+        run: |
+          python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 &
+          sleep 10
+        env:
+          JWT_SECRET: e2e-test-secret
+          MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
+          DB_NAME: icp_e2e_test
+          MISTRAL_API_KEY: fake-key
+          GROQ_API_KEY: fake-groq-key
+          BAZAARLINK_API_KEY: fake-bl-key
+          OPENROUTER_API_KEY: fake-or-key
+          GEMINI_API_KEY: fake-gemini-key
+          ORCA_API_KEY: fake-orca-key
+          RATE_LIMIT_PER_MINUTE: "9999"
+          ADMIN_INVITE_CODE: ICP-SECURE-2026-ADMIN
+      - name: Run E2E Tests
+        run: python -m pytest tests/e2e/ -v --tb=short --browser chromium --screenshot=only-on-failure --video=retain-on-failure
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8001
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-results
+          path: test-results/
+
+  # ── Job 2c: Cross-Browser E2E (monthly + manual only) ──────────────────────
+  # Keeps every-push CI fast: Chromium runs on push/PR (Job 2b), while the
+  # slower engines run on a monthly schedule and on demand. Failures upload
+  # screenshots/videos per engine.
+  e2e-cross-browser:
+    name: E2E Cross-Browser (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: firefox
+            install: firefox
+            args: "--browser firefox"
+          - name: webkit
+            install: webkit
+            args: "--browser webkit"
+          - name: edge
+            install: msedge
+            args: "--browser chromium --browser-channel msedge"
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Install Playwright browser (${{ matrix.name }})
+        run: python -m playwright install ${{ matrix.install }} --with-deps
+      - name: Start backend
+        run: |
+          python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 &
+          sleep 10
+        env:
+          JWT_SECRET: e2e-test-secret
+          MONGO_URI: mongodb://localhost:27017
+          DB_NAME: icp_e2e_test
+          MISTRAL_API_KEY: fake-key
+          GROQ_API_KEY: fake-groq-key
+          BAZAARLINK_API_KEY: fake-bl-key
+          OPENROUTER_API_KEY: fake-or-key
+          GEMINI_API_KEY: fake-gemini-key
+          ORCA_API_KEY: fake-orca-key
+          RATE_LIMIT_PER_MINUTE: "9999"
+          ADMIN_INVITE_CODE: ICP-SECURE-2026-ADMIN
+      - name: Run E2E Tests (${{ matrix.name }})
+        run: python -m pytest tests/e2e/ -v --tb=short ${{ matrix.args }} --screenshot=only-on-failure --video=retain-on-failure
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8001
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-results-${{ matrix.name }}
+          path: test-results/
 
   # ── Job 3: Dependency Security Scan ─────────────────────────────────────────
   security-scan:
