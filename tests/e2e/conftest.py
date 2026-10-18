@@ -188,6 +188,14 @@ def admin_user_token():
         from backend.services.utils import get_malaysia_time
 
         if not MONGO_URI:
+            # Loud warning: a silent None here surfaces as opaque skips later.
+            # CI must provide MONGO_URI (and matching DB_NAME) to the pytest
+            # process — see job-level env in build_apps.yml.
+            print(
+                "WARNING: MONGO_URI not set in the pytest process — cannot seed "
+                "the E2E admin account. Set MONGO_URI/DB_NAME env (same values "
+                "as the backend) or provide a .env file."
+            )
             return None
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         try:

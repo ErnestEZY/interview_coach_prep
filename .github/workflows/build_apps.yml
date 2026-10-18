@@ -187,6 +187,21 @@ jobs:
   e2e:
     name: E2E Playwright Tests
     runs-on: ubuntu-latest
+    # Job-level env: backend AND pytest must see identical DB/config values —
+    # the test fixtures seed accounts via direct pymongo access using the same
+    # MONGO_URI/DB_NAME the backend uses. Step-scoped env broke this in CI.
+    env:
+      JWT_SECRET: e2e-test-secret
+      MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
+      DB_NAME: icp_e2e_test
+      MISTRAL_API_KEY: fake-key
+      GROQ_API_KEY: fake-groq-key
+      BAZAARLINK_API_KEY: fake-bl-key
+      OPENROUTER_API_KEY: fake-or-key
+      GEMINI_API_KEY: fake-gemini-key
+      ORCA_API_KEY: fake-orca-key
+      RATE_LIMIT_PER_MINUTE: "9999"
+      ADMIN_INVITE_CODE: ICP-SECURE-2026-ADMIN
     services:
       # Fallback database so the job runs even without the MONGO_URI secret.
       # If the secret is set it takes precedence (Atlas), else localhost is used.
@@ -208,18 +223,6 @@ jobs:
         run: |
           python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 &
           sleep 10
-        env:
-          JWT_SECRET: e2e-test-secret
-          MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
-          DB_NAME: icp_e2e_test
-          MISTRAL_API_KEY: fake-key
-          GROQ_API_KEY: fake-groq-key
-          BAZAARLINK_API_KEY: fake-bl-key
-          OPENROUTER_API_KEY: fake-or-key
-          GEMINI_API_KEY: fake-gemini-key
-          ORCA_API_KEY: fake-orca-key
-          RATE_LIMIT_PER_MINUTE: "9999"
-          ADMIN_INVITE_CODE: ICP-SECURE-2026-ADMIN
       - name: Run E2E Tests
         run: python -m pytest tests/e2e/ -v --tb=short --browser chromium --screenshot=only-on-failure --video=retain-on-failure
         env:
@@ -238,6 +241,20 @@ jobs:
     name: E2E Cross-Browser (${{ matrix.name }})
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    # Job-level env: same parity rule as the chromium job — pytest fixtures
+    # seed accounts directly in the DB the backend uses.
+    env:
+      JWT_SECRET: e2e-test-secret
+      MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
+      DB_NAME: icp_e2e_test
+      MISTRAL_API_KEY: fake-key
+      GROQ_API_KEY: fake-groq-key
+      BAZAARLINK_API_KEY: fake-bl-key
+      OPENROUTER_API_KEY: fake-or-key
+      GEMINI_API_KEY: fake-gemini-key
+      ORCA_API_KEY: fake-orca-key
+      RATE_LIMIT_PER_MINUTE: "9999"
+      ADMIN_INVITE_CODE: ICP-SECURE-2026-ADMIN
     strategy:
       fail-fast: false
       matrix:
@@ -270,18 +287,6 @@ jobs:
         run: |
           python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 &
           sleep 10
-        env:
-          JWT_SECRET: e2e-test-secret
-          MONGO_URI: mongodb://localhost:27017
-          DB_NAME: icp_e2e_test
-          MISTRAL_API_KEY: fake-key
-          GROQ_API_KEY: fake-groq-key
-          BAZAARLINK_API_KEY: fake-bl-key
-          OPENROUTER_API_KEY: fake-or-key
-          GEMINI_API_KEY: fake-gemini-key
-          ORCA_API_KEY: fake-orca-key
-          RATE_LIMIT_PER_MINUTE: "9999"
-          ADMIN_INVITE_CODE: ICP-SECURE-2026-ADMIN
       - name: Run E2E Tests (${{ matrix.name }})
         run: python -m pytest tests/e2e/ -v --tb=short ${{ matrix.args }} --screenshot=only-on-failure --video=retain-on-failure
         env:
