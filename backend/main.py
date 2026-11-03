@@ -32,7 +32,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from starlette.responses import HTMLResponse, FileResponse
+from starlette.responses import HTMLResponse, FileResponse, JSONResponse
 from .controllers.auth_routes import router as auth_router
 from .controllers.oauth_routes import router as oauth_router
 from .controllers.resume_routes import router as resume_router
@@ -253,6 +253,16 @@ async def catch_all(request: Request, full_path: str):
 
     if os.path.isfile(file_path):
         return FileResponse(file_path)
+
+    # API clients must get an honest JSON 404, never the SPA shell.
+    if full_path == "api" or full_path.startswith("api/"):
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+
+    # The SPA shell is only served for the root route. Any other unknown path
+    # (/.env, /Dockerfile, /random) is an honest 404, never a disguised shell,
+    # so reconnaissance probes cannot read a misleading 200.
+    if full_path:
+        return HTMLResponse("Not Found", status_code=404)
 
     index_path = os.path.join("frontend", "index.html")
     if os.path.exists(index_path):

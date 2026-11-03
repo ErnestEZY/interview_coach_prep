@@ -162,6 +162,21 @@ jobs:
           RATE_LIMIT_PER_MINUTE: "9999"
           ADMIN_INVITE_CODE: test-invite-123
 
+      - name: Stress / Load Tests
+        run: python -m pytest tests/stress/ -v --tb=short --junitxml=test-results/stress.xml
+        env:
+          JWT_SECRET: pytest-secret-key
+          MONGO_URI: mongodb://localhost:27017
+          DB_NAME: icp_test
+          MISTRAL_API_KEY: fake-key
+          GROQ_API_KEY: fake-groq-key
+          BAZAARLINK_API_KEY: fake-bl-key
+          OPENROUTER_API_KEY: fake-or-key
+          GEMINI_API_KEY: fake-gemini-key
+          ORCA_API_KEY: fake-orca-key
+          RATE_LIMIT_PER_MINUTE: "9999"
+          ADMIN_INVITE_CODE: test-invite-123
+
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
