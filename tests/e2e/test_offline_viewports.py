@@ -132,16 +132,29 @@ def test_warm_offline_serves_cached_shell_but_not_auth_pages(
     )
     assert shell_status == 200, f"Cached shell fetch failed offline: {shell_status}"
 
-    # login.html is in sw.js NEVER_CACHE: through the worker it must not serve
-    # stale HTML, only the plain 503 service notice. Probe with fetch rather
-    # than a navigation: the app's own inline token guards (dashboard.html
-    # redirects to login, login.html wipes the token) bounce navigations away
-    # while offline, so navigation outcomes are not a stable contract.
+    # login.html is in sw.js NEVER_CACHE. Two separate properties:
+    #   1. it must never be stored in Cache Storage (all engines), and
+    #   2. when the network is truly unreachable, the worker's 503 notice is
+    #      what the caller sees instead of stale HTML.
+    in_cache = page.evaluate(
+        "caches.match('/static/pages/login.html').then(r => !!r)"
+    )
+    assert in_cache is False, "Auth page was stored in the offline cache"
+
     login_probe = page.evaluate(
         "fetch('/static/pages/login.html').then(async r => r.status + '|' + await r.text())"
     )
-    assert str(login_probe).startswith("503|"), f"Auth page must not be cached: {login_probe}"
-    assert "Service unavailable" in login_probe
+    if browser.browser_type.name == "chromium":
+        assert str(login_probe).startswith("503|"), (
+            f"Auth page must not be served stale: {login_probe}"
+        )
+        assert "Service unavailable" in login_probe
+    else:
+        # Firefox (and WebKit) do not cut service-worker-internal fetches under
+        # Playwright's offline emulation, so the worker can still reach the
+        # live page. The never-cached guarantee is covered by the Cache
+        # Storage assertion above; here we only require a clean HTTP answer.
+        assert str(login_probe).split("|")[0] in ("200", "503"), login_probe
 
     context.set_offline(False)
     # Recover in a fresh page so the previous page's 'online' handler (which
