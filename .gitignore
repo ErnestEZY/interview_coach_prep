@@ -105,6 +105,7 @@ apps/
 !apps/msi/*.exe
 
 # Local-only files (not for git)
+.qoder/
 docs/
 start.ps1
 PROJECT_AGENT_GUIDE.md
