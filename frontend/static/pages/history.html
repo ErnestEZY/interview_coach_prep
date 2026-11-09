@@ -30,12 +30,6 @@
   <script src="/static/js/app.min.js?v=2.0"></script>
 
   <div id="app" v-cloak>
-      <!-- Page Loader -->
-      <div id="global-loader" class="page-loader" v-if="loading && !items.length" role="status" aria-live="polite" aria-atomic="true">
-        <div class="loader-spinner"></div>
-        <div class="loader-text">Loading History...</div>
-      </div>
-
       <nav class="navbar navbar-dark glass-nav">
         <div class="container d-flex align-items-center justify-content-between">
           <div class="d-flex align-items-center gap-3">
@@ -174,13 +168,45 @@
         </div>
 
         <!-- Filter Section -->
-        <div class="row mb-4 justify-content-between">
-          <div class="col-md-auto mb-3 mb-md-0 text-center text-md-start">
-            <button class="btn btn-primary px-4" @click="showProgressChart">
+        <div class="row mb-3 g-3 align-items-center">
+          <div class="col-md-auto">
+            <button class="btn btn-primary px-4 w-100" @click="showProgressChart">
               <i class="bi bi-graph-up-arrow me-2"></i>View Progress Analysis
             </button>
           </div>
-          <div class="col-md-3">
+
+          <!-- Search: matches the things a session can actually be found by
+               (date, status, score, question count) because the history record
+               has no free-text field such as a job title. The record's id is
+               not part of it: the card never shows the id. -->
+          <div class="col-12 col-lg">
+            <div class="input-group glass-card overflow-hidden history-filter-group">
+              <span class="input-group-text bg-transparent border-0 text-secondary ps-3">
+                <i class="bi bi-search"></i>
+              </span>
+              <label for="history-search" class="visually-hidden">Search interview history</label>
+              <input id="history-search" type="search" v-model="searchQuery" class="form-control bg-transparent border-0 text-white py-2 history-search-input"
+                     placeholder="Search date, score or status" autocomplete="off"
+                     aria-describedby="history-search-hint">
+              <button v-show="searchQuery" type="button" class="btn btn-link text-secondary px-2" @click="searchQuery = ''" aria-label="Clear search">
+                <i class="bi bi-x-circle"></i>
+              </button>
+            </div>
+            <div id="history-search-hint" class="form-text text-secondary smaller mt-1 d-none d-md-block">
+              Try “08/11/2026”, “Nov”, “78” or “completed”.
+            </div>
+          </div>
+
+          <div class="col-6 col-md-3 col-lg-2">
+            <label for="history-status" class="visually-hidden">Filter by status</label>
+            <select id="history-status" v-model="statusFilter" class="form-select bg-dark text-white py-2 history-status-select" title="Filter by session status">
+              <option value="all">Any status</option>
+              <option value="completed">Completed</option>
+              <option value="inprogress">In progress</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-md-3 col-lg-3">
             <div class="input-group glass-card overflow-hidden history-filter-group">
               <span class="input-group-text bg-transparent border-0 text-secondary ps-3">
                 <i class="bi bi-sort-down"></i>
@@ -189,14 +215,58 @@
               <select id="sortOrder" v-model="sortOrder" class="form-select bg-transparent border-0 text-white py-2 history-sort-select" aria-label="Sort interview history">
                 <option value="desc" class="bg-dark">Latest First</option>
                 <option value="asc" class="bg-dark">Oldest First</option>
+                <option value="score_desc" class="bg-dark">Highest Score</option>
+                <option value="score_asc" class="bg-dark">Lowest Score</option>
               </select>
             </div>
           </div>
         </div>
 
-        <div id="list" class="row g-4">
+        <!-- Result summary: says how many sessions matched and why the list
+             may be shorter than usual. -->
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3" v-if="allItems.length > 0 && !loading">
+          <span class="text-secondary small" role="status" aria-live="polite" aria-atomic="true">
+            Showing <span class="text-light fw-semibold" id="history-visible-count">{{ items.length }}</span>
+            of {{ allItems.length }} session<span v-if="allItems.length !== 1">s</span>
+          </span>
+          <button v-if="hasActiveFilters" type="button" class="btn btn-outline-light btn-sm px-2 py-0 rounded-2" @click="clearFilters">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Clear filters
+          </button>
+        </div>
+
+        <div id="list" class="row g-4" :aria-busy="loading ? 'true' : 'false'">
+            <!-- Skeleton cards: this page's content is one uniform card list, so
+                 the placeholder can match the real geometry instead of a spinner
+                 that hides the page it is meant to be preparing. The block sizes
+                 follow the real card (badge, title, two meta lines, action row)
+                 so the list does not jump when the rows land; the E2E test
+                 asserts that height stays in step. -->
+            <div class="col-12 skeleton-surface" v-if="loading && !items.length" aria-hidden="true">
+              <div class="card glass-card border-0 p-4 mb-4" v-for="n in 3" :key="'skeleton-' + n">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1 pe-3">
+                    <span class="skeleton mb-2" style="width: 96px; height: 1.35rem"></span>
+                    <span class="skeleton mb-2" style="width: 200px; height: 1.5rem"></span>
+                    <span class="skeleton skeleton-line" style="width: 168px"></span>
+                    <span class="skeleton skeleton-line" style="width: 140px"></span>
+                    <div class="d-flex gap-2 mt-3">
+                      <span class="skeleton" style="width: 104px; height: 2rem"></span>
+                      <span class="skeleton" style="width: 88px; height: 2rem"></span>
+                    </div>
+                  </div>
+                  <div class="d-flex align-items-center gap-3 gap-md-4">
+                    <div class="text-end d-none d-md-block">
+                      <span class="skeleton mb-1 ms-auto" style="width: 58px; height: 1.75rem"></span>
+                      <span class="skeleton skeleton-line ms-auto" style="width: 34px"></span>
+                    </div>
+                    <span class="skeleton" style="width: 44px; height: 44px; border-radius: 0.75rem"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Empty State -->
-            <div class="col-12" v-if="items.length === 0 && !loading">
+            <div class="col-12" v-if="allItems.length === 0 && !loading">
               <div class="card glass-card border-0 p-5 text-center">
                 <div class="bg-primary bg-opacity-10 p-4 rounded-circle d-inline-block mb-4 mx-auto">
                   <i class="bi bi-clock-history fs-1 text-primary"></i>
@@ -212,9 +282,21 @@
               </div>
             </div>
 
+            <!-- No matches for the current search/filter -->
+            <div class="col-12" id="history-no-matches" v-else-if="items.length === 0 && !loading">
+              <div class="card glass-card border-0 p-5 text-center">
+                <div class="bg-secondary bg-opacity-10 p-4 rounded-circle d-inline-block mb-4 mx-auto">
+                  <i class="bi bi-funnel fs-1 text-secondary"></i>
+                </div>
+                <h4 class="fw-bold mb-2">No matching sessions</h4>
+                <p class="text-secondary mb-4">None of your {{ allItems.length }} sessions match the current search or filter.</p>
+                <button type="button" class="btn btn-outline-light px-4 rounded-3" @click="clearFilters">Clear filters</button>
+              </div>
+            </div>
+
             <!-- List Items -->
             <div class="col-12" v-for="it in items" :key="it.id">
-                <div class="card glass-card border-0 p-4 transition-all hover:translate-y-px mb-4">
+                <div class="card glass-card border-0 p-4 transition-all hover:translate-y-px mb-4" :data-session-id="it.id">
                   <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
                       <div class="d-flex align-items-center gap-2 mb-2">

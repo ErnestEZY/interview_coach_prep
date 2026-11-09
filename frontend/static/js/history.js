@@ -16,6 +16,8 @@ const app = createApp({
             items: [],
             allItems: [],
             sortOrder: 'desc',
+            searchQuery: '',
+            statusFilter: 'all',
             loading: false,
             detailsLoading: false,
             expandedId: null,
@@ -402,13 +404,66 @@ const app = createApp({
             }
         },
         applySort() {
-            const sorted = [...this.allItems];
-            sorted.sort((a, b) => {
-                const da = new Date(a.created_at);
-                const db = new Date(b.created_at);
-                return this.sortOrder === 'desc' ? db - da : da - db;
+            const needle = String(this.searchQuery || '').trim().toLowerCase();
+
+            let out = this.allItems.filter((it) => {
+                if (this.statusFilter === 'completed' && !it.ended_at) return false;
+                if (this.statusFilter === 'inprogress' && it.ended_at) return false;
+                if (!needle) return true;
+                return this.searchHaystack(it).includes(needle);
             });
-            this.items = sorted;
+
+            const byDate = (a, b) => new Date(a.created_at) - new Date(b.created_at);
+            const score = (it) => (it.readiness_score === null || it.readiness_score === undefined)
+                ? null : Number(it.readiness_score);
+
+            out.sort((a, b) => {
+                if (this.sortOrder === 'score_desc' || this.sortOrder === 'score_asc') {
+                    const sa = score(a);
+                    const sb = score(b);
+                    // Sessions without a score always sink to the bottom, so a
+                    // "Highest Score" list never opens with an ungraded session.
+                    if (sa === null && sb === null) return byDate(b, a);
+                    if (sa === null) return 1;
+                    if (sb === null) return -1;
+                    return this.sortOrder === 'score_desc' ? sb - sa : sa - sb;
+                }
+                return this.sortOrder === 'desc' ? byDate(b, a) : byDate(a, b);
+            });
+
+            this.items = out;
+        },
+        // A history record only carries an id, timestamps, a question count and
+        // a score, so the searchable text is built from exactly those. Searching
+        // for a typo-prone question title would be a promise the data cannot keep.
+        searchHaystack(it) {
+            const started = it.created_at ? new Date(it.created_at) : null;
+            const tokens = [
+                it.created_at ? this.toMalaysiaTime(it.created_at) : '',
+                it.ended_at ? this.toMalaysiaTime(it.ended_at) : '',
+                it.ended_at ? 'completed ended finished' : 'in progress ongoing',
+                it.readiness_score !== null && it.readiness_score !== undefined
+                    ? String(it.readiness_score) : '',
+                `session ${Math.min(it.asked_count || 0, it.questions_limit || 10)}`,
+            ];
+            // The record's id is deliberately not searchable: the card never shows
+            // it, so a match on it surfaces a card with nothing on it matching the
+            // query — the same broken promise the comment above rules out. It also
+            // made "88" match whichever session happened to carry those digits in
+            // its ObjectId.
+            if (started && !isNaN(started)) {
+                tokens.push(new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Kuala_Lumpur',
+                    year: 'numeric', month: '2-digit', day: '2-digit'
+                }).format(started));
+                tokens.push(new Intl.DateTimeFormat('en-MY', {
+                    timeZone: 'Asia/Kuala_Lumpur', month: 'long'
+                }).format(started));
+                tokens.push(new Intl.DateTimeFormat('en-MY', {
+                    timeZone: 'Asia/Kuala_Lumpur', month: 'short'
+                }).format(started));
+            }
+            return tokens.join(' ').toLowerCase();
         },
         async toggleDetails(id) {
             if (this.expandedId === id) {
@@ -521,10 +576,27 @@ const app = createApp({
         },
         logout() {
             window.icp.logout();
+        },
+        clearFilters() {
+            this.searchQuery = '';
+            this.statusFilter = 'all';
+        }
+    },
+    computed: {
+        // Drives the "Clear filters" affordance: sorting alone is not a filter,
+        // so switching to Oldest First must not look like a filtered view.
+        hasActiveFilters() {
+            return this.searchQuery.trim() !== '' || this.statusFilter !== 'all';
         }
     },
     watch: {
         sortOrder() {
+            this.applySort();
+        },
+        searchQuery() {
+            this.applySort();
+        },
+        statusFilter() {
             this.applySort();
         }
     }

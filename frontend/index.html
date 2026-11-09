@@ -41,60 +41,77 @@
     
     <nav class="navbar navbar-expand-lg navbar-dark glass-nav">
       <div class="container">
-        <div class="d-flex align-items-center gap-3">
+        <!-- One full-width row: the brand and the route badge keep together on
+             the left, while everything the visitor can act with is pinned to
+             the right edge. The bar's own container spreads its children apart,
+             so the two clusters share one group to make the split deliberate. -->
+        <div class="d-flex align-items-center gap-3 w-100">
           <a class="navbar-brand fw-bold fs-4 mb-0" href="/">
             <span class="text-primary">I</span>CP
           </a>
-            <div class="d-flex gap-2">
-              <template v-if="!logged">
-                <div class="d-flex gap-2">
-                  <a class="btn btn-outline-light btn-sm" href="/static/pages/login.html">Login</a>
-                  <a class="btn btn-outline-light btn-sm" href="/static/pages/register.html">Register</a>
-                </div>
-              </template>
-              <template v-if="logged">
-                <div class="d-flex gap-2 align-items-center">
-                  <a v-if="!isAdmin" class="btn btn-primary btn-sm px-3" :href="dashboardUrl">{{ dashboardText }}</a>
-                  
-                  <!-- Web Account Dropdown -->
-                  <div class="dropdown d-none d-md-inline-block">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="bi bi-person-circle me-1"></i>
-                      Account
+
+          <template v-if="!logged">
+            <a class="btn btn-outline-light btn-sm" href="/static/pages/login.html">Login</a>
+            <a class="btn btn-outline-light btn-sm" href="/static/pages/register.html">Register</a>
+          </template>
+
+          <!-- Signed in: a candidate is offered their dashboard, an
+               administrator a way back to the portal. The badge stays beside
+               the logo, so the route never moves with the role. -->
+          <a class="btn btn-primary btn-sm px-3" id="home-nav-cta" v-if="logged"
+             :href="dashboardUrl">{{ dashboardText }}</a>
+
+          <!-- The account menu and the reflex chip end the bar for both roles.
+               The chip belongs to nobody's role: anybody can enjoy losing to a
+               stopwatch. -->
+          <div class="ms-auto d-flex align-items-center gap-2" v-if="logged">
+            <!-- Web Account Dropdown -->
+            <div class="dropdown d-none d-md-inline-block">
+              <button class="btn btn-outline-light btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-person-circle me-1"></i>
+                Account
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 dropdown-menu-wide">
+                <li class="px-3 py-2 dropdown-item-profile">
+                  <div class="fw-bold text-primary small text-uppercase mb-1">{{ isAdmin ? 'Admin Profile' : 'User Profile' }}</div>
+                  <div class="text-white fw-semibold text-break">{{ userName }}</div>
+                  <div class="text-secondary smaller user-email-text text-break">{{ userEmail }}</div>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="px-3 pb-2">
+                  <div class="d-grid gap-2">
+                    <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
+                      <i class="bi bi-download"></i>
+                      <span>Download</span>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 dropdown-menu-wide">
-                      <li class="px-3 py-2 dropdown-item-profile">
-                        <div class="fw-bold text-primary small text-uppercase mb-1">{{ isAdmin ? 'Admin Profile' : 'User Profile' }}</div>
-                        <div class="text-white fw-semibold text-break">{{ userName }}</div>
-                        <div class="text-secondary smaller user-email-text text-break">{{ userEmail }}</div>
-                      </li>
-                      <li><hr class="dropdown-divider"></li>
-                      <li class="px-3 pb-2">
-                          <div class="d-grid gap-2">
-                            <button onclick="showAppModal()" class="btn btn-primary btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm">
-                               <i class="bi bi-download"></i>
-                               <span>Download</span>
-                             </button>
-                          <button v-if="!isAdmin" class="btn btn-outline-danger btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm" title="Hold to delete account"
-                            onmousedown="window.icp.deleteAccountHoldStart(this)"
-                            onmouseup="window.icp.deleteAccountHoldEnd(this)"
-                            onmouseleave="window.icp.deleteAccountHoldEnd(this)"
-                            ontouchstart="window.icp.deleteAccountHoldStart(this)"
-                            ontouchend="window.icp.deleteAccountHoldEnd(this)"
-                            ontouchcancel="window.icp.deleteAccountHoldEnd(this)">
-                            <i class="bi bi-trash3"></i>
-                            <span>Hold to Delete Account</span>
-                          </button>
-                          </div>
-                        </li>
-                    </ul>
+                    <button v-if="!isAdmin" class="btn btn-outline-danger btn-sm rounded-pill d-flex align-items-center justify-content-center gap-2 shadow-sm" title="Hold to delete account"
+                      onmousedown="window.icp.deleteAccountHoldStart(this)"
+                      onmouseup="window.icp.deleteAccountHoldEnd(this)"
+                      onmouseleave="window.icp.deleteAccountHoldEnd(this)"
+                      ontouchstart="window.icp.deleteAccountHoldStart(this)"
+                      ontouchend="window.icp.deleteAccountHoldEnd(this)"
+                      ontouchcancel="window.icp.deleteAccountHoldEnd(this)">
+                      <i class="bi bi-trash3"></i>
+                      <span>Hold to Delete Account</span>
+                    </button>
                   </div>
-                </div>
-              </template>
+                </li>
+              </ul>
             </div>
-        </div>
-        <!-- Desktop Right Menu -->
-        <div class="ms-auto d-none d-md-flex gap-2 align-items-center">
+
+            <!-- Coffee-break reflex check: one stopwatch, one personal best.
+                 No request, no role assumption, no colour of its own — the chip
+                 borrows the Account button and the theme's warning tone. It is
+                 an invitation, not a scoreboard: the speed is only ever shown
+                 in the dialog, so the bar cannot turn into a leaderboard. -->
+            <button type="button" class="btn btn-outline-light btn-sm px-3" id="home-reflex"
+                    @click="openReflex"
+                    aria-label="Reflex check — click the panel when it turns green"
+                    title="Coffee-break reflex check — click the panel when it turns green">
+              <i class="bi bi-lightning-charge text-warning" aria-hidden="true"></i>
+              <span class="ms-1 fw-semibold">Reflex</span>
+            </button>
+          </div>
         </div>
       </div>
     </nav>
@@ -107,7 +124,8 @@
             <h1 class="display-3 fw-bold mb-4">Master Your Next <br><span class="text-primary">Interview</span></h1>
             <p class="lead mb-5 text-secondary">Get structured resume feedback, practice with a professional AI-powered mock interview, and search for tailored job opportunities based on your skills.</p>
             <div class="d-flex flex-column flex-sm-row gap-3">
-              <a class="btn btn-primary btn-lg px-5 py-3 rounded-pill w-100 w-sm-auto" :href="logged ? dashboardUrl : '/static/pages/login.html'">
+              <a class="btn btn-primary btn-lg px-5 py-3 rounded-pill w-100 w-sm-auto" id="home-primary-cta"
+                 :href="logged ? dashboardUrl : '/static/pages/login.html'">
                 <span>{{ logged ? dashboardText : 'Get Started' }}</span>
               </a>
               <a class="btn btn-outline-light btn-lg px-4 py-3 rounded-pill w-100 w-sm-auto" href="/static/pages/about.html" aria-label="Learn more about Interview Coach Prep">Learn More About ICP</a>

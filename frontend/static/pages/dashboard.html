@@ -39,7 +39,7 @@
   <div id="app" v-cloak>
   
   <!-- Analysis Progress Overlay -->
-  <div class="analysis-progress-overlay" v-if="showAnalysisProgress" role="dialog" aria-modal="true">
+  <div class="analysis-progress-overlay" v-if="showAnalysisProgress" role="dialog" aria-modal="true" aria-labelledby="analysis-dialog-title">
     <div class="analysis-progress-card p-4 rounded-4 shadow-lg text-center">
       <div class="mb-4">
         <div v-if="!progressError" class="spinner-grow text-primary mb-3 spinner-lg" role="status">
@@ -48,7 +48,7 @@
         <div v-else class="mb-3">
           <i class="bi bi-x-circle-fill text-danger" style="font-size: 2.5rem;"></i>
         </div>
-        <h4 class="fw-bold mb-1" :class="progressError ? 'text-danger' : ''">{{ progressError ? 'Analysis Failed' : 'Resume Analysis' }}</h4>
+        <h4 class="fw-bold mb-1" id="analysis-dialog-title" :class="progressError ? 'text-danger' : ''">{{ progressError ? 'Analysis Failed' : 'Resume Analysis' }}</h4>
         <p class="small mb-0" :class="progressError ? 'text-danger' : 'text-secondary'">{{ analysisStatus }}</p>
       </div>
       
@@ -340,7 +340,7 @@
               <i class="bi bi-file-earmark-person"></i>
               <span class="fw-bold">Refine in Resume Builder</span>
             </a>
-            <a href="/static/pages/find-jobs.html" class="btn btn-info btn-sm d-inline-flex align-items-center gap-2 px-4 py-2 rounded-3 shadow-sm text-white">
+            <a href="/static/pages/find-jobs.html" class="btn btn-info btn-sm d-inline-flex align-items-center gap-2 px-4 py-2 rounded-3 shadow-sm">
                 <i class="bi bi-search"></i>
                 <span class="fw-bold">Search Job for this Role</span>
               </a>

@@ -44,11 +44,10 @@
                 <a class="btn btn-outline-light btn-sm" href="/static/pages/register.html">Register</a>
               </div>
             </template>
-            <template v-if="logged">
+            <!-- The account dropdown lives on the home page only; here the
+                 signed-in visitor gets just the route they came for. -->
+            <template v-if="logged && !isAdmin">
               <div class="d-flex gap-2 align-items-center">
-                <a v-if="!isAdmin" class="btn btn-primary btn-sm px-3" :href="dashboardUrl">{{ dashboardText }}</a>
-                
-                <!-- Web Account Dropdown -->
                 <div class="dropdown d-none d-md-inline-block">
                   <button class="btn btn-outline-light btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-person-circle me-1"></i>
@@ -111,7 +110,7 @@
               </template>
               <template v-if="logged">
                 <div class="col-md-8">
-                  <a :href="dashboardUrl" class="btn btn-primary btn-lg w-100 py-3 rounded-pill shadow fw-bold">
+                  <a :href="dashboardUrl" class="btn btn-primary btn-lg w-100 py-3 rounded-pill shadow fw-bold" id="about-primary-cta">
                     {{ dashboardText }}
                   </a>
                 </div>

@@ -10,7 +10,13 @@ if example_path:
     load_dotenv(example_path, override=False)
 
 MONGO_URI = os.getenv("MONGO_URI", "")
-DB_NAME = os.getenv("DB_NAME", "interview_coach")
+# ICP_DB_NAME points a throwaway server at a throwaway database, which is how
+# the DB-writing system tests run without touching real data (see
+# tests/system/test_system.py). It is deliberately not DB_NAME: tests/conftest.py
+# pins DB_NAME to a mock name for the unit suites, and letting that value decide
+# where the application stores data is how the E2E fixtures ended up looking for
+# their seeded accounts in a database nothing had been seeded into.
+DB_NAME = os.getenv("ICP_DB_NAME") or os.getenv("DB_NAME", "interview_coach")
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")

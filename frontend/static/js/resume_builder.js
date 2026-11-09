@@ -16,6 +16,9 @@ try {
                 _isUnmounted: false,
                 totalPages: 1,
                 currentPage: 1,
+                previewFullscreen: false,
+                previewFitMode: 'width',
+                previewScale: 1,
                 themes: [
                     { name: 'Classic', className: 'theme-classic' },
                     { name: 'Modern', className: 'theme-modern' },
@@ -89,6 +92,19 @@ try {
                     });
                 },
                 deep: true
+            },
+            previewFullscreen(isOpen) {
+                document.body.classList.toggle('preview-fullscreen-open', isOpen);
+                // overflow on <body> alone still reserves the document scrollbar.
+                document.documentElement.style.overflow = isOpen ? 'hidden' : '';
+                this.$nextTick(() => {
+                    this.fitPreview();
+                    // NB: this page's in-DOM template has several root nodes, so
+                    // `this.$el` is a fragment anchor, not an Element. Query the
+                    // document instead of scoping off $el.
+                    const btn = document.querySelector('.preview-fullscreen-btn');
+                    if (btn) btn.focus({ preventScroll: true });
+                });
             }
         },
         computed: {
@@ -195,6 +211,25 @@ try {
         // Initialize with one empty item for main sections if they are empty
         if (this.resume.education.length === 0) this.addItem('education');
         if (this.resume.experience.length === 0) this.addItem('experience');
+
+        // Preview sizing — measure the real container instead of guessing a
+        // per-breakpoint scale, then follow every resize.
+        this._schedulePreviewFitBound = () => this.schedulePreviewFit();
+        this._previewKeyHandlerBound = (e) => this.handlePreviewKeydown(e);
+        window.addEventListener('resize', this._schedulePreviewFitBound);
+        window.addEventListener('orientationchange', this._schedulePreviewFitBound);
+        window.addEventListener('keydown', this._previewKeyHandlerBound);
+        this.$nextTick(() => {
+            this.fitPreview();
+            if (typeof ResizeObserver !== 'undefined' && this.$refs.previewWrapper) {
+                this._previewObserver = new ResizeObserver(() => this.schedulePreviewFit());
+                this._previewObserver.observe(this.$refs.previewWrapper);
+            }
+        });
+
+        // WAI-ARIA tabs: Bootstrap switches panes on click but ships no
+        // arrow-key navigation and no roving tabindex for the tablist.
+        this.initTabKeyboard();
     },
     beforeUnmount() {
         this._isUnmounted = true;
@@ -204,6 +239,29 @@ try {
         }
         if (this._authListener) window.removeEventListener('auth:changed', this._authListener);
         if (this._handlePopState) window.removeEventListener('popstate', this._handlePopState);
+        if (this._previewObserver) {
+            this._previewObserver.disconnect();
+            this._previewObserver = null;
+        }
+        if (this._previewRaf) {
+            cancelAnimationFrame(this._previewRaf);
+            this._previewRaf = 0;
+        }
+        if (this._schedulePreviewFitBound) {
+            window.removeEventListener('resize', this._schedulePreviewFitBound);
+            window.removeEventListener('orientationchange', this._schedulePreviewFitBound);
+        }
+        if (this._previewKeyHandlerBound) {
+            window.removeEventListener('keydown', this._previewKeyHandlerBound);
+        }
+        if (this._tabStrip && this._tabKeyHandlerBound) {
+            this._tabStrip.removeEventListener('keydown', this._tabKeyHandlerBound);
+            this._tabStrip.removeEventListener('click', this._syncTabIndexBound);
+            this._tabStrip.removeEventListener('shown.bs.tab', this._syncTabIndexBound);
+        }
+        this._tabStrip = null;
+        document.body.classList.remove('preview-fullscreen-open');
+        document.documentElement.style.overflow = '';
         document.body.style.overflow = "";
     },
         methods: {
@@ -780,6 +838,50 @@ try {
                     this.updatePageCount();
                 });
             },
+            // Keyboard + focus model for the resume section tablist.
+            initTabKeyboard() {
+                const strip = document.querySelector('#pills-tab');
+                if (!strip) return;
+                this._tabStrip = strip;
+
+                // Roving tabindex: only the selected tab sits in the tab order,
+                // so Tab reaches the strip once and arrows move between tabs.
+                this._syncTabIndexBound = () => {
+                    const apply = () => {
+                        strip.querySelectorAll('[role="tab"]').forEach((tab) => {
+                            tab.tabIndex = tab.getAttribute('aria-selected') === 'true' ? 0 : -1;
+                        });
+                    };
+                    apply();
+                    // Bootstrap's data-api click handler updates aria-selected
+                    // later in the bubble phase, so re-apply on the next tick.
+                    setTimeout(apply, 0);
+                };
+                this._syncTabIndexBound();
+                strip.addEventListener('shown.bs.tab', this._syncTabIndexBound);
+                strip.addEventListener('click', this._syncTabIndexBound);
+
+                this._tabKeyHandlerBound = (event) => {
+                    const tabs = Array.from(strip.querySelectorAll('[role="tab"]'));
+                    const index = tabs.indexOf(document.activeElement);
+                    if (index === -1) return;
+                    let next = null;
+                    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                        next = (index + 1) % tabs.length;
+                    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                        next = (index - 1 + tabs.length) % tabs.length;
+                    } else if (event.key === 'Home') {
+                        next = 0;
+                    } else if (event.key === 'End') {
+                        next = tabs.length - 1;
+                    }
+                    if (next === null) return;
+                    event.preventDefault();
+                    tabs[next].focus();
+                    tabs[next].click();
+                };
+                strip.addEventListener('keydown', this._tabKeyHandlerBound);
+            },
             updatePageCount() {
                 // Calculate total pages based on 297mm height per page
                 // We use a slightly more robust calculation by looking at the actual rendered height
@@ -813,6 +915,92 @@ try {
                 const wrapper = document.querySelector('.resume-preview-wrapper');
                 if (wrapper) {
                     wrapper.scrollTop = 0;
+                }
+            },
+
+            // ── Preview sizing & full screen ────────────────────────────
+            // The sheet is a fixed 210x297mm box, so "as large as possible"
+            // means one scale measured from the live container width. The old
+            // per-breakpoint scales left a 254px page on a 768px tablet and
+            // clipped the right edge at 1280px.
+            fitPreview() {
+                const stage = this.$refs.previewStage;
+                const wrap = this.$refs.previewWrapper;
+                if (!stage || !wrap || this._isUnmounted) return;
+
+                const cs = window.getComputedStyle(wrap);
+                const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+                const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+                const availW = Math.max(120, wrap.clientWidth - padX);
+                // 210mm x 297mm at the CSS reference resolution of 96dpi.
+                const A4_W = (210 * 96) / 25.4;
+                const A4_H = (297 * 96) / 25.4;
+
+                let scale = availW / A4_W;
+                if (this.previewFullscreen && this.previewFitMode === 'page') {
+                    // "Fit page" really fits the page: height is the binding
+                    // constraint for portrait A4. The default full screen mode is
+                    // "fit width" (as large as the screen allows), so choosing
+                    // the whole-page overview is an explicit, honest opt-in.
+                    const availH = Math.max(120, wrap.clientHeight - padY);
+                    scale = Math.min(scale, availH / A4_H);
+                }
+                scale = Math.max(0.1, Math.round(scale * 10000) / 10000);
+
+                this.previewScale = scale;
+                stage.style.setProperty('--preview-scale', String(scale));
+                stage.style.setProperty('--preview-w', (A4_W * scale).toFixed(2) + 'px');
+                stage.style.setProperty('--preview-h', (A4_H * scale).toFixed(2) + 'px');
+            },
+            schedulePreviewFit() {
+                if (this._isUnmounted) return;
+                if (this._previewRaf) cancelAnimationFrame(this._previewRaf);
+                this._previewRaf = requestAnimationFrame(() => {
+                    this._previewRaf = 0;
+                    this.fitPreview();
+                });
+            },
+            togglePreviewFullscreen() {
+                this.previewFullscreen = !this.previewFullscreen;
+            },
+            togglePreviewFitMode() {
+                this.previewFitMode = this.previewFitMode === 'page' ? 'width' : 'page';
+                this.$nextTick(() => this.fitPreview());
+            },
+            handlePreviewKeydown(event) {
+                if (!this.previewFullscreen) return;
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    this.previewFullscreen = false;
+                    return;
+                }
+                // Keep keyboard focus inside the overlay while it covers the app.
+                if (event.key === 'Tab') {
+                    const box = document.querySelector('.resume-preview-container.preview-fullscreen');
+                    if (!box) return;
+                    const focusables = Array.from(box.querySelectorAll(
+                        'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
+                    )).filter(el => el.getClientRects().length > 0);
+                    if (!focusables.length) {
+                        event.preventDefault();
+                        return;
+                    }
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+                    const active = document.activeElement;
+                    // Scrollable regions are keyboard-focusable in Chromium, so
+                    // focus can legitimately land on a node that is inside the
+                    // overlay but not in this list (e.g. the preview wrapper).
+                    // Treat "not in the list" as a boundary too, otherwise one
+                    // further Tab walks out to the page behind the overlay.
+                    const inside = focusables.indexOf(active) !== -1;
+                    if (!event.shiftKey && (!inside || active === last)) {
+                        event.preventDefault();
+                        first.focus();
+                    } else if (event.shiftKey && (!inside || active === first)) {
+                        event.preventDefault();
+                        last.focus();
+                    }
                 }
             },
             getGuidance(bullet) {

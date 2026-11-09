@@ -77,23 +77,39 @@
       
       <div class="card p-3 mb-3">
         <div class="row g-2">
-          <div class="col-md-3"><input class="form-control" placeholder="Search filename" v-model="q" @keyup.enter="load"></div>
-          <div class="col-md-3">
-            <select class="form-select" v-model="status" title="Filter by status" @change="load">
+          <div class="col-12 col-md-4 col-xl-3">
+            <label for="admin-search" class="visually-hidden">Search filename</label>
+            <input id="admin-search" class="form-control" placeholder="Search filename" v-model="q" @keyup.enter="load">
+          </div>
+          <div class="col-6 col-md-4 col-xl-2">
+            <label for="admin-status-filter" class="visually-hidden">Filter by status</label>
+            <select id="admin-status-filter" class="form-select" v-model="status" title="Filter by status" @change="load">
               <option value="">Any status</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
           </div>
-          <div class="col-md-3"><input class="form-control" placeholder="Tag" v-model="tag" @keyup.enter="load"></div>
-          <div class="col-md-3"><button class="btn btn-primary w-100" @click="load">Filter</button></div>
+          <div class="col-6 col-md-4 col-xl-2">
+            <label for="admin-tag-filter" class="visually-hidden">Filter by tag</label>
+            <input id="admin-tag-filter" class="form-control" placeholder="Tag" v-model="tag" @keyup.enter="load">
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <label for="admin-sort" class="visually-hidden">Sort by date created</label>
+            <select id="admin-sort" class="form-select" v-model="sortBy" title="Sort by date created" @change="load">
+              <option value="newest">Date created: newest first</option>
+              <option value="oldest">Date created: oldest first</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <button class="btn btn-primary w-100" @click="load">Filter</button>
+          </div>
         </div>
       </div>
 
-      <div class="card p-3" v-if="items.length > 0">
+      <div class="card p-3" v-if="items.length > 0 || loading">
         <div class="table-responsive">
-          <table class="table table-dark table-striped align-middle admin-table-fixed">
+          <table class="table table-dark table-striped align-middle admin-table-fixed" id="admin-resume-table" :aria-busy="loading ? 'true' : 'false'">
             <thead>
               <tr>
                 <th class="admin-filename-column">Filename</th>
@@ -105,23 +121,36 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="item in paginatedItems" :key="item.id">
-                <td>
+              <!-- Skeleton rows: a review queue is a fixed table, so its shape is
+                   known before the data is. Placeholder rows keep the header in
+                   place instead of letting it appear once the fetch lands. -->
+              <template v-if="loading">
+                <tr v-for="n in 6" :key="'skeleton-' + n" class="skeleton-surface" aria-hidden="true">
+                  <td data-label="Filename"><span class="skeleton skeleton-line" style="width: 70%"></span></td>
+                  <td data-label="Status"><span class="skeleton skeleton-line" style="width: 64px"></span></td>
+                  <td data-label="Tags"><span class="skeleton skeleton-line" style="width: 90px"></span></td>
+                  <td data-label="Created (MYT)"><span class="skeleton skeleton-line" style="width: 108px"></span></td>
+                  <td data-label="Notes"><span class="skeleton" style="height: 5rem"></span></td>
+                  <td data-label="Actions"><span class="skeleton skeleton-line" style="width: 84px"></span></td>
+                </tr>
+              </template>
+              <tr v-for="item in paginatedItems" :key="item.id" :data-resume-id="item.id">
+                <td data-label="Filename" class="admin-cell-filename">
                   <a v-if="item.file_available" href="javascript:void(0)" @click="viewResume(item.id)" class="text-warning">{{ item.filename }}</a>
                   <span v-else>{{ item.filename }}</span>
                 </td>
-                <td><span class="badge" :class="getStatusClass(item.status)">{{ item.status }}</span></td>
-                <td>
+                <td data-label="Status"><span class="badge" :class="getStatusClass(item.status)">{{ item.status }}</span></td>
+                <td data-label="Tags">
                   <div class="admin-tags-container">
                     <span v-if="item.tags && item.tags.length" v-for="t in item.tags" class="badge bg-primary me-1">{{ t }}</span>
                     <span v-else class="text-secondary">—</span>
                   </div>
                 </td>
-                <td>{{ formatDate(item.created_at) }}</td>
-                <td class="admin-notes-cell">
+                <td data-label="Created (MYT)">{{ formatDate(item.created_at) }}</td>
+                <td data-label="Notes" class="admin-notes-cell">
                   <textarea rows="5" class="form-control admin-notes-textarea" placeholder="No notes" readonly :value="item.notes"></textarea>
                 </td>
-                <td class="admin-actions-column">
+                <td data-label="Actions" class="admin-actions-column">
                   <div class="d-flex flex-column gap-2">
                     <button class="btn btn-outline-light btn-sm w-100" @click="open(item.id)">Details</button>
                     <button class="btn btn-outline-info btn-sm w-100" 
@@ -131,6 +160,11 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        <!-- Sorting context, so the visible order is never a mystery. -->
+        <div class="text-secondary small mt-2" v-if="items.length > 0">
+          <i class="bi bi-sort-down me-1"></i>
+          Sorted by date created: <span class="text-light">{{ sortBy === 'oldest' ? 'oldest first' : 'newest first' }}</span>
         </div>
         <!-- Pagination Controls -->
         <div class="d-flex flex-column align-items-center mt-3" v-if="totalPages > 1">
@@ -200,14 +234,42 @@
             <button type="button" class="btn btn-danger px-3" @click="deleteResume(detail.id)">
               <i class="bi bi-trash me-1"></i> Delete
             </button>
-            <button class="btn btn-outline-light" @click="detail = null">Close</button>
+            <button class="btn btn-outline-light" @click="closeDetail">Close</button>
           </div>
         </div>
         <hr class="border-secondary opacity-25">
         <div class="mt-3">
-          <h6>Text Preview</h6>
-          <pre class="bg-dark p-3 admin-text-preview">{{ detail.text || '' }}</pre>
+          <!-- The panel is where a submission is judged, so the document
+               itself is on screen here too, not a text dump of it. -->
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <h6 class="mb-0">Resume Preview</h6>
+            <a class="btn btn-outline-light btn-sm" v-if="detailPreviewUrl"
+               :href="detailPreviewUrl" target="_blank" rel="noopener" id="detail-open-file">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Open in new tab
+            </a>
+          </div>
+
+          <iframe class="admin-detail-frame" id="detail-preview-frame" v-if="detailRenderable"
+                  :src="detailPreviewUrl"
+                  :title="'Resume preview: ' + (detail.filename || '')"></iframe>
+
+          <p class="text-secondary small mb-0" v-else-if="detailFileNote" id="detail-file-note">{{ detailFileNote }}</p>
         </div>
+
+        <details class="mt-3 admin-extracted" id="detail-extracted-text"
+                 :open="detailExtractedOpen" @toggle="onDetailExtractedToggle">
+          <summary>Extracted text</summary>
+          <div class="admin-extracted-body" id="detail-extracted-body">
+            <template v-for="(block, index) in extractedBlocks" :key="index">
+              <h6 v-if="block.type === 'h'" class="admin-extracted-heading">{{ block.text }}</h6>
+              <ul v-else-if="block.type === 'ul'">
+                <li v-for="(item, i) in block.items" :key="i">{{ item }}</li>
+              </ul>
+              <p v-else>{{ block.text }}</p>
+            </template>
+            <p v-if="!extractedBlocks.length">No extracted text available.</p>
+          </div>
+        </details>
         <div class="mt-3">
           <div class="d-flex justify-content-between align-items-end mb-1">
             <h6 class="mb-0">Comment / Notes</h6>
@@ -229,6 +291,7 @@
   <!-- Load Axios first via script tag above, then app.js which configures interceptors -->
   <script src="/static/js/app.min.js?v=2.0"></script>
   <script src="/static/js/email_service.js"></script>
+  <script src="/static/js/resume-text.js"></script>
   <script src="/static/js/icp-admin-dashboard-v1.js"></script>
 </body>
 </html>

@@ -14,6 +14,41 @@ def is_pdf(filename: str) -> bool:
 def is_docx(filename: str) -> bool:
     return filename.lower().endswith(".docx") or filename.lower().endswith(".doc")
 
+# A line is treated as broken when at least 60% of its tokens are single
+# characters. Real prose never reaches that share; glyph-by-glyph PDFs do.
+LETTER_SPACED_TOKEN_RATIO = 0.6
+# A document counts as broken when this share of its substantial lines is.
+LETTER_SPACED_LINE_RATIO = 0.25
+
+
+def letter_spaced_ratio(text: str) -> float:
+    """Share of substantial lines that were extracted one glyph at a time.
+
+    Some PDFs place every character individually, so extractors return
+    "S o f t w a r e" instead of "Software". Those strings are unreadable in a
+    preview and useless for keyword matching, so they need to be spotted.
+    """
+    if not text:
+        return 0.0
+    lines = [line for line in text.split("\n") if len(line.strip()) > 20]
+    if not lines:
+        return 0.0
+    broken = 0
+    for line in lines:
+        tokens = line.split()
+        if len(tokens) < 6:
+            continue
+        singles = sum(1 for token in tokens if len(token) == 1)
+        if singles / len(tokens) >= LETTER_SPACED_TOKEN_RATIO:
+            broken += 1
+    return broken / len(lines)
+
+
+def is_letter_spaced(text: str) -> bool:
+    """True when most of the text was extracted as separated characters."""
+    return letter_spaced_ratio(text) >= LETTER_SPACED_LINE_RATIO
+
+
 def clean_text(text: str) -> str:
     """Removes extra whitespace and normalize text."""
     if not text:

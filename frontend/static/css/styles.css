@@ -79,6 +79,63 @@ input::-webkit-credentials-auto-fill-button {
 .pointer-events-none {
   pointer-events: none;
 }
+
+/* --- Skeleton placeholders --- */
+/* Only for a surface whose entire content is one fetch and whose shape is
+   already fixed on screen (the history card list, the admin review table).
+   Anything whose shape is unknown keeps the spinner: a skeleton that guesses
+   the layout is a lie for the whole wait, and a wrong-shaped placeholder reads
+   as a bug. */
+.skeleton-surface {
+  /* The reveal delay is the anti-flicker rule, not decoration: a response that
+     lands inside 200ms removes the node while it is still transparent, so a
+     fast connection never sees a placeholder flash it never needed. */
+  animation: skeleton-reveal 1ms linear 200ms both;
+}
+
+.skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.14);
+  border-radius: 0.375rem;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.22), transparent);
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+.skeleton-line {
+  height: 0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+@keyframes skeleton-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes skeleton-sweep {
+  to { transform: translateX(100%); }
+}
+
+/* The sweep is motion, not information: the blocks still say "content is
+   coming" without it. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
+/* --- End Skeleton placeholders --- */
 /* --- End Global Loading Screen --- */
 
 /* Auth Page Components */
@@ -159,6 +216,24 @@ body {
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); 
   min-height: 100vh;
   color: #e8edf6; 
+}
+
+/* --- Outline buttons on the dark shell ---
+   Every page sits on the slate gradient above, so Bootstrap's default outline
+   colour (#0d6efd) measures ~3.3:1 against the card and body backgrounds —
+   under the 4.5:1 AA floor for text. The 300-weight blue is the same hue and
+   measures ~6:1 on both, so the button keeps its look and becomes legible. */
+.btn-outline-primary {
+  --bs-btn-color: #6ea8fe;
+  --bs-btn-border-color: #6ea8fe;
+  --bs-btn-hover-color: #0b1220;
+  --bs-btn-hover-bg: #6ea8fe;
+  --bs-btn-hover-border-color: #6ea8fe;
+  --bs-btn-active-color: #0b1220;
+  --bs-btn-active-bg: #6ea8fe;
+  --bs-btn-active-border-color: #6ea8fe;
+  --bs-btn-disabled-color: #6ea8fe;
+  --bs-btn-disabled-border-color: #6ea8fe;
 }
 
 /* --- Careerjet Widget Dark Mode --- */
@@ -957,16 +1032,61 @@ html {
   border-color: #f59e0b !important;
 }
 
-.admin-text-preview {
-  max-height: 300px;
-  overflow-y: auto;
-  font-family: 'Courier New', Courier, monospace;
+/* The admin portal embeds the stored document itself; extracted text sits
+   below it as a folded fallback. Shared with the resume viewer page. */
+.admin-detail-frame {
+  width: 100%;
+  height: 65vh;
+  min-height: 320px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: #0b1220;
+}
+
+.admin-extracted summary {
+  cursor: pointer;
+  color: #94a3b8;
   font-size: 0.9rem;
-  line-height: 1.5;
+}
+
+.admin-extracted summary:hover {
+  color: #e2e8f0;
+}
+
+/* Line breaks in the stored text are an artefact of the source file, so the
+   text is regrouped into paragraphs and lists by resume-text.js and reads as
+   prose here rather than as a wall of monospace. */
+.admin-extracted-body {
+  margin-top: 0.75rem;
+  padding: 1rem 1.25rem;
+  max-height: 60dvh;
+  overflow-y: auto;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  white-space: pre-wrap;
-  word-break: break-word;
+  background: rgba(15, 23, 42, 0.6);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.admin-extracted-body p {
+  margin-bottom: 0.75rem;
+}
+
+.admin-extracted-body ul {
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-extracted-heading {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fbbf24;
+  margin: 1rem 0 0.5rem;
+}
+
+.admin-extracted-body > :first-child {
+  margin-top: 0;
 }
 
 .admin-status-pending { color: #f59e0b !important; border-color: rgba(245, 158, 11, 0.5) !important; background-color: rgba(245, 158, 11, 0.1) !important; }
@@ -976,6 +1096,90 @@ html {
 .admin-table-fixed {
   table-layout: auto !important; /* Back to auto for content-based scaling */
   width: 100%;
+}
+
+/* A six-column table with a notes box cannot be read on a phone or a portrait
+   tablet without sideways scrolling, so below the lg breakpoint each row
+   becomes a labelled card. The breakpoint is 991.98px rather than md because
+   the table measures ~927px of intrinsic width: at 768px it overflowed the
+   viewport by 159px, while at 992px it still fits on a single line. The labels
+   come from the td[data-label] attributes in the markup. */
+@media (max-width: 991.98px) {
+  .admin-table-fixed thead {
+    display: none;
+  }
+
+  .admin-table-fixed,
+  .admin-table-fixed tbody,
+  .admin-table-fixed tr,
+  .admin-table-fixed td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table-fixed tr {
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 2px 12px 10px;
+  }
+
+  .admin-table-fixed td {
+    border: 0 !important;
+    padding: 8px 0 !important;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    text-align: start;
+  }
+
+  .admin-table-fixed td::before {
+    content: attr(data-label);
+    flex: 0 0 88px;
+    padding-top: 2px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #94a3b8;
+  }
+
+  /* Long filenames and tag rows must wrap inside the card, not push it wide. */
+  .admin-table-fixed td > * {
+    min-width: 0;
+  }
+
+  .admin-table-fixed .admin-cell-filename,
+  .admin-table-fixed .admin-cell-filename a,
+  .admin-table-fixed .admin-cell-filename span {
+    overflow-wrap: anywhere;
+  }
+
+  .admin-table-fixed .admin-tags-container {
+    flex: 1 1 auto;
+  }
+
+  .admin-table-fixed td.admin-notes-cell {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin-table-fixed td.admin-notes-cell::before {
+    flex-basis: auto;
+  }
+
+  .admin-table-fixed .admin-notes-cell .admin-notes-textarea {
+    max-width: none;
+  }
+
+  .admin-table-fixed td.admin-actions-column {
+    width: 100%;
+  }
+
+  .admin-table-fixed td.admin-actions-column > div {
+    width: 100%;
+  }
 }
 
 .admin-table-fixed th,
@@ -1548,8 +1752,13 @@ html {
   z-index: 10;
   background: rgba(32, 48, 71, 0.95);
   margin: 0 !important;
-  padding: 15px 15px 10px 15px;
+  padding: 12px;
+  gap: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  /* Seven tabs, so the row wraps instead of hiding tabs behind a
+     horizontal scroll nobody can see. */
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .builder-card .tab-content {
@@ -1571,42 +1780,65 @@ html {
 
 .resume-preview-container {
     background: #1e293b; /* Darker, more like a PDF viewer background */
-    padding: 0; /* Remove padding to allow actions to sit flush at top */
-    height: 850px; /* Fixed height to better fit A4 aspect ratio at common zoom levels */
-    max-height: calc(120vh - 150px); /* Ensure it doesn't exceed screen height */
+    padding: 0;
+    /* Height follows the scaled sheet (set in JS) and never exceeds the
+       viewport, so the toolbar and the page bottom stay reachable. */
+    height: auto;
+    max-height: calc(100vh - 120px);
+    max-height: calc(100dvh - 120px);
     overflow: hidden;
     position: sticky;
     top: 20px;
-    width: 100%; /* Reduced width a tiny bit as requested */
+    width: 100%;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
+    border-radius: 12px;
     box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);
 }
 
 .resume-preview-actions {
     background: #334155; /* Slightly lighter than container for toolbar look */
-    padding: 10px 20px;
+    padding: 10px 14px;
     display: flex;
+    /* Wraps instead of overflowing: three controls do not fit on a phone. */
+    flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
+    align-items: center;
+    gap: 8px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px 12px 0 0;
+    flex: 0 0 auto;
     z-index: 100;
 }
 
-.resume-preview-viewport {
+.preview-fullscreen-btn,
+.preview-fitmode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 34px;
+}
+
+/* Holds the sheet at its rendered size so the layout box matches what is drawn.
+   --preview-scale / --preview-w / --preview-h are written by fitPreview(). */
+.resume-preview-stage {
+    --preview-scale: 0.7;
+    --preview-w: 556px;
+    --preview-h: 786px;
+    width: var(--preview-w);
+    height: var(--preview-h);
+    flex: 0 0 auto;
     position: relative;
-    padding: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    margin: 0 auto;
+    background: #fff;
 }
 
 .resume-preview-wrapper {
     position: relative;
     width: 100%;
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1614,6 +1846,23 @@ html {
     overflow-y: auto; /* Allow vertical scrolling within the preview */
     overflow-x: hidden;
     scroll-behavior: smooth;
+    padding: 16px;
+}
+
+/* The preview is the only way to read the sheet, and it scrolls — so it has to
+   be reachable and steerable from the keyboard, with a focus ring that shows
+   where the arrow keys will go. */
+.resume-preview-wrapper:focus-visible {
+    outline: 2px solid #6ea8fe;
+    outline-offset: -2px;
+    border-radius: 12px;
+}
+
+/* Phones have the least room, so give the gutters back to the sheet. */
+@media (max-width: 575.98px) {
+    .resume-preview-wrapper {
+        padding: 10px;
+    }
 }
 
 /* Custom scrollbar for the preview wrapper */
@@ -1648,6 +1897,10 @@ html {
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     display: flex;
     flex-direction: column;
+    /* Long unbroken values (URLs, emails, pasted tokens) must wrap inside the
+       sheet instead of running past the page edge and getting clipped in the
+       preview and in the exported PDF. Inherited by every child. */
+    overflow-wrap: break-word;
 }
 
 /* Bottom margin UX reminder only */
@@ -1660,16 +1913,6 @@ html {
     height: 0;
     border-top: 1px dashed rgba(200, 200, 200, 0.7);
     pointer-events: none;
-}
-
-.resume-preview-viewport {
-    position: relative;
-    padding: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-bottom: 60px;
 }
 
 
@@ -1763,63 +2006,70 @@ html {
     display: none !important;
 }
 
+/* A4 sheet. Only the transform changes on resize, so the page keeps its real
+   210 x 297 mm layout — the pagination math reads offsetHeight. */
 .resume-preview-viewport {
     width: 210mm;
     height: 297mm;
+    padding: 0;
     overflow: hidden;
     position: relative;
     background: white;
-    transform-origin: top center; 
+    transform-origin: top left;
+    transform: scale(var(--preview-scale, 0.7));
     flex-shrink: 0;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
 }
 
-/* Larger, more readable scaling for professional review */
+/* ── Full screen preview ─────────────────────────────────────────────────── */
+body.preview-fullscreen-open {
+    overflow: hidden !important;
+}
+
+/* The column is a flex item with z-index 1020, so it forms a stacking context
+   even when static — that trapped the fixed overlay under the navbar. Drop both
+   for as long as the overlay is open. */
+.preview-fullscreen-host {
+    position: static !important;
+    z-index: auto !important;
+}
+
+.resume-preview-container.preview-fullscreen {
+    position: fixed;
+    inset: 0;
+    top: 0;
+    /* 100vw, not 100%: the fixed box must cover the whole window even if a
+       scrollbar gutter is still reserved during the toggle frame. */
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    z-index: 100001; /* above .glass-nav / .navbar (10000) */
+    box-shadow: none;
+}
+
+.resume-preview-container.preview-fullscreen .resume-preview-actions {
+    border-radius: 0;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
+
+.resume-preview-container.preview-fullscreen .resume-preview-wrapper {
+    padding: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+.resume-preview-container.preview-fullscreen .resume-pagination {
+    border-radius: 0;
+    margin: 0;
+}
+
+/* The sheet is the whole page here, so a scale transition only draws attention
+   to itself while the viewport is being resized. */
+.resume-preview-container.preview-fullscreen .resume-preview-viewport,
 .resume-preview-viewport {
-    transform: scale(0.65); /* Increased from 0.55 */
-    margin-bottom: -105mm;
-}
-
-@media (min-width: 1200px) {
-    .resume-preview-viewport {
-        transform: scale(0.75); /* Increased from 0.65 */
-        margin-bottom: -75mm;
-    }
-}
-
-@media (min-width: 1400px) {
-    .resume-preview-viewport {
-        transform: scale(0.85); /* Increased from 0.75 */
-        margin-bottom: -45mm;
-    }
-}
-
-@media (min-width: 1600px) {
-    .resume-preview-viewport {
-        transform: scale(0.95); /* Increased from 0.85 */
-        margin-bottom: -15mm;
-    }
-}
-
-@media (min-width: 1900px) {
-    .resume-preview-viewport {
-        transform: scale(1.1); /* Slightly larger than life on ultra-wide */
-        margin-bottom: 30mm;
-    }
-}
-
-/* Mobile View Scaling */
-@media (max-width: 991.98px) {
-    .resume-preview-container {
-        height: 550px; /* Slightly taller for better view */
-        margin-top: 30px; /* Increased margin */
-        margin-bottom: 30px;
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-    .resume-preview-viewport {
-        transform: scale(0.32); /* Slightly smaller to fit mobile screens better */
-    }
+    transition: none;
 }
 
 /* Mobile Specific Fixes for Resume Builder */
@@ -1839,30 +2089,25 @@ html {
         max-height: 70vh;
         margin-bottom: 20px;
         width: 100%;
-        /* Scaling down the builder card slightly to ensure it fits the same margins */
-        transform: scale(0.98);
-        transform-origin: top center;
     }
 
+    /* Wrap rather than a scroll strip with no affordance: on a 360px phone
+       four of the seven tabs used to sit outside the visible area. */
     .builder-card .nav-pills {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        justify-content: flex-start !important;
-        padding: 10px;
-        -webkit-overflow-scrolling: touch; /* Legacy iOS — modern iOS handles this natively */
-        /* overflow-scrolling is deprecated; momentum scrolling is now default on all modern browsers */
+        flex-wrap: wrap;
+        overflow: visible;
+        justify-content: center !important;
+        gap: 4px;
+        padding: 8px;
     }
 
     .builder-card .nav-pills .nav-link {
         white-space: nowrap;
-        font-size: 0.75rem;
-        padding: 5px 10px;
-    }
-
-    .resume-preview-viewport {
-        transform: scale(0.42) !important; /* Slightly smaller fixed scale for better fit on mobile */
-        transform-origin: top center;
-        margin-bottom: calc(-1122px * (1 - 0.42)); /* Adjust margin for 0.42 scale */
+        font-size: 0.72rem;
+        padding: 5px 8px;
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
     }
 }
 
@@ -2433,7 +2678,12 @@ html {
     color: rgba(255, 255, 255, 0.7); 
     font-size: 0.9rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    margin-bottom: 5px;
+    border-radius: 8px;
+    padding: 6px 12px;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0;
 }
 .builder-card .nav-pills .nav-link.active { 
     background-color: var(--bs-primary); 
@@ -2493,71 +2743,16 @@ html {
 }
 
 
-/* --- Mobile Responsiveness for Resume Builder --- */
+/* --- Mobile responsiveness for the resume builder ---
+   The per-breakpoint sheet scales that used to live here (0.8 / 0.75 / 0.42 /
+   0.6 / 0.55 / 0.5) are gone: they guessed from the viewport width instead of
+   the space the panel actually has, which is how a 768px tablet ended up with a
+   254px page. fitPreview() now derives --preview-scale from the live container
+   width, so the only thing left to decide here is stacking. */
 @media (max-width: 1200px) {
     .resume-preview-container {
-        height: auto;
-        max-height: 80vh; /* Better responsive height */
+        position: static;
         margin-top: 20px;
-        position: relative;
-        top: 0;
-        overflow: auto !important; /* Allow both X and Y scrolling */
-        display: flex; /* Flex layout to center content */
-        justify-content: center; /* Center horizontally */
-        align-items: flex-start; /* Start from top */
-        padding: 20px;
-        background: rgba(0,0,0,0.2);
-        border-radius: 12px;
-    }
-    
-    #resume-template {
-        transform: scale(0.8); /* Overview size */
-        transform-origin: top center;
-        margin: 0; /* Center handled by flex container */
-        margin-bottom: -60mm;
-        flex-shrink: 0;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-}
-
-@media (max-width: 992px) {
-    #resume-template {
-        transform: scale(0.75);
-        margin-bottom: -75mm;
-    }
-}
-
-@media (max-width: 768px) {
-    .resume-preview-container {
-        padding: 15px;
-        max-height: 70vh;
-        justify-content: center; /* Explicitly centered */
-    }
-    #resume-template {
-        transform: scale(0.42);
-        transform-origin: top center;
-        margin-bottom: calc(-1122px * (1 - 0.42));
-    }
-}
-
-@media (max-width: 576px) {
-    #resume-template {
-        transform: scale(0.6);
-        margin-bottom: -120mm;
-    }
-}
-
-@media (max-width: 480px) {
-    #resume-template {
-        transform: scale(0.55);
-        margin-bottom: -135mm;
-    }
-}
-
-@media (max-width: 380px) {
-    #resume-template {
-        transform: scale(0.5);
-        margin-bottom: -150mm;
     }
 }
 

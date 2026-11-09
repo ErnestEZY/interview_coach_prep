@@ -18,7 +18,104 @@
   
   <link rel="stylesheet" href="/static/css/styles.css">
   <style>
-    .preview-frame { width: 100%; height: 80vh; border: none; }
+    /* The stage is sized from the live viewport (see fitViewer) so the PDF gets
+       every spare pixel on a phone, a tablet or a wide monitor without ever
+       pushing the page into a horizontal scroll. */
+    .admin-viewer-stage {
+      position: relative;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #0b1220;
+    }
+    .preview-frame {
+      display: block;
+      width: 100%;
+      height: 80vh; /* replaced by fitViewer() once the layout is measured */
+      border: none;
+    }
+    .admin-viewer-stage--fullscreen {
+      position: fixed;
+      inset: 0;
+      z-index: 100001;
+      border-radius: 0;
+    }
+    .admin-viewer-stage--fullscreen .preview-frame {
+      height: 100dvh;
+    }
+    /* The stage sits inside .card, and .card carries backdrop-filter — which
+       makes it the containing block for position:fixed descendants. Without
+       this reset the "full screen" overlay anchors to the card (measured at
+       78,82 on a 1280px screen) instead of the viewport. Transform, contain
+       and will-change cause the same capture, so all of them are cleared for
+       as long as full screen is open; the card is hidden behind the overlay
+       by then, so the blur is not missed. */
+    html.admin-viewer-fullscreen-open .card {
+      -webkit-backdrop-filter: none !important;
+      backdrop-filter: none !important;
+      transform: none !important;
+      contain: none !important;
+      will-change: auto !important;
+    }
+    /* Bottom-right, deliberately not top-right: every engine paints its own
+       PDF toolbar along the top of the embedded frame (page selector at the
+       left, zoom/download/print at the right), so a control pinned there
+       covers the reader's own buttons. The bottom corner is left empty by all
+       three readers and stays thumb-reachable on a phone. */
+    .admin-viewer-exit {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 100002;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    }
+    /* styles.css pins a scrollbar on <html> (overflow-y: scroll plus
+       scrollbar-gutter: stable), so hiding overflow on <body> alone still
+       leaves a 10px strip of page visible down the right of the overlay.
+       Both the hidden overflow and the gutter reset are needed, on <html>. */
+    html.admin-viewer-fullscreen-open {
+      overflow: hidden;
+      scrollbar-gutter: auto;
+    }
+    html.admin-viewer-fullscreen-open body {
+      overflow: hidden;
+    }
+    /* An image fills the same stage the PDF does, letterboxed rather than
+       stretched when its aspect ratio differs from the screen. */
+    .preview-image {
+      object-fit: contain;
+      background: #0b1220;
+    }
+    .admin-viewer-stage--fullscreen .preview-image {
+      width: 100vw;
+      height: 100dvh;
+    }
+    /* The .admin-extracted* rules live in styles.css: the admin portal renders
+       the same block, and one definition keeps the two in step. */
+    /* Phones: the PDF is the page. Dropping the container and card gutters
+       gains the sheet ~50px of width on a 390px screen (322px -> 372px),
+       which is the difference between reading a CV and squinting at it. */
+    @media (max-width: 575.98px) {
+      .admin-viewer-shell {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+      .admin-viewer-shell > .card {
+        padding-left: .5rem !important;
+        padding-right: .5rem !important;
+        border-left: 0;
+        border-right: 0;
+        border-radius: 0;
+      }
+      .admin-viewer-stage {
+        border-radius: 6px;
+      }
+      /* The file name claims its own row so the buttons below it stay on one
+         line instead of splitting the toolbar three ways. */
+      .admin-viewer-title {
+        width: 100%;
+      }
+    }
     [v-cloak] { display: none !important; }
   </style>
 </head>
@@ -61,28 +158,91 @@
       <span class="ms-2 small text-warning" v-show="sessionTime <= 60 && sessionTime > 58">Time is running out!</span>
     </div>
     
-    <div class="container py-4">
+    <div class="container py-4 admin-viewer-shell">
       <div class="card p-3">
-        <h5 class="mb-3">{{ detail ? detail.filename : 'Loading...' }}</h5>
-        
-        <div class="alert alert-danger" v-if="errorMsg">{{ errorMsg }}</div>
-        
-        <iframe class="preview-frame" v-if="detail && detail.mime_type === 'application/pdf' && fileUrl" :src="fileUrl"></iframe>
-        
-        <div v-if="detail && detail.mime_type !== 'application/pdf'">
-          <p class="mb-2">Preview is available for PDF only. Use the link below to open or download the original file.</p>
-          <a class="btn btn-primary btn-sm" v-if="fileUrl" :href="fileUrl" target="_blank">Open File</a>
-          <div class="mt-3">
-            <h6>Extracted Text</h6>
-            <pre class="bg-dark p-3">{{ detail.text || 'No extracted text available.' }}</pre>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <h5 class="mb-0 me-auto text-break admin-viewer-title">{{ detail ? detail.filename : 'Loading...' }}</h5>
+
+          <!-- The toolbar controls keep together as one group so a wrapping
+               title cannot strand one of them on its own row. -->
+          <div class="d-flex flex-wrap align-items-center gap-2 ms-auto">
+            <!-- The original Open File action: kept for every file type, not
+                 just non-PDFs, so an admin can always reach the real file even
+                 when the embedded PDF viewer renders blank. -->
+            <a class="btn btn-primary btn-sm" v-if="fileUrl" :href="fileUrl" target="_blank" rel="noopener"
+               id="open-file-original">
+              <i class="bi bi-file-earmark-arrow-up me-1"></i>Open File
+            </a>
+
+            <a class="btn btn-outline-light btn-sm" v-if="fileUrl" :href="fileUrl" target="_blank" rel="noopener"
+               id="open-file-new-tab">
+              <i class="bi bi-box-arrow-up-right me-1"></i>Open in new tab
+            </a>
+
+            <button type="button" class="btn btn-outline-warning btn-sm" v-if="isPdf" id="toggle-viewer-fullscreen"
+                    @click="toggleFullscreen"
+                    :aria-pressed="fullscreen ? 'true' : 'false'"
+                    :aria-label="fullscreen ? 'Exit full screen preview' : 'View preview in full screen'">
+              <i class="bi" :class="fullscreen ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'"></i>
+              <span class="d-none d-sm-inline ms-1">{{ fullscreen ? 'Exit full screen' : 'Full screen' }}</span>
+            </button>
           </div>
         </div>
+
+        <div class="alert alert-danger" v-if="errorMsg">{{ errorMsg }}</div>
+
+        <!-- Phones and iOS Safari cannot always render an embedded PDF, so the
+             escape hatch is stated rather than hidden in the toolbar. -->
+        <p class="text-secondary small d-md-none" v-if="isPdf && fileUrl" id="viewer-mobile-hint">
+          <i class="bi bi-info-circle me-1"></i>
+          If this preview is blank on your device, use <strong>Open in new tab</strong>.
+        </p>
+
+        <div class="admin-viewer-stage" :class="{ 'admin-viewer-stage--fullscreen': fullscreen }"
+             id="admin-viewer-stage" role="region"
+             :aria-label="fullscreen ? 'Resume file preview, full screen' : 'Resume file preview'">
+          <button type="button" class="btn btn-warning btn-sm admin-viewer-exit" v-if="fullscreen"
+                  @click="toggleFullscreen" aria-label="Exit full screen preview">
+            <i class="bi bi-fullscreen-exit me-1"></i>Exit full screen
+          </button>
+          <iframe class="preview-frame" id="resume-pdf-frame"
+                  v-if="isPdf && fileUrl" :src="fileUrl"
+                  :title="'Resume file preview: ' + (detail ? detail.filename : '')"></iframe>
+          <img class="preview-frame preview-image" id="resume-image-preview"
+               v-else-if="isImage && fileUrl" :src="fileUrl"
+               :alt="'Resume file preview: ' + (detail ? detail.filename : '')">
+        </div>
+
+        <!-- The document above is the preview. This notice only appears when
+             the browser cannot render the file at all. -->
+        <p class="mb-0 mt-2 text-secondary small" v-if="detail && !renderable" id="viewer-no-inline-preview">
+          This file type cannot be shown inline. Use <strong>Open File</strong> above to read the original document.
+        </p>
+
+        <!-- Extracted text is the fallback, never the preview: it stays folded
+             away whenever the document itself is on screen, and opens by
+             itself only when nothing better can be shown. -->
+        <details class="admin-extracted mt-3" v-if="detail" id="extracted-text"
+                 :open="extractedOpen" @toggle="onExtractedToggle">
+          <summary>Extracted text</summary>
+          <div class="admin-extracted-body" id="extracted-text-body">
+            <template v-for="(block, index) in extractedBlocks" :key="index">
+              <h6 v-if="block.type === 'h'" class="admin-extracted-heading">{{ block.text }}</h6>
+              <ul v-else-if="block.type === 'ul'">
+                <li v-for="(item, i) in block.items" :key="i">{{ item }}</li>
+              </ul>
+              <p v-else>{{ block.text }}</p>
+            </template>
+            <p v-if="!extractedBlocks.length">No extracted text available.</p>
+          </div>
+        </details>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/static/js/app.min.js?v=2.0"></script>
+  <script src="/static/js/resume-text.js"></script>
   <script src="/static/js/icp-admin-preview-v1.js"></script>
 </body>
 </html>

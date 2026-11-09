@@ -415,6 +415,13 @@ const app = createApp({
 
             const getIframe = () => container.querySelector('iframe');
 
+            // The widget builds its own iframe, but the title lives in this
+            // document. Unnamed, a screen reader announces it as "frame" and
+            // the job results can only be reached by tabbing into them blind.
+            const labelFrame = (iframe) => {
+                if (iframe && !iframe.title) iframe.title = 'Careerjet job search results';
+            };
+
             const pollHeight = () => {
                 clearInterval(pollTimer);
                 let ticks = 0;
@@ -446,6 +453,7 @@ const app = createApp({
                 const iframe = getIframe();
                 if (!iframe || iframe._cjWatched) return;
                 iframe._cjWatched = true;
+                labelFrame(iframe);
 
                 iframe.addEventListener('load', () => {
                     if (!userHasSearched) return;
@@ -462,6 +470,7 @@ const app = createApp({
             const existing = getIframe();
             if (existing && !existing._cjWatched) {
                 existing._cjWatched = true;
+                labelFrame(existing);
                 existing.addEventListener('load', () => {
                     if (!userHasSearched) return;
                     removeBanner();

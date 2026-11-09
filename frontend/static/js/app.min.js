@@ -245,7 +245,7 @@ if (window.axios) {
       console.warn("Network error or server unreachable:", error);
       if (!navigator.onLine) {
         showOfflineToast();
-        showOfflineOverlay();
+        showOfflineWall();
       }
     }
     
@@ -626,7 +626,11 @@ const hideLoader = () => {
   const loader = document.getElementById("global-loader");
   if (loader) {
     loader.classList.add("fade-out");
-    setTimeout(() => loader.remove(), 500);
+    // Pages that bind the loader with v-if hand that node to Vue, so detaching
+    // it here leaves the framework patching an element that is no longer in the
+    // document — "insertBefore/textContent of null" — and the page silently
+    // stops updating. Hiding it looks identical and keeps a single owner.
+    setTimeout(() => { loader.style.display = "none"; }, 500);
   }
 };
 
@@ -651,33 +655,6 @@ const hideOfflineToast = () => {
   if (toast) {
     toast.classList.remove('visible');
     setTimeout(() => toast.remove(), 300);
-  }
-};
-
-const showOfflineOverlay = () => {
-  if (document.getElementById('offline-overlay')) return;
-  const overlay = document.createElement('div');
-  overlay.id = 'offline-overlay';
-  overlay.className = 'offline-overlay';
-  overlay.innerHTML = `
-    <div class="offline-card">
-      <div class="offline-icon">📶✖</div>
-      <div class="offline-title">You are offline</div>
-      <div class="offline-desc">Please check your internet connection and try again.</div>
-      <button id="offline-retry-btn" class="btn btn-primary btn-sm mt-2">Retry</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  const retryBtn = document.getElementById('offline-retry-btn');
-  if (retryBtn) {
-    retryBtn.addEventListener('click', () => {
-      // Show loading state on button
-      retryBtn.disabled = true;
-      retryBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Retrying...';
-      
-      // Attempt reload regardless of navigator.onLine (more reliable)
-      window.location.reload();
-    });
   }
 };
 
@@ -726,25 +703,63 @@ const setupTauriNavigation = () => {
   observer.observe(document.querySelector('title'), { childList: true });
 };
 
-const hideOfflineOverlay = () => {
-  const el = document.getElementById('offline-overlay');
-  if (el) el.remove();
+/**
+ * True when reloading now would throw away something the user put in.
+ *
+ * Compared against each field's default rather than against empty, so a value
+ * the page itself filled in — a profile form, browser autofill — counts as
+ * unsaved too. Erring towards "keep the page" only costs a stale document;
+ * erring the other way costs the user their typing.
+ */
+const hasUnsavedInput = () => {
+  const fields = document.querySelectorAll('input, textarea, select');
+  for (const field of fields) {
+    const type = (field.type || '').toLowerCase();
+    if (type === 'hidden' || field.disabled) continue;
+    if (type === 'checkbox' || type === 'radio') {
+      if (field.checked !== field.defaultChecked) return true;
+    } else if (field.tagName === 'SELECT') {
+      if (Array.from(field.options).some(o => o.selected !== o.defaultSelected)) return true;
+    } else if (type === 'file') {
+      if (field.files && field.files.length) return true;
+    } else if (field.value !== field.defaultValue) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Raise the wall that setupOfflineDetection() owns. That function creates the
+ * node once per page; this only switches it on, so a failed request while
+ * offline shows the same wall a browser-level disconnect does.
+ */
+const showOfflineWall = () => {
+  const wall = document.getElementById('offline-overlay');
+  if (wall) wall.classList.add('active');
 };
 
 window.addEventListener('offline', () => {
-  showOfflineToast();
-  showOfflineOverlay();
+  if (!window.ICP_NO_OFFLINE) showOfflineToast();
 });
 window.addEventListener('online', () => {
-  hideOfflineToast();
-  hideOfflineOverlay();
+  if (!window.ICP_NO_OFFLINE) hideOfflineToast();
+
+  // The wall itself is lifted by setupOfflineDetection()'s listener, which
+  // keeps a handle on the node and deactivates it. This handler used to remove
+  // that node, leaving every later disconnect with nothing to switch on.
+  if (window.ICP_NO_OFFLINE || window.ICP_KEEP_STATE) return;
+
+  // Reloading repairs a page that was served from the service worker and
+  // failed its first requests offline, so an idle page is worth refreshing.
+  // It also destroys whatever the user has typed, which is not.
+  if (hasUnsavedInput()) return;
   window.location.reload();
 });
 
 // Initial check — skip on pages that set window.ICP_NO_OFFLINE (e.g. oauth_callback)
 if (!navigator.onLine && !window.ICP_NO_OFFLINE) {
   showOfflineToast();
-  showOfflineOverlay();
 }
 
 // --- PWA & App Download Banner ---
@@ -839,7 +854,7 @@ function handleAppPromotion() {
                 </button>
                 
                 <!-- MSI Primary -->
-                <a href="/downloads/msi/installer" class="btn btn-info rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 text-white text-decoration-none">
+                <a href="/downloads/msi/installer" class="btn btn-info rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 text-decoration-none">
                   <i class="bi bi-windows"></i> 
                   <span>Windows MSI File</span>
                 </a>

@@ -56,6 +56,9 @@ const app = createApp({
         this.logged = !!token;
 
         if (this.logged) {
+            // Before anything renders: the dashboard is the candidate's, and an
+            // admin who lands here goes back to the portal.
+            if (this.redirectAdminAway()) return;
             this.startTimer();
             this.setUserFromToken();
             // Ensure progress bar and upload state are clean on every page load
@@ -118,6 +121,7 @@ const app = createApp({
             const newToken = window.icp && window.icp.state ? window.icp.state.token : null;
             this.logged = !!newToken;
             if (this.logged) {
+                if (this.redirectAdminAway()) return;
                 this.startTimer();
                 this.setUserFromToken();
                 this.initDashboard();
@@ -159,6 +163,26 @@ const app = createApp({
       if (window.handleMobileMenu) {
         window.handleMobileMenu(this.isMobileMenuOpen);
       }
+    },
+    // The candidate dashboard is not an admin route. The role travels in the
+    // JWT, so this decides synchronously — before the dashboard renders and
+    // before any candidate-only request goes out. Returns true when it
+    // redirected, so the caller can stop working.
+    redirectAdminAway() {
+      let role = '';
+      try {
+        const token = (window.icp && window.icp.state && window.icp.state.token)
+          || localStorage.getItem('token');
+        const payload = token && window.icp && window.icp.decodeToken
+          ? window.icp.decodeToken(token) : null;
+        role = (payload && payload.role) || '';
+      } catch (_) {}
+      if (role === 'admin' || role === 'super_admin') {
+        // Encoded portal path: /static/pages/icp-admin-portal-5e6a1c3d.html
+        window.location.replace(atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tcG9ydGFsLTVlNmExYzNkLmh0bWw='));
+        return true;
+      }
+      return false;
     },
     async setUserFromToken() {
       const token = window.icp && window.icp.state.token ? window.icp.state.token : localStorage.getItem("token");

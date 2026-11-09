@@ -19,6 +19,7 @@ async def list_resumes(
     q: str = Query(None),
     status: str = Query(None),
     tag: str = Query(None),
+    sort: str = Query(None, description="Date-created order: 'newest' (default) or 'oldest'"),
     current=Depends(get_current_user),
 ):
     ensure_admin_role(current)
@@ -30,7 +31,11 @@ async def list_resumes(
     if tag:
         filt["tags"] = tag
 
-    cur = resumes.find(filt)
+    if sort not in ("newest", "oldest"):
+        sort = "newest"
+    # Sorted server-side: the portal only renders one page at a time, so a
+    # client-side sort would order the visible page and scramble the rest.
+    cur = resumes.find(filt).sort("created_at", 1 if sort == "oldest" else -1)
     items = []
     async for r in cur:
         created = r.get("created_at")

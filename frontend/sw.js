@@ -1,4 +1,7 @@
-const CACHE_NAME = 'icp-cache-v5';
+// Bump when a precached asset changes: install re-fetches the list and the
+// activate handler drops every older cache, so returning clients pick the new
+// bytes up instead of the copy they cached months ago.
+const CACHE_NAME = 'icp-cache-v7';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json?v=1',
@@ -73,6 +76,13 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests with http/https schemes
   if (event.request.method !== 'GET' || !url.protocol.startsWith('http')) return;
 
+  // Fonts pass straight through. A @font-face request is validated by the font
+  // loader, so an opaque response — the only kind a no-cors copy of a CDN font
+  // can produce — is rejected, and WebKit reports exactly that as "Response
+  // served by service worker is opaque". The browser's own HTTP cache already
+  // keeps fonts across navigations, so intercepting them buys nothing.
+  if (event.request.destination === 'font') return;
+
   // Never cache auth JS, admin pages, or any API calls — always go to network
   const neverCache = NEVER_CACHE.some(pattern => url.pathname.startsWith(pattern) || url.pathname.includes(pattern));
   if (neverCache) {
@@ -91,15 +101,24 @@ self.addEventListener('fetch', (event) => {
   const isCDN = CDN_URLS.some(domain => url.hostname.includes(domain));
   
   if (isCDN) {
+    // Cache keys are the URL, so a no-cors fetch and a CORS fetch of the same
+    // asset share one entry: whichever ran first decides the copy the other one
+    // gets. An opaque copy cannot satisfy a request that needs readable headers,
+    // and handing it over is a spec violation rather than a slow path.
+    const needsHeaders = event.request.mode === 'cors';
+    const unusable = (response) => needsHeaders && response.type === 'opaque';
+
     event.respondWith(
       caches.match(event.request).then((cached) => {
-        if (cached) return cached;
+        if (cached && !unusable(cached)) return cached;
 
         return fetch(event.request).then((response) => {
           // Cache opaque responses (for cross-origin scripts) or valid CORS responses
           if (response && (response.status === 200 || response.type === 'opaque')) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            if (!unusable(response)) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
           }
           return response;
         }).catch(() => {

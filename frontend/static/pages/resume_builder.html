@@ -550,27 +550,55 @@
         </div>
 
         <!-- Preview Column -->
-        <div class="col-xl-6 sticky-xl-top sticky-preview-column">
+        <div class="col-xl-6 sticky-xl-top sticky-preview-column"
+             :class="{ 'preview-fullscreen-host': previewFullscreen }">
             <div class="text-center mb-3 px-2">
                 <h5 class="text-white fw-bold mb-3 text-decoration-underline">Resume Preview</h5>
             </div>
-            <div class="resume-preview-container">
+            <div class="resume-preview-container"
+                 :class="{ 'preview-fullscreen': previewFullscreen }"
+                 :role="previewFullscreen ? 'dialog' : 'region'"
+                 :aria-modal="previewFullscreen ? 'true' : undefined"
+                 aria-label="Resume preview">
                 <!-- Internal Actions Bar -->
                 <div class="resume-preview-actions">
                     <div class="dropdown">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="themeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-palette-fill me-1"></i> Theme: {{ currentTheme.name }}
+                            <i class="bi bi-palette-fill me-1"></i> <span class="d-none d-sm-inline">Theme: </span>{{ currentTheme.name }}
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="themeDropdown">
                             <li v-for="theme in themes"><a class="dropdown-item" href="#" @click.prevent="setTheme(theme)">{{ theme.name }}</a></li>
                         </ul>
                     </div>
-                    <button @click="downloadPDF" class="btn btn-primary btn-sm shadow-sm">
-                        <i class="bi bi-file-earmark-pdf-fill me-2"></i> Download PDF
+                    <button @click="downloadPDF" class="btn btn-primary btn-sm shadow-sm" title="Download your resume as a PDF">
+                        <i class="bi bi-file-earmark-pdf-fill me-1 me-sm-2"></i> <span class="d-none d-sm-inline">Download </span>PDF
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-light btn-sm preview-fitmode-btn"
+                            v-if="previewFullscreen"
+                            @click="togglePreviewFitMode"
+                            :aria-label="previewFitMode === 'page'
+                                ? 'Fit width — zoom in so the page fills the screen width'
+                                : 'Fit page — zoom out so the whole page is visible'"
+                            :title="previewFitMode === 'page'
+                                ? 'Fit width (currently showing the whole page)'
+                                : 'Fit page (currently fitted to width)'">
+                        <i class="bi" :class="previewFitMode === 'page' ? 'bi-arrows-angle-expand' : 'bi-aspect-ratio'"></i>
+                        <span class="d-none d-md-inline ms-1">{{ previewFitMode === 'page' ? 'Fit width' : 'Fit page' }}</span>
+                    </button>
+                    <button type="button"
+                            class="btn btn-outline-light btn-sm preview-fullscreen-btn"
+                            @click="togglePreviewFullscreen"
+                            :aria-pressed="previewFullscreen ? 'true' : 'false'"
+                            :aria-label="previewFullscreen ? 'Exit full screen resume preview' : 'Open resume preview in full screen'"
+                            :title="previewFullscreen ? 'Exit full screen (Esc)' : 'View the resume in full screen'">
+                        <i class="bi" :class="previewFullscreen ? 'bi-fullscreen-exit' : 'bi-arrows-fullscreen'"></i>
+                        <span class="d-none d-lg-inline ms-1">{{ previewFullscreen ? 'Exit' : 'Full screen' }}</span>
                     </button>
                 </div>
                 
-                <div class="resume-preview-wrapper">
+                <div class="resume-preview-wrapper" ref="previewWrapper" tabindex="0" role="region" aria-label="Resume preview">
+                    <div class="resume-preview-stage" ref="previewStage">
                     <div class="resume-preview-viewport">
                         <div id="resume-template" :class="currentTheme.className" :style="{ transform: 'translateY(' + ((currentPage - 1) * -297) + 'mm)' }">
                             <!-- Header -->
@@ -688,6 +716,7 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
                     </div>
                 </div>
 
