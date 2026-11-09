@@ -5,23 +5,39 @@ These tests run against the REAL running application with a REAL MongoDB
 test database. No mocks. The full stack is exercised: FastAPI app,
 MongoDB Motor driver, JWT auth, daily limit counters, all routes.
 
-HOW TO RUN:
-  1. Start the server: uvicorn backend.main:app --host 127.0.0.1 --port 8002
-  2. Run:  pytest tests/system/ -v --tb=short --system-base-url=http://127.0.0.1:8002
-
-  Or with env var:
-  $env:SYSTEM_BASE_URL = "http://127.0.0.1:8002"
+HOW TO RUN — nothing has to be started first:
   pytest tests/system/ -v --tb=short
 
+  If nothing answers at SYSTEM_BASE_URL (default http://127.0.0.1:8002) the
+  suite starts its own server on a free port with ICP_DB_NAME=icp_system_test
+  and stops it when the session ends. Because that database is known to be
+  disposable, the DB-writing tests run too instead of being skipped. The
+  server's own output is in tests/system/.server.log — read it first when a
+  run reports skips.
+
+  Against a server you started yourself:
+    pytest tests/system/ -v --system-base-url=http://127.0.0.1:8002
+  and add RUN_SYSTEM_DB_TESTS=1 if that server points at a disposable database
+  and you want the DB-writing tests to run against it. They are skipped
+  otherwise, because nothing in the run can vouch for what is behind a server
+  it did not start.
+
 IMPORTANT:
-  - Uses a SEPARATE test database (icp_system_test) so real data is never touched.
-  - Each test class cleans up its own documents after running.
-  - Tests are skipped automatically when the server is not reachable.
+  - ICP_DB_NAME is set on the SERVER, not on the test run. Without it the
+    server uses the live database and the registration tests below would write
+    real users into it. It is not called DB_NAME because tests/conftest.py
+    already pins that name for the mocked unit suites.
+  - The test database is disposable. Rows a run creates stay behind under
+    timestamped addresses (sys_test_*, flood_*), so empty or drop it freely.
+  - Live-app tests are skipped automatically when no server answers and none
+    could be started; ICP_NO_AUTOSTART=1 disables the starting.
 """
 import os
 import sys
 import time
+import socket
 import asyncio
+import subprocess
 import pytest
 import pytest_asyncio
 import httpx
@@ -33,40 +49,178 @@ if ROOT not in sys.path:
 
 BASE_URL = os.environ.get("SYSTEM_BASE_URL", "http://127.0.0.1:8002")
 
+# The database a self-started server writes to. It is not the live one, and it
+# is not called DB_NAME because tests/conftest.py already pins that name for
+# the mocked unit suites.
+THROWAWAY_DB = "icp_system_test"
 
 # ── Pytest hook to add --system-base-url CLI option ──────────────────────────
-def pytest_addoption(parser):
-    parser.addoption("--system-base-url", default=None,
-                     help="Base URL of the running ICP server for system tests")
+# Declared in conftest.py beside this file: pytest only calls pytest_addoption
+# on plugin and conftest modules, so declaring the hook in this module left the
+# documented flag rejected as "unrecognized arguments".
+SERVER_UP = False
+
+# True once this run has started a server of its own. That is the only case in
+# which the database behind the tested URLs is known to be the throwaway one,
+# so it is also the only case in which writing to it is safe by default.
+THROWAWAY = False
 
 
 @pytest.fixture(scope="session", autouse=True)
 def resolve_base_url(request):
-    global BASE_URL
+    """Resolve the target server, starting one if nothing is listening.
+
+    Both the flag and the environment are read here rather than at import, so
+    `--system-base-url` actually reaches the skip decision below. An
+    import-time skipif sees only the environment, which made the flag
+    documented at the top of this file silently do nothing.
+
+    A suite that only works if the developer remembered to start a server in
+    another window is a suite that does not run. When nothing answers, one is
+    started on a free port against the throwaway database and stopped again at
+    the end of the session. Set ICP_NO_AUTOSTART=1 to keep the old behaviour.
+    """
+    global BASE_URL, SERVER_UP, THROWAWAY
     cli = request.config.getoption("--system-base-url", default=None)
     if cli:
         BASE_URL = cli
 
+    SERVER_UP = server_is_up()
+    if SERVER_UP or os.environ.get("ICP_NO_AUTOSTART") == "1":
+        return
+
+    process = start_server()
+    if process is None:
+        return
+    # addfinalizer wants a callable taking no arguments; the server has to be
+    # handed back to the cleaner, hence the lambda rather than partial+args.
+    request.addfinalizer(lambda: stop_server(process))
+    BASE_URL = process.url
+    SERVER_UP = True
+    THROWAWAY = True
+
+
+def free_port() -> int:
+    """A port the OS says is unused, rather than one guessed to be."""
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]
+
+
+class StartedServer:
+    def __init__(self, process, url, log):
+        self.process = process
+        self.url = url
+        self.log = log
+
+
+def start_server():
+    """Boot uvicorn on a free port against the throwaway database."""
+    port = free_port()
+    url = f"http://127.0.0.1:{port}"
+    env = {**os.environ, "ICP_DB_NAME": THROWAWAY_DB}
+    # The server must not inherit the test-side switch; it only decides what
+    # the client is allowed to ask for.
+    env.pop("RUN_SYSTEM_DB_TESTS", None)
+
+    log_path = os.path.join(os.path.dirname(__file__), ".server.log")
+    log = open(log_path, "w", encoding="utf-8")
+    try:
+        process = subprocess.Popen(
+            [sys.executable, "-m", "uvicorn", "backend.main:app",
+             "--host", "127.0.0.1", "--port", str(port)],
+            cwd=ROOT,
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+    except Exception:
+        log.close()
+        return None
+
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        if process.poll() is not None:
+            log.close()
+            return None  # it died; the skip below says so and the log says why
+        if server_is_up(url):
+            return StartedServer(process, url, log_path)
+        time.sleep(0.5)
+
+    stop_server(StartedServer(process, url, log_path))
+    return None
+
+
+def stop_server(server):
+    server.process.terminate()
+    try:
+        server.process.wait(timeout=15)
+    except subprocess.TimeoutExpired:
+        server.process.kill()
+        server.process.wait(timeout=15)
+    try:
+        server.process.stdout.close()
+    except Exception:
+        pass
+
 
 # ── Skip if server is not reachable ──────────────────────────────────────────
-def server_is_up() -> bool:
+def server_is_up(url=None) -> bool:
     try:
-        r = httpx.get(f"{BASE_URL}/api/auth/config", timeout=3)
+        r = httpx.get(f"{url or BASE_URL}/api/auth/config", timeout=3)
         return r.status_code == 200
     except Exception:
         return False
 
 
-skip_if_down = pytest.mark.skipif(
-    not server_is_up(),
-    reason=f"System tests skipped — server not reachable at {BASE_URL}. "
-           f"Start with: uvicorn backend.main:app --port 8002"
-)
+needs_system_server = pytest.mark.needs_system_server
+writes_db = pytest.mark.writes_db
 
 
-# ── Shared HTTP client ────────────────────────────────────────────────────────
-@pytest_asyncio.fixture(scope="session")
+def db_writes_allowed() -> bool:
+    """Whether the DB-writing tests may run against this run's server.
+
+    Deliberately a function called at test time rather than a skipif condition
+    evaluated at collection: whether a throwaway server was started is only
+    known once the session fixture above has run, and a collection-time check
+    would always see False and skip a suite that in fact had a safe database.
+    """
+    return THROWAWAY or os.environ.get("RUN_SYSTEM_DB_TESTS") == "1"
+
+
+@pytest.fixture(autouse=True)
+def require_system_server(request):
+    """Skip a live-app test when nothing answers at the resolved URL.
+
+    Decided at run time so the answer matches the URL the tests will actually
+    use, and so an absent server reads as "skipped", not as a wall of
+    connection failures. The same pass decides whether a test may write to the
+    database, since that question has the same dependency on what the session
+    fixture managed to set up.
+    """
+    if request.node.get_closest_marker("needs_system_server") and not SERVER_UP:
+        pytest.skip(
+            f"System tests skipped — no server at {BASE_URL} and none could be "
+            f"started. See {os.path.join(os.path.dirname(__file__), '.server.log')} "
+            f"for why."
+        )
+    if request.node.get_closest_marker("writes_db") and not db_writes_allowed():
+        pytest.skip(
+            f"DB-writing test skipped — the server at {BASE_URL} was not started "
+            f"by this run, so its database cannot be assumed disposable. Point "
+            f"the server at {THROWAWAY_DB} and set RUN_SYSTEM_DB_TESTS=1 to run it."
+        )
+
+
+# ── HTTP client ──────────────────────────────────────────────────────────────
+@pytest_asyncio.fixture
 async def client():
+    """One client per test, created on that test's own event loop.
+
+    Session scope leaked a single client across event loops, and every test
+    after the first died with "Event loop is closed" — a harness fault that
+    was indistinguishable from nine broken endpoints.
+    """
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=15) as c:
         yield c
 
@@ -80,7 +234,7 @@ TEST_PASSWORD = "SysTest1!"
 # ═════════════════════════════════════════════════════════════════════════════
 # SYSTEM TEST 1 — Application Health
 # ═════════════════════════════════════════════════════════════════════════════
-@skip_if_down
+@needs_system_server
 class TestSystemHealth:
     @pytest.mark.asyncio
     async def test_config_endpoint_returns_keys(self, client):
@@ -127,17 +281,16 @@ class TestSystemHealth:
 # ═════════════════════════════════════════════════════════════════════════════
 # SYSTEM TEST 2 — Registration Flow (real DB)
 # ═════════════════════════════════════════════════════════════════════════════
-@skip_if_down
+@needs_system_server
 class TestSystemRegistration:
     """
     Registers a real user in MongoDB, verifies OTP, then cleans up.
-    Requires RUN_SYSTEM_DB_TESTS=1 to actually write to the DB.
+    Runs when this suite started its own throwaway server, or when
+    RUN_SYSTEM_DB_TESTS=1 vouches for a server supplied from outside.
     """
-    RUN = os.environ.get("RUN_SYSTEM_DB_TESTS", "0") == "1"
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(not (os.environ.get("RUN_SYSTEM_DB_TESTS") == "1"),
-                        reason="Set RUN_SYSTEM_DB_TESTS=1 to run DB-writing system tests")
+    @writes_db
     async def test_register_creates_pending_user(self, client):
         r = await client.post("/api/auth/register",
                               json={"email": TEST_EMAIL,
@@ -150,8 +303,7 @@ class TestSystemRegistration:
         assert len(body["otp"]) == 6
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(not (os.environ.get("RUN_SYSTEM_DB_TESTS") == "1"),
-                        reason="Set RUN_SYSTEM_DB_TESTS=1 to run DB-writing system tests")
+    @writes_db
     async def test_duplicate_registration_returns_400(self, client):
         """Second registration with same email during pending state → upsert (200 again)."""
         r = await client.post("/api/auth/register",
@@ -159,16 +311,14 @@ class TestSystemRegistration:
         assert r.status_code in (200, 400)
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(not (os.environ.get("RUN_SYSTEM_DB_TESTS") == "1"),
-                        reason="Set RUN_SYSTEM_DB_TESTS=1 to run DB-writing system tests")
+    @writes_db
     async def test_verify_wrong_otp_returns_400(self, client):
         r = await client.post("/api/auth/verify-email",
                               json={"email": TEST_EMAIL, "otp": "000000"})
         assert r.status_code == 400
 
     @pytest.mark.asyncio
-    @pytest.mark.skipif(not (os.environ.get("RUN_SYSTEM_DB_TESTS") == "1"),
-                        reason="Set RUN_SYSTEM_DB_TESTS=1 to run DB-writing system tests")
+    @writes_db
     async def test_resend_otp_within_cooldown_returns_429(self, client):
         """Immediately after register the 30s cooldown is active."""
         r = await client.post("/api/auth/resend-otp",
@@ -179,7 +329,7 @@ class TestSystemRegistration:
 # ═════════════════════════════════════════════════════════════════════════════
 # SYSTEM TEST 3 — Authentication Enforcement (real JWT verification)
 # ═════════════════════════════════════════════════════════════════════════════
-@skip_if_down
+@needs_system_server
 class TestSystemAuthEnforcement:
     @pytest.mark.asyncio
     async def test_expired_token_rejected(self, client):
@@ -237,7 +387,7 @@ class TestSystemAuthEnforcement:
 # ═════════════════════════════════════════════════════════════════════════════
 # SYSTEM TEST 4 — Rate Limiting (real slowapi middleware)
 # ═════════════════════════════════════════════════════════════════════════════
-@skip_if_down
+@needs_system_server
 class TestSystemRateLimiting:
     @pytest.mark.asyncio
     async def test_register_endpoint_rate_limited(self, client):
@@ -269,7 +419,7 @@ class TestSystemRateLimiting:
 # ═════════════════════════════════════════════════════════════════════════════
 # SYSTEM TEST 5 — Page / Asset Availability (real static file serving)
 # ═════════════════════════════════════════════════════════════════════════════
-@skip_if_down
+@needs_system_server
 class TestSystemPageAvailability:
     PAGES = [
         "/",

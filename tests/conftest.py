@@ -17,6 +17,13 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 # ── Env defaults (set before any backend import) ─────────────────────────────
+# A shell that provisioned a throwaway server exports ICP_DB_NAME for that
+# server. It must not follow the test process: the E2E fixtures seed and look up
+# accounts in the database the *running* app uses, and inheriting the throwaway
+# name turned every test in test_history_view into a skip reading "E2E user is
+# not seeded". The provisioning code passes ICP_DB_NAME in the child's own env,
+# so removing it here costs nothing.
+os.environ.pop("ICP_DB_NAME", None)
 os.environ.setdefault("MONGO_URI",             "mongodb://localhost:27017")
 os.environ.setdefault("DB_NAME",               "icp_test")
 os.environ.setdefault("JWT_SECRET",            "pytest-secret-key")

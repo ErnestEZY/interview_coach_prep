@@ -3,7 +3,21 @@ E2E Tests — Authentication Flows
 Covers: Register page T&C gate, form validation, login, logout, GitHub OAuth gate
 """
 import pytest
+import re
 import time
+
+
+def strength_width(bar):
+    """The percentage the strength meter is currently drawn at.
+
+    The meter sets its width inline, so the style attribute is the state; a
+    missing width is a failure rather than a zero, because an absent element
+    and an empty bar are different defects.
+    """
+    style = bar.get_attribute("style") or ""
+    match = re.search(r"width:\s*([\d.]+)%", style)
+    assert match, f"Strength meter has no width: {style!r}"
+    return float(match.group(1))
 
 
 @pytest.mark.e2e
@@ -43,14 +57,31 @@ class TestRegisterPage:
         assert "/api/auth/oauth/github" not in page.url
 
     def test_password_strength_indicator_visible(self, page, base_url):
+        """The meter has to respond to the password, not merely exist.
+
+        This used to be `assert strength_text or True`, which passes on an
+        empty string and on a missing element alike — it could not fail.
+        """
         page.goto(f"{base_url}/static/pages/register.html")
         page.wait_for_selector("#app", state="visible")
-        # Type a password
-        page.fill('input[title="New Password"]', "Test123!")
-        # Strength indicator should appear
-        page.wait_for_timeout(500)
-        strength_text = page.inner_text(".progress-bar")
-        assert strength_text or True  # progress bar exists
+        field = page.locator('input[title="New Password"]')
+        bar = page.locator(".password-strength-progress .progress-bar")
+
+        field.fill("abc")
+        bar.wait_for(state="visible")
+        weak = strength_width(bar)
+        weak_label = bar.get_attribute("title") or ""
+
+        field.fill("Str0ng!Passphrase#2026")
+        strong = strength_width(bar)
+        strong_label = bar.get_attribute("title") or ""
+
+        assert weak_label.startswith("Password Strength: "), weak_label
+        assert strong_label.startswith("Password Strength: "), strong_label
+        assert weak_label != strong_label, "The label does not follow the password"
+        assert strong > weak, (
+            f"A stronger password drew a narrower meter: {weak}% -> {strong}%"
+        )
 
     def test_password_match_validation(self, page, base_url):
         page.goto(f"{base_url}/static/pages/register.html")

@@ -10,8 +10,12 @@ Covers:
     app's "Login Failed" dialog; a real browser-level disconnect instead
     raises the app's full-screen "You're Offline" wall, which must lift
     automatically once connectivity returns.
+  - Reconnect: the wall lifts on the same document, so credentials the user
+    already typed are not thrown away; an idle page, having nothing to lose,
+    is refreshed instead.
 """
 import os
+import time
 
 import pytest
 
@@ -75,6 +79,27 @@ SW_READY_JS = """
 @pytest.fixture(params=PROFILES)
 def viewport_profile(request):
     return request.param
+
+
+PAGE_IDENTITY = "window.__icpPageIdentity === 1"
+
+
+def mark_document(page):
+    """Stamp this document so a reload can be told apart from a redraw."""
+    page.evaluate("window.__icpPageIdentity = 1")
+
+
+def same_document(page):
+    """True while the tab still holds the document that was stamped.
+
+    A reload wipes window globals. A destroyed execution context is proof of a
+    navigation in progress, so that counts as "not the same document" rather
+    than as an error to raise.
+    """
+    try:
+        return page.evaluate(PAGE_IDENTITY)
+    except Exception:
+        return False
 
 
 def test_cold_offline_fails_then_recovers(browser, viewport_profile):
@@ -157,8 +182,9 @@ def test_warm_offline_serves_cached_shell_but_not_auth_pages(
         assert str(login_probe).split("|")[0] in ("200", "503"), login_probe
 
     context.set_offline(False)
-    # Recover in a fresh page so the previous page's 'online' handler (which
-    # forces a reload) cannot cancel this navigation.
+    # Recover in a fresh page: the dashboard has nothing typed in it, so its
+    # 'online' handler is refreshing the tab, and a navigation that races that
+    # reload reports a cancellation instead of a result.
     recovered = context.new_page()
     recovered.goto(f"{BASE_URL}/")
     recovered.wait_for_selector("text=Master Your Next Interview")
@@ -180,13 +206,20 @@ def test_login_submit_with_api_down_shows_network_error(browser, viewport_profil
     context.close()
 
 
-def test_fully_offline_shows_blocking_overlay_then_recovers(browser, viewport_profile):
+def test_fully_offline_shows_wall_then_recovers_without_losing_input(
+    browser, viewport_profile
+):
     """A browser-level disconnect raises the app's full-screen offline wall,
-    which blocks the form until connectivity returns."""
+    which blocks the form until connectivity returns — and lifting it must not
+    throw away what the user had already typed."""
     context = browser.new_context(**viewport_profile)
     page = context.new_page()
     page.goto(f"{BASE_URL}/static/pages/login.html")
     page.wait_for_selector("text=Welcome Back")
+
+    page.fill('input[type="email"]', "offline@example.com")
+    page.fill('input[type="password"]', "offline-pass-123")
+    mark_document(page)
 
     context.set_offline(True)
     overlay = page.locator("#offline-overlay.active")
@@ -200,8 +233,68 @@ def test_fully_offline_shows_blocking_overlay_then_recovers(browser, viewport_pr
 
     context.set_offline(False)
     page.wait_for_function("!document.querySelector('#offline-overlay.active')")
-    page.fill('input[type="email"]', "offline@example.com")
-    page.fill('input[type="password"]', "offline-pass-123")
-    # The form is interactive again: the trial click passes actionability.
+
+    # Same document, same values. Reloading on reconnect is what used to make
+    # a network blip cost the user their typed credentials.
+    assert same_document(page), "Reconnect replaced the document"
+    assert page.input_value('input[type="email"]') == "offline@example.com"
+    assert page.input_value('input[type="password"]') == "offline-pass-123"
+
+    # A complete form drops the trigger that catches taps on the disabled
+    # button, so its absence is the form being interactive again.
+    page.wait_for_function(
+        "!document.querySelector('.btn-overlay-trigger')", timeout=10000
+    )
+    # The trial click then passes actionability: nothing covers the button.
     page.click('button:has-text("Sign In")', trial=True, timeout=5000)
+    context.close()
+
+
+def test_wall_can_raise_again_after_a_recovery(browser):
+    """One disconnect must not consume the wall: a second episode has to raise
+    it again. The visible wall is a single node the offline detector keeps a
+    handle on, so a recovery that tears it out of the DOM leaves every later
+    disconnect with nothing to show."""
+    context = browser.new_context(viewport={"width": 1280, "height": 800})
+    page = context.new_page()
+    page.goto(f"{BASE_URL}/static/pages/login.html")
+    page.wait_for_selector("text=Welcome Back")
+
+    # A filled field keeps the page from being refreshed on reconnect, which is
+    # exactly the path that leaves the wall's node in place to be reused.
+    page.fill('input[type="email"]', "offline@example.com")
+
+    overlay = page.locator("#offline-overlay.active")
+    for episode in (1, 2):
+        context.set_offline(True)
+        overlay.wait_for(state="visible", timeout=10000)
+        context.set_offline(False)
+        overlay.wait_for(state="hidden", timeout=10000)
+        assert page.input_value('input[type="email"]') == "offline@example.com", (
+            f"Typed value lost during offline episode {episode}"
+        )
+    context.close()
+
+
+def test_idle_page_refreshes_when_connectivity_returns(browser):
+    """With nothing typed there is nothing to lose, so reconnecting replaces
+    the document. A page whose first fetches failed while offline needs that;
+    without it it stays empty until the user navigates by hand."""
+    context = browser.new_context(viewport={"width": 1280, "height": 800})
+    page = context.new_page()
+    page.goto(f"{BASE_URL}/static/pages/login.html")
+    page.wait_for_selector("text=Welcome Back")
+    mark_document(page)
+
+    context.set_offline(True)
+    page.locator("#offline-overlay.active").wait_for(state="visible", timeout=10000)
+    context.set_offline(False)
+
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline and same_document(page):
+        page.wait_for_timeout(200)
+    assert not same_document(page), (
+        "An idle page kept its old document after connectivity returned; a "
+        "shell that failed its first fetches offline would stay stale forever"
+    )
     context.close()

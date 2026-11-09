@@ -4,7 +4,6 @@ Requires a running backend at http://127.0.0.1:8001
 Start uvicorn before running: python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001
 """
 import os
-import socket
 import sys
 import time
 import httpx
@@ -38,36 +37,18 @@ E2E_ADMIN_PASSWORD = os.getenv("E2E_ADMIN_PASSWORD", "E2eAdminPass123!")
 
 @pytest.fixture(scope="session")
 def base_url(browser):
-    """Engine-aware base URL.
+    """One origin for every engine: the loopback URL from E2E_BASE_URL.
 
-    Playwright's WebKit on Windows cannot open TCP connections to 127.0.0.1
-    (documented engine limitation), so WebKit runs go through the machine's
-    LAN IP instead. The backend must therefore be started with --host 0.0.0.0
-    and ADMIN_ALLOWLIST including the LAN IP for the admin flow to pass.
-    On Linux/macOS (e.g. CI runners) WebKit reaches loopback normally, so the
-    substitution is guarded to win32 only.
+    WebKit on Windows used to be pushed to the machine's LAN IP because that
+    Playwright build could not open TCP connections to 127.0.0.1. It can, and
+    the LAN IP is a worse origin: http://192.168.x.x is not a secure context,
+    so navigator.serviceWorker is undefined there (measured in all three
+    engines) and the offline and parity tests were asserting a capability the
+    origin cannot have. Loopback is secure everywhere, so every engine now
+    tests the same origin — which also makes a pass mean the same thing on
+    each of them.
     """
-    engine = browser.browser_type.name
-    if engine == "webkit" and sys.platform == "win32" and "127.0.0.1" in BASE_URL:
-        ip = _lan_ip()
-        if ip and ip != "127.0.0.1":
-            return BASE_URL.replace("127.0.0.1", ip)
     return BASE_URL
-
-
-def _lan_ip():
-    """Best-effort local LAN IP (UDP connect sends no packets)."""
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
-    except OSError:
-        try:
-            return socket.gethostbyname(socket.gethostname())
-        except OSError:
-            return "127.0.0.1"
-    finally:
-        s.close()
 
 
 @pytest.fixture(scope="session")
@@ -256,6 +237,51 @@ def _validate_token_remote(token):
                 continue
             return False
     return False
+
+@pytest.fixture
+def drive_vue():
+    """Put a page into a state by changing its Vue instance, as the app does.
+
+    Overlays and error banners are v-if'd on component data, so sampling their
+    markup at rest asserts on a document that does not contain them — a test
+    that can never fail. Merging values into the live instance reaches the same
+    state the app's own handlers reach, without copying the template into the
+    assertion.
+
+    Returns a callable that takes the page and the data keys to set, and False
+    when no Vue application is mounted on #app.
+    """
+
+    def _drive(page, **values):
+        # The container gets __vue_app__ before the root instance exists, so wait
+        # for a resolvable proxy rather than for the mount to be announced.
+        page.wait_for_function(
+            """() => {
+                 const host = document.querySelector('#app');
+                 if (!host) return false;
+                 const app = host.__vue_app__;
+                 const inst = (app && app._instance) || (host._vnode && host._vnode.component);
+                 return !!(inst && inst.proxy);
+             }""",
+            timeout=15000,
+        )
+        return page.evaluate(
+            """(state) => {
+                 const host = document.querySelector('#app');
+                 const app = host.__vue_app__;
+                 // app._instance is null on this app's mount path; the container's
+                 // root vnode holds the same instance.
+                 const instance = (app && app._instance) || (host._vnode && host._vnode.component);
+                 const vm = instance && instance.proxy;
+                 if (!vm) return false;
+                 Object.assign(vm, state);
+                 return true;
+             }""",
+            values,
+        )
+
+    return _drive
+
 
 @pytest.fixture
 def authenticated_page(browser, test_user_token):

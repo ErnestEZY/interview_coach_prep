@@ -13,7 +13,14 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from backend.services.resume_parser import is_pdf, is_docx, clean_text, extract_resume_text
+from backend.services.resume_parser import (
+    is_pdf,
+    is_docx,
+    clean_text,
+    extract_resume_text,
+    is_letter_spaced,
+    letter_spaced_ratio,
+)
 from docx import Document
 
 
@@ -70,6 +77,42 @@ class TestCleanText:
 
     def test_none_returns_empty(self):
         assert clean_text(None) == ""
+
+
+class TestLetterSpacedDetection:
+    """Glyph-by-glyph PDFs must be told apart from resumes that read fine."""
+
+    BROKEN = (
+        "S o f t w a r e E n g i n e e r i n g s t u d e n t a t U n i v e r s i t y\n"
+        "w i t h 2 y e a r s o f e x p e r i e n c e b u i l d i n g a p p s\n"
+        "J a v a S c r i p t , C S S , H T L M a n d G o o g l e A p p s S c r i p t\n"
+    )
+    HEALTHY = (
+        "Software Engineering student at University of Wollongong Malaysia\n"
+        "with experience building full-stack and AI-powered applications\n"
+        "JavaScript, CSS, HTML and Google Apps Script across five systems\n"
+    )
+
+    def test_broken_extraction_is_detected(self):
+        assert letter_spaced_ratio(self.BROKEN) == 1.0
+        assert is_letter_spaced(self.BROKEN) is True
+
+    def test_readable_prose_is_not_flagged(self):
+        assert letter_spaced_ratio(self.HEALTHY) == 0.0
+        assert is_letter_spaced(self.HEALTHY) is False
+
+    def test_short_all_caps_heading_is_tolerated(self):
+        """A styled "S T U D E N T" banner must not condemn the whole document."""
+        text = self.HEALTHY + "S T U D E N T\n"
+        assert is_letter_spaced(text) is False
+
+    def test_mostly_broken_document_is_flagged(self):
+        assert is_letter_spaced(self.BROKEN + self.BROKEN) is True
+
+    def test_empty_and_missing_text_scores_zero(self):
+        assert letter_spaced_ratio("") == 0.0
+        assert letter_spaced_ratio(None) == 0.0
+        assert is_letter_spaced("") is False
 
 
 class TestDocxExtraction:

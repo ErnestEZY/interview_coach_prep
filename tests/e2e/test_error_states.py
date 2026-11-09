@@ -6,34 +6,100 @@ Tests that the frontend handles backend errors gracefully
 import pytest
 
 
+DASHBOARD = "/static/pages/dashboard.html"
+
+
 @pytest.mark.e2e
 class TestProgressBarErrorState:
-    """Test that the progress bar shows error state when AI fails."""
+    """The analysis overlay exists only while an analysis runs, and its failure
+    state is the thing that tells the user to retry.
 
-    def test_progress_bar_element_in_dom(self, authenticated_page, base_url):
-        """Progress bar overlay should exist in dashboard DOM."""
-        authenticated_page.goto(f"{base_url}/static/pages/dashboard.html")
-        authenticated_page.wait_for_timeout(3000)
-        overlay = authenticated_page.locator(".analysis-progress-overlay")
-        assert overlay.count() >= 0
+    Each test drives the component data instead of waiting for a real analysis:
+    the overlay is behind v-if="showAnalysisProgress", so asserting on its
+    markup at rest was asserting on a document that did not contain it.
+    """
 
-    def test_progress_bar_has_percentage_display(self, authenticated_page, base_url):
-        authenticated_page.goto(f"{base_url}/static/pages/dashboard.html")
-        authenticated_page.wait_for_timeout(3000)
-        # Progress bar should have percentage display
-        progress = authenticated_page.locator(".progress-bar")
-        if progress.count() > 0:
-            assert progress.first.is_visible() or True
+    def test_overlay_absent_until_progress_starts(
+        self, authenticated_page, base_url, drive_vue
+    ):
+        page = authenticated_page
+        page.goto(f"{base_url}{DASHBOARD}")
+        page.wait_for_selector("#app", state="visible")
+        assert page.locator(".analysis-progress-overlay").count() == 0, (
+            "The overlay is in the DOM before an analysis has started"
+        )
 
-    def test_progress_error_class_toggle(self, authenticated_page, base_url):
-        """The progressError state should be in the Vue data."""
-        authenticated_page.goto(f"{base_url}/static/pages/dashboard.html")
-        authenticated_page.wait_for_timeout(3000)
-        # Check if dashboard.js has progressError handling
-        # by checking the rendered DOM for error-related elements
-        error_elements = authenticated_page.locator(".text-danger, .bg-danger, .bi-x-circle-fill")
-        # These may not be visible unless error occurred — just verify they exist in template
-        assert error_elements.count() >= 0
+        assert drive_vue(
+            page, showAnalysisProgress=True, analysisStatus="Reading your resume"
+        ), "No Vue instance on #app — the dashboard did not mount"
+
+        overlay = page.locator(".analysis-progress-overlay")
+        overlay.wait_for(state="visible")
+        assert overlay.get_attribute("role") == "dialog"
+        assert overlay.get_attribute("aria-modal") == "true"
+        body = overlay.inner_text()
+        assert "Resume Analysis" in body
+        assert "Reading your resume" in body
+
+    def test_progress_bar_reports_width_and_aria(
+        self, authenticated_page, base_url, drive_vue
+    ):
+        """A screen reader follows aria-valuenow; the eye follows the width."""
+        page = authenticated_page
+        page.goto(f"{base_url}{DASHBOARD}")
+        page.wait_for_selector("#app", state="visible")
+        assert drive_vue(page, showAnalysisProgress=True, analysisProgress=42)
+
+        bar = page.locator(".analysis-progress-container .progress-bar")
+        bar.wait_for(state="visible")
+        assert bar.get_attribute("aria-valuenow") == "42"
+        assert "42%" in (bar.get_attribute("style") or "")
+        assert "42%" in page.locator(".analysis-progress-card").inner_text()
+
+    def test_failure_switches_overlay_to_error_state(
+        self, authenticated_page, base_url, drive_vue
+    ):
+        """stopAnalysisProgress(false) holds the failure on screen for 800 ms,
+        so the whole state is read in one round trip rather than in a sequence
+        of lookups that could straddle the moment it clears itself."""
+        page = authenticated_page
+        page.goto(f"{base_url}{DASHBOARD}")
+        page.wait_for_selector("#app", state="visible")
+        assert drive_vue(
+            page, showAnalysisProgress=True, analysisProgress=60, analysisStatus="Analysing"
+        )
+
+        snapshot = page.evaluate(
+            """async () => {
+                 const host = document.querySelector('#app');
+                 const app = host.__vue_app__;
+                 const instance = (app && app._instance) || (host._vnode && host._vnode.component);
+                 const vm = instance.proxy;
+                 vm.stopAnalysisProgress(false);
+                 // Vue applies the change on the next tick; sampling before it
+                 // reads the previous render, not the state just entered.
+                 await vm.$nextTick();
+                 const card = document.querySelector('.analysis-progress-card');
+                 const bar = document.querySelector('.analysis-progress-container .progress-bar');
+                 return {
+                   text: card ? card.innerText : '',
+                   barClass: bar ? bar.className : '',
+                   spinner: document.querySelectorAll('.analysis-progress-card .spinner-grow').length,
+                   errorIcon: document.querySelectorAll('.analysis-progress-card .bi-x-circle-fill').length,
+                 };
+             }"""
+        )
+        assert "Analysis Failed" in snapshot["text"]
+        assert "Please try again in a moment." in snapshot["text"]
+        assert "bg-danger" in snapshot["barClass"]
+        assert "bg-primary" not in snapshot["barClass"]
+        assert snapshot["spinner"] == 0, "The spinner still suggests work is happening"
+        assert snapshot["errorIcon"] == 1
+
+        # It clears itself rather than leaving a dead overlay on the page.
+        page.wait_for_function(
+            "() => !document.querySelector('.analysis-progress-overlay')", timeout=5000
+        )
 
 
 @pytest.mark.e2e
@@ -65,13 +131,6 @@ class TestAIErrorDisplay:
 @pytest.mark.e2e
 class TestApiErrorHandling:
     """Test that API errors are handled gracefully."""
-
-    def test_resume_upload_error_shows_alert(self, authenticated_page, base_url):
-        """If resume upload fails, should show error alert not crash."""
-        authenticated_page.goto(f"{base_url}/static/pages/dashboard.html")
-        authenticated_page.wait_for_timeout(3000)
-        # If we can trigger an upload error, SweetAlert should appear
-        # This is a smoke test — actual error simulation needs a running backend
 
     def test_interview_start_error_shows_alert(self, authenticated_page, base_url):
         authenticated_page.goto(f"{base_url}/static/pages/interview.html")

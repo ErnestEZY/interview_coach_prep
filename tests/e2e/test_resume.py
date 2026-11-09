@@ -43,13 +43,17 @@ class TestDashboardPage:
 class TestResumeAnalysis:
     """Resume upload and analysis — requires auth and a valid file."""
 
-    def test_progress_bar_overlay_exists(self, authenticated_page, base_url):
-        """Progress bar overlay element should be in the DOM."""
-        authenticated_page.goto(f"{base_url}/static/pages/dashboard.html")
-        authenticated_page.wait_for_timeout(3000)
-        overlay = authenticated_page.locator(".analysis-progress-overlay")
-        # Should exist in DOM even if hidden
-        assert overlay.count() >= 0  # Element exists
+    def test_progress_bar_overlay_exists(self, authenticated_page, base_url, drive_vue):
+        """The overlay is behind v-if, so it is asserted in the state that
+        renders it — a count() >= 0 check passes on an empty page."""
+        page = authenticated_page
+        page.goto(f"{base_url}/static/pages/dashboard.html")
+        page.wait_for_selector("#app", state="visible")
+        assert drive_vue(page, showAnalysisProgress=True)
+        overlay = page.locator(".analysis-progress-overlay")
+        overlay.wait_for(state="visible")
+        assert overlay.count() == 1, "More than one progress overlay in the DOM"
+        assert page.locator(".analysis-progress-container .progress-bar").count() == 1
 
     def test_analysis_button_present(self, authenticated_page, base_url):
         authenticated_page.goto(f"{base_url}/static/pages/dashboard.html")

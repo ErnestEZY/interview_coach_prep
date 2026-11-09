@@ -38,34 +38,45 @@ class TestInterviewPage:
 class TestInterviewStart:
     """Starting an interview session."""
 
-    def test_start_button_exists(self, page, base_url):
+    def test_start_button_exists(self, authenticated_page, base_url):
+        """An authenticated visitor must get the real setup screen, not a
+        bounce: the previous version skipped itself whenever the button was
+        missing, which is the failure mode it was meant to catch."""
+        page = authenticated_page
         page.goto(f"{base_url}/static/pages/interview.html")
-        page.wait_for_timeout(3000)
-        if "login.html" in page.url:
-            pytest.skip("Not authenticated")
-        # Look for start interview button
-        btn = page.locator("button:has-text('Start'), button:has-text('Begin'), button:has-text('Interview')")
-        if btn.count() > 0:
-            assert btn.first.is_visible()
+        btn = page.locator("button:has-text('Start Interview')")
+        assert btn.count() >= 1, "No Start Interview button on the setup screen"
+        assert btn.first.is_visible()
 
-    def test_job_title_field_exists(self, page, base_url):
+    def test_question_limit_selector_exists(self, authenticated_page, base_url):
+        """The other half of the setup screen: how many questions this session
+        runs for. The job title this test used to look for is entered on the
+        dashboard (asserted in test_resume.py) — there is no such field here,
+        so the old check could never fail."""
+        page = authenticated_page
         page.goto(f"{base_url}/static/pages/interview.html")
-        page.wait_for_timeout(3000)
-        if "login.html" in page.url:
-            pytest.skip("Not authenticated")
-        job_title = page.locator('input[placeholder*="job" i]')
-        if job_title.count() > 0:
-            assert job_title.first.is_visible()
+        select = page.locator("select.question-limit-select")
+        assert select.count() == 1, "No question-count selector on the setup screen"
+        assert select.is_visible()
+        assert select.locator("option").count() > 0
 
-    def test_difficulty_selector_exists(self, page, base_url):
+    def test_difficulty_selector_exists(self, authenticated_page, base_url):
+        """The setup screen must offer exactly the three documented levels.
+
+        This page redirects anonymous visitors, so the assertion runs on a
+        session that stays put; the previous version skipped itself when the
+        control was missing and asserted True when it was not.
+        """
+        page = authenticated_page
         page.goto(f"{base_url}/static/pages/interview.html")
-        page.wait_for_timeout(3000)
-        if "login.html" in page.url:
-            pytest.skip("Not authenticated")
-        # Look for difficulty dropdown or buttons
-        difficulty = page.locator("select, button:has-text('Beginner'), button:has-text('Intermediate'), button:has-text('Advanced')")
-        if difficulty.count() > 0:
-            assert True
+        select = page.locator("select.difficulty-select")
+        assert select.count() == 1, "No difficulty selector on the interview setup screen"
+        assert select.is_visible()
+        assert select.locator("option").all_inner_texts() == [
+            "Beginner",
+            "Intermediate",
+            "Advanced",
+        ]
 
 
 @pytest.mark.e2e

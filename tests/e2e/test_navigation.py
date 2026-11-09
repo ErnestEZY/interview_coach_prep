@@ -67,11 +67,25 @@ class TestPageAvailability:
         app = authenticated_page.locator("#app")
         assert app.count() > 0, f"#app not found on {page_path} (authenticated)"
 
-    @pytest.mark.parametrize("page_path", PAGES)
+    @pytest.mark.parametrize(
+        "page_path", [p for p in PAGES if p not in AUTH_PROTECTED_PAGES]
+    )
     def test_page_has_favicon(self, page, base_url, page_path):
         page.goto(f"{base_url}{page_path}")
         favicon = page.locator('link[rel="icon"]')
         assert favicon.count() > 0, f"No favicon on {page_path}"
+
+    @pytest.mark.parametrize("page_path", AUTH_PROTECTED_PAGES)
+    def test_auth_protected_page_has_favicon(self, authenticated_page, base_url, page_path):
+        """Counted on a session that stays put. Navigating anonymously used to
+        bounce to login.html, and the count then raced the replacement of the
+        document it was inspecting — a real flake, not a missing icon."""
+        authenticated_page.goto(f"{base_url}{page_path}")
+        assert page_path in authenticated_page.url, (
+            f"Expected to stay on {page_path}, got {authenticated_page.url}"
+        )
+        favicon = authenticated_page.locator('link[rel="icon"]')
+        assert favicon.count() > 0, f"No favicon on {page_path} (authenticated)"
 
 
 @pytest.mark.e2e

@@ -32,6 +32,15 @@ ENV/
 htmlcov/
 test-results/
 test-results*/
+
+# Downloaded once per session, then reused (tests/e2e/test_accessibility.py)
+tests/e2e/.vendor/
+# Visual-regression diffs written on failure; the baselines themselves are tracked
+tests/e2e/__baselines_artifacts__/
+# Output of the server the system suite starts for itself (tests/system/test_system.py)
+tests/system/.server.log
+# Scratch files from a verification run
+.tmp_*
 cross_browser_results.txt
 webkit_rerun_results.txt
 chromium_rerun_results.txt
