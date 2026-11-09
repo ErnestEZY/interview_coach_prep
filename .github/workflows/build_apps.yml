@@ -194,8 +194,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     # Job-level env: backend AND pytest must see identical DB/config values —
-    # the test fixtures seed accounts via direct pymongo access using the same
-    # MONGO_URI/DB_NAME the backend uses. Step-scoped env broke this in CI.
+    # the test fixtures seed accounts and rows via direct pymongo access using
+    # the same MONGO_URI/DB_NAME the backend uses. Step-scoped env broke this
+    # in CI.
     env:
       JWT_SECRET: e2e-test-secret
       MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
@@ -323,11 +324,15 @@ jobs:
     timeout-minutes: 60
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     # Job-level env: same parity rule as the chromium job — pytest fixtures
-    # seed accounts directly in the DB the backend uses.
+    # seed accounts and rows directly in the DB the backend uses.
     env:
       JWT_SECRET: e2e-test-secret
       MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
-      DB_NAME: icp_e2e_test
+      # One database per engine. The matrix legs run in parallel, and the
+      # fixtures seed rows whose ids, dates and counts the tests then assert on:
+      # a shared name let one engine's session-start sweep delete another's
+      # seeds, and let the history assertions count another engine's rows.
+      DB_NAME: icp_e2e_test_${{ matrix.name }}
       MISTRAL_API_KEY: fake-key
       GROQ_API_KEY: fake-groq-key
       BAZAARLINK_API_KEY: fake-bl-key

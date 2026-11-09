@@ -337,3 +337,199 @@ def authenticated_admin_page(browser, admin_user_token):
     page = context.new_page()
     yield page
     context.close()
+
+
+# ── Seeded resume submissions ──────────────────────────────────────────────
+# The admin suites asserted on whatever the database already held. On a
+# developer's machine that is a queue with submissions in it; on a fresh CI
+# database it is an empty table, so every row assertion there waited 25 s and
+# timed out while passing locally. These rows are created for the test, carry
+# dates the tests know, and are removed again.
+
+
+@pytest.fixture(scope="session", autouse=True)
+def sweep_stale_seeds():
+    """Delete rows a killed run left behind, before the first test reads them.
+
+    The seeding fixtures remove what they insert, but insert_many writes until
+    it raises: a failure partway through leaves rows whose ids were never
+    returned. Those rows belong to the same account the dashboard suites sign
+    in as, so the next run shows a submission nobody uploaded — and the consent
+    check that sits beside the upload control is gone with it. Sweeping by
+    marker at session start is what makes a killed run harmless to the next.
+    """
+    from pymongo import MongoClient
+    from backend.core.config import MONGO_URI, DB_NAME
+
+    if not MONGO_URI:
+        return
+
+    try:
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        try:
+            for collection, marker in (
+                ("resumes", "seeded_resumes"),
+                ("interviews", "test_history_view"),
+            ):
+                client[DB_NAME][collection].delete_many({"test_seed": marker})
+        finally:
+            client.close()
+    except Exception as exc:
+        # A sweep that cannot run must not fail the session: the seeding
+        # fixtures report their own database problems, with better messages.
+        print(f"[conftest] stale-seed sweep skipped: {exc}")
+
+
+SEEDED_RESUMES = [
+    {
+        "key": "pending_pdf",
+        "filename": "e2e-seeded-pending.pdf",
+        "status": "pending",
+        "mime": "application/pdf",
+        "hours_ago": 1,
+        "tags": ["e2e-seed", "backend"],
+        "notes": "",
+        "has_file": True,
+    },
+    {
+        "key": "reviewed_pdf",
+        "filename": "e2e-seeded-reviewed.pdf",
+        "status": "reviewed",
+        "mime": "application/pdf",
+        "hours_ago": 2,
+        "tags": ["e2e-seed"],
+        "notes": "Reviewed in the E2E suite.",
+        "has_file": True,
+    },
+    {
+        "key": "pending_docx",
+        "filename": "e2e-seeded-pending.docx",
+        "status": "pending",
+        "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "hours_ago": 3,
+        "tags": [],
+        "notes": "",
+        "has_file": False,
+    },
+]
+
+# Multi-paragraph prose, because the text preview is asserted to read like
+# paragraphs rather than like a run-on line. The experience block wraps
+# mid-sentence the way a PDF column does: a line that ends in a full stop is
+# a paragraph boundary, so a seed that stopped at one would never exercise the
+# merge that the prose tests are about.
+SEEDED_RESUME_TEXT = (
+    "SUMMARY\n"
+    "Backend engineer with six years building Python services for payments.\n\n"
+    "EXPERIENCE\n"
+    "Led the migration of a billing service to FastAPI, cutting p95 latency\n"
+    "from 900 ms to 210 ms without downtime by moving the slow path behind a\n"
+    "queue and replaying the backlog.\n\n"
+    "EDUCATION\n"
+    "BSc Computer Science, University of Malaya.\n"
+)
+
+
+def _minimal_pdf(label):
+    """A valid one-page PDF, so the viewer has a real document to embed.
+
+    Built here rather than shipped as a binary fixture: the cross-reference
+    offsets have to match the bytes, and computing them is the only way they
+    stay correct when the label changes.
+    """
+    stream = b"BT /F1 12 Tf 20 100 Td (" + label + b") Tj ET\n"
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"endstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
+    xref_at = len(out)
+    out += b"xref\n0 %d\n" % (len(objects) + 1)
+    out += b"0000000000 65535 f \n"
+    for offset in offsets:
+        out += b"%010d 00000 n \n" % offset
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (
+        len(objects) + 1, xref_at
+    )
+    return bytes(out)
+
+
+@pytest.fixture(scope="module")
+def seeded_resumes(test_user_token):
+    """Three submissions for the admin queue, removed when the module ends.
+
+    Returns the ids by key, so a test that needs a document with a real file
+    asks for one instead of scanning the queue and skipping when the search
+    comes back empty.
+    """
+    import base64
+    import uuid
+    from datetime import datetime, timedelta, timezone
+
+    if not test_user_token:
+        pytest.skip("No test user token — backend unreachable")
+
+    from pymongo import MongoClient
+    from backend.core.config import MONGO_URI, DB_NAME
+
+    if not MONGO_URI:
+        pytest.skip("MONGO_URI not configured in the pytest process")
+
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    inserted = []
+    marker = "seeded_resumes"
+    try:
+        db = client[DB_NAME]
+        try:
+            user = db["users"].find_one({"email": TEST_USER_EMAIL})
+        except Exception as exc:
+            pytest.skip(f"could not read {DB_NAME} to seed resumes: {exc}")
+        if not user:
+            host = MONGO_URI.rsplit("@", 1)[-1].split("/")[0]
+            pytest.skip(
+                f"E2E user {TEST_USER_EMAIL} is not in {DB_NAME} on {host} — the "
+                f"pytest process and the running app must agree on the database"
+            )
+
+        now = datetime.now(timezone.utc)
+        docs = []
+        for spec in SEEDED_RESUMES:
+            doc = {
+                "user_id": str(user["_id"]),
+                # resume_id is uniquely indexed, so seeded rows cannot all
+                # share the null value a real submission never has.
+                "resume_id": f"e2e-seed-{spec['key']}-{uuid.uuid4().hex[:10]}",
+                "filename": spec["filename"],
+                "status": spec["status"],
+                "tags": list(spec["tags"]),
+                "notes": spec["notes"],
+                "text": SEEDED_RESUME_TEXT,
+                "mime_type": spec["mime"],
+                "created_at": now - timedelta(hours=spec["hours_ago"]),
+                "test_seed": marker,
+            }
+            if spec["has_file"]:
+                doc["file_b64"] = base64.b64encode(
+                    _minimal_pdf(spec["key"].encode())
+                ).decode("ascii")
+            docs.append(doc)
+
+        inserted = list(db["resumes"].insert_many(docs).inserted_ids)
+        yield {
+            spec["key"]: str(_id) for spec, _id in zip(SEEDED_RESUMES, inserted)
+        }
+    finally:
+        # By marker as well as by id: insert_many inserts until it raises, so a
+        # partial failure leaves rows that the id list never saw.
+        client[DB_NAME]["resumes"].delete_many(
+            {"$or": [{"_id": {"$in": inserted}}, {"test_seed": marker}]}
+        )
+        client.close()

@@ -440,9 +440,13 @@ class TestHistoryLoadingState:
     is what makes it the one surface here a placeholder can draw."""
 
     def test_skeleton_cards_hold_the_list_while_it_loads(
-        self, browser, base_url, test_user_token
+        self, browser, base_url, test_user_token, seeded_history
     ):
         """A request that never lands is the only way to see the placeholder.
+
+        seeded_history is what the reload at the end has to land on: a fresh
+        account has an empty list, and an empty list never shows the rows this
+        test measures the placeholder against.
 
         Three things have to hold for the placeholder to be worth having: no
         rows while it is up (otherwise it is covering real content), it goes

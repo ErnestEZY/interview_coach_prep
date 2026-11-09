@@ -53,17 +53,23 @@ def admin_api_token():
 
 
 @pytest.fixture(scope="module")
-def pdf_resume_id(admin_api_token):
-    """Id of a stored resume that actually has a PDF behind it."""
-    for item in api_resumes(admin_api_token):
-        if item.get("file_available") and (item.get("mime_type") or "").endswith("pdf"):
-            return item["id"]
-    pytest.skip("No PDF resume with a stored file — cannot exercise the viewer")
+def pdf_resume_id(seeded_resumes):
+    """The seeded submission that has a PDF behind it.
+
+    Taken from the seeds rather than found by scanning the queue: a scan made
+    the viewer suite depend on somebody else's submission having survived, and
+    skip outright on a database that held none.
+    """
+    return seeded_resumes["pending_pdf"]
 
 
 @pytest.fixture
-def admin_page(browser, base_url, admin_user_token):
-    """Authenticated admin page factory at a given viewport."""
+def admin_page(browser, base_url, admin_user_token, seeded_resumes):
+    """Authenticated admin page factory at a given viewport.
+
+    seeded_resumes is requested for its setup, not its value: the queue has to
+    hold rows before a test can assert anything about them.
+    """
     if not admin_user_token:
         pytest.skip("No admin token — admin account not seeded")
 

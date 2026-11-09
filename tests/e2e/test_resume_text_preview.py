@@ -71,8 +71,12 @@ def admin_api_token():
 
 
 @pytest.fixture(scope="module")
-def stored_pdfs(admin_api_token):
-    """PDF submissions that still have their original file, newest first."""
+def stored_pdfs(admin_api_token, seeded_resumes):
+    """PDF submissions that still have their original file, newest first.
+
+    seeded_resumes guarantees there is at least one, so the suite no longer
+    skips on a database that happens to hold no uploads of its own.
+    """
     r = httpx.get(
         f"{BASE_URL}/api/admin/resumes",
         params={"sort": "newest"},
@@ -95,7 +99,7 @@ def stored_pdfs(admin_api_token):
 
 
 @pytest.fixture
-def admin_page(browser, base_url, admin_user_token):
+def admin_page(browser, base_url, admin_user_token, seeded_resumes):
     if not admin_user_token:
         pytest.skip("No admin token — admin account not seeded")
 
