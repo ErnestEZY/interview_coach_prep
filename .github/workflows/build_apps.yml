@@ -1,5 +1,27 @@
 name: ICP - CI/CD Pipeline
 
+# What has to be true before a commit is considered good.
+#
+# Every push and pull request runs the same gate a developer runs locally:
+#   * the hermetic backend suites (unit, smoke, integration, security,
+#     functional, stress, UI component) — no database, no network;
+#   * the Chromium end-to-end suite against a real server;
+#   * the system suite, which starts its own server against a throwaway
+#     database and therefore exercises the real stack (FastAPI + Motor + JWT);
+#   * lint, with the crash-class rules blocking and style advisory.
+#
+# "Test Gate" at the bottom is the single check branch protection should
+# require: it fails when any of those jobs did not pass, so adding a suite
+# later cannot be forgotten about in the protection rule.
+#
+# Visual-regression baselines (tests/e2e/test_visual_regression.py) are a
+# developer-host gate and are excluded here with -m "not vrt". The app sets no
+# text webfont, so a page is rasterised with the host's system font stack: the
+# same page screenshots differently on Windows and on the Ubuntu runner, and
+# baselines recorded on one host fail on the other. Re-record and compare them
+# on your own machine before publishing:
+#   python -m pytest tests/e2e/test_visual_regression.py
+
 on:
   push:
     branches: [main]
@@ -10,12 +32,36 @@ on:
     # Monthly cross-browser parity run (1st of each month, 02:00 UTC)
     - cron: '0 2 1 * *'
 
+# Nothing in this workflow writes to the repository.
+permissions:
+  contents: read
+
+# A newer push on the same branch supersedes the older run: the older run's
+# answer no longer describes HEAD, and its minutes are better spent elsewhere.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ── Job 1: Backend Tests ────────────────────────────────────────────────────
-  # Runs on every push and PR. Deployment is blocked if any test fails.
+  # Hermetic: tests/conftest.py patches Motor and seeds mock collections, so
+  # these suites need no database service and cannot be affected by one.
   test-backend:
     name: Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      JWT_SECRET: pytest-secret-key
+      MONGO_URI: mongodb://localhost:27017
+      DB_NAME: icp_test
+      MISTRAL_API_KEY: fake-key
+      GROQ_API_KEY: fake-groq-key
+      BAZAARLINK_API_KEY: fake-bl-key
+      OPENROUTER_API_KEY: fake-or-key
+      GEMINI_API_KEY: fake-gemini-key
+      ORCA_API_KEY: fake-orca-key
+      RATE_LIMIT_PER_MINUTE: "9999"
+      ADMIN_INVITE_CODE: test-invite-123
     steps:
       - uses: actions/checkout@v4
 
@@ -87,107 +133,45 @@ jobs:
           print("wkhtmltopdf/pdfkit smoke test passed")
           PY
 
+      # Each suite is its own step so a failure names the layer that broke,
+      # and its own JUnit file so the artifact keeps that attribution.
       - name: Unit Tests
         run: python -m pytest tests/unit/ -v --tb=short --junitxml=test-results/unit.xml
-        env:
-          JWT_SECRET: pytest-secret-key
-          MONGO_URI: mongodb://localhost:27017
-          DB_NAME: icp_test
-          MISTRAL_API_KEY: fake-key
-          GROQ_API_KEY: fake-groq-key
-          BAZAARLINK_API_KEY: fake-bl-key
-          OPENROUTER_API_KEY: fake-or-key
-          GEMINI_API_KEY: fake-gemini-key
-          ORCA_API_KEY: fake-orca-key
-          RATE_LIMIT_PER_MINUTE: "9999"
-          ADMIN_INVITE_CODE: test-invite-123
 
       - name: Smoke Tests
         run: python -m pytest tests/smoke/ -v --tb=short --junitxml=test-results/smoke.xml
-        env:
-          JWT_SECRET: pytest-secret-key
-          MONGO_URI: mongodb://localhost:27017
-          DB_NAME: icp_test
-          MISTRAL_API_KEY: fake-key
-          GROQ_API_KEY: fake-groq-key
-          BAZAARLINK_API_KEY: fake-bl-key
-          OPENROUTER_API_KEY: fake-or-key
-          GEMINI_API_KEY: fake-gemini-key
-          ORCA_API_KEY: fake-orca-key
-          RATE_LIMIT_PER_MINUTE: "9999"
-          ADMIN_INVITE_CODE: test-invite-123
 
       - name: Integration Tests
         run: python -m pytest tests/integration/ -v --tb=short --junitxml=test-results/integration.xml
-        env:
-          JWT_SECRET: pytest-secret-key
-          MONGO_URI: mongodb://localhost:27017
-          DB_NAME: icp_test
-          MISTRAL_API_KEY: fake-key
-          GROQ_API_KEY: fake-groq-key
-          BAZAARLINK_API_KEY: fake-bl-key
-          OPENROUTER_API_KEY: fake-or-key
-          GEMINI_API_KEY: fake-gemini-key
-          ORCA_API_KEY: fake-orca-key
-          RATE_LIMIT_PER_MINUTE: "9999"
-          ADMIN_INVITE_CODE: test-invite-123
 
       - name: Security Tests
         run: python -m pytest tests/security/ -v --tb=short --junitxml=test-results/security.xml
-        env:
-          JWT_SECRET: pytest-secret-key
-          MONGO_URI: mongodb://localhost:27017
-          DB_NAME: icp_test
-          MISTRAL_API_KEY: fake-key
-          GROQ_API_KEY: fake-groq-key
-          BAZAARLINK_API_KEY: fake-bl-key
-          OPENROUTER_API_KEY: fake-or-key
-          GEMINI_API_KEY: fake-gemini-key
-          ORCA_API_KEY: fake-orca-key
-          RATE_LIMIT_PER_MINUTE: "9999"
-          ADMIN_INVITE_CODE: test-invite-123
 
       - name: Functional Tests
         run: python -m pytest tests/functional/ -v --tb=short --junitxml=test-results/functional.xml
-        env:
-          JWT_SECRET: pytest-secret-key
-          MONGO_URI: mongodb://localhost:27017
-          DB_NAME: icp_test
-          MISTRAL_API_KEY: fake-key
-          GROQ_API_KEY: fake-groq-key
-          BAZAARLINK_API_KEY: fake-bl-key
-          OPENROUTER_API_KEY: fake-or-key
-          GEMINI_API_KEY: fake-gemini-key
-          ORCA_API_KEY: fake-orca-key
-          RATE_LIMIT_PER_MINUTE: "9999"
-          ADMIN_INVITE_CODE: test-invite-123
 
       - name: Stress / Load Tests
         run: python -m pytest tests/stress/ -v --tb=short --junitxml=test-results/stress.xml
-        env:
-          JWT_SECRET: pytest-secret-key
-          MONGO_URI: mongodb://localhost:27017
-          DB_NAME: icp_test
-          MISTRAL_API_KEY: fake-key
-          GROQ_API_KEY: fake-groq-key
-          BAZAARLINK_API_KEY: fake-bl-key
-          OPENROUTER_API_KEY: fake-or-key
-          GEMINI_API_KEY: fake-gemini-key
-          ORCA_API_KEY: fake-orca-key
-          RATE_LIMIT_PER_MINUTE: "9999"
-          ADMIN_INVITE_CODE: test-invite-123
+
+      # Served-document checks through the ASGI transport: every page answers
+      # 200, carries its form ids and mount point, and links no missing asset.
+      - name: UI Component Tests
+        run: python -m pytest tests/ui/ -v --tb=short --junitxml=test-results/ui.xml
 
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: backend-test-results
           path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
   # ── Job 2: Lint ─────────────────────────────────────────────────────────────
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -195,13 +179,20 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install ruff
-      - name: Ruff lint (warn only)
+      # Blocking, and only the rules that are defects rather than opinions:
+      # syntax errors, undefined names, invalid comparisons and dead code that
+      # cannot run. A style disagreement must never turn a test run red.
+      - name: "Ruff lint (blocking: crash-class rules)"
+        run: ruff check backend/ tests/ --select E9,F63,F7,F82 --output-format=github
+      # Everything else stays advisory so the report exists without gating.
+      - name: Ruff lint (advisory)
         run: ruff check backend/ --output-format=github || true
 
-  # ── Job 2b: E2E Playwright Tests ───────────────────────────────────────────
+  # ── Job 3: E2E Playwright Tests ────────────────────────────────────────────
   e2e:
     name: E2E Playwright Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     # Job-level env: backend AND pytest must see identical DB/config values —
     # the test fixtures seed accounts via direct pymongo access using the same
     # MONGO_URI/DB_NAME the backend uses. Step-scoped env broke this in CI.
@@ -234,27 +225,102 @@ jobs:
         run: pip install -r backend/requirements.txt
       - name: Install Playwright browsers
         run: python -m playwright install chromium --with-deps
+      # A fixed sleep is a bet on how busy the runner is. This polls the app's
+      # own readiness endpoint instead, and dumps the server log when it loses.
       - name: Start backend
         run: |
-          python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 &
-          sleep 10
+          set -euo pipefail
+          python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 \
+            > "$RUNNER_TEMP/backend.log" 2>&1 &
+          for _ in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8001/api/auth/config > /dev/null; then
+              echo "backend ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend did not answer on /api/auth/config within 90s"
+          tail -n 200 "$RUNNER_TEMP/backend.log"
+          exit 1
       - name: Run E2E Tests
-        run: python -m pytest tests/e2e/ -v --tb=short --browser chromium --screenshot=only-on-failure --video=retain-on-failure
+        run: >-
+          python -m pytest tests/e2e/
+          -v --tb=short
+          -m "not vrt"
+          --browser chromium
+          --screenshot=only-on-failure --video=retain-on-failure
+          --junitxml=test-results/e2e-chromium.xml
         env:
           E2E_BASE_URL: http://127.0.0.1:8001
+      - name: Backend log (on failure)
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/backend.log" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-results
-          path: test-results/
+          name: playwright-results-chromium
+          # Visual-regression diffs are written here when a comparison fails.
+          path: |
+            test-results/
+            tests/e2e/__baselines_artifacts__/
+          if-no-files-found: ignore
+          retention-days: 14
 
-  # ── Job 2c: Cross-Browser E2E (monthly + manual only) ──────────────────────
-  # Keeps every-push CI fast: Chromium runs on push/PR (Job 2b), while the
+  # ── Job 4: System Tests (real stack) ───────────────────────────────────────
+  # The suite starts its own uvicorn on a free port with ICP_DB_NAME set to a
+  # throwaway database, so no mocks are involved and nothing is written to a
+  # database anyone cares about. It needs a MongoDB to talk to, not a server.
+  system-tests:
+    name: System Tests (live server)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      JWT_SECRET: system-test-secret
+      MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
+      MISTRAL_API_KEY: fake-key
+      GROQ_API_KEY: fake-groq-key
+      BAZAARLINK_API_KEY: fake-bl-key
+      OPENROUTER_API_KEY: fake-or-key
+      GEMINI_API_KEY: fake-gemini-key
+      ORCA_API_KEY: fake-orca-key
+      RATE_LIMIT_PER_MINUTE: "9999"
+      ADMIN_INVITE_CODE: test-invite-123
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Run System Tests
+        run: python -m pytest tests/system/ -v --tb=short --junitxml=test-results/system.xml
+      - name: Server log (on failure or skip)
+        if: always()
+        run: cat tests/system/.server.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: system-test-results
+          path: |
+            test-results/
+            tests/system/.server.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ── Job 5: Cross-Browser E2E (monthly + manual only) ───────────────────────
+  # Keeps every-push CI fast: Chromium runs on push/PR (Job 3), while the
   # slower engines run on a monthly schedule and on demand. Failures upload
   # screenshots/videos per engine.
   e2e-cross-browser:
     name: E2E Cross-Browser (${{ matrix.name }})
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     # Job-level env: same parity rule as the chromium job — pytest fixtures
     # seed accounts directly in the DB the backend uses.
@@ -300,22 +366,47 @@ jobs:
         run: python -m playwright install ${{ matrix.install }} --with-deps
       - name: Start backend
         run: |
-          python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 &
-          sleep 10
+          set -euo pipefail
+          python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 \
+            > "$RUNNER_TEMP/backend.log" 2>&1 &
+          for _ in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8001/api/auth/config > /dev/null; then
+              echo "backend ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend did not answer on /api/auth/config within 90s"
+          tail -n 200 "$RUNNER_TEMP/backend.log"
+          exit 1
       - name: Run E2E Tests (${{ matrix.name }})
-        run: python -m pytest tests/e2e/ -v --tb=short ${{ matrix.args }} --screenshot=only-on-failure --video=retain-on-failure
+        run: >-
+          python -m pytest tests/e2e/
+          -v --tb=short
+          -m "not vrt"
+          ${{ matrix.args }}
+          --screenshot=only-on-failure --video=retain-on-failure
+          --junitxml=test-results/e2e-${{ matrix.name }}.xml
         env:
           E2E_BASE_URL: http://127.0.0.1:8001
+      - name: Backend log (on failure)
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/backend.log" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-results-${{ matrix.name }}
-          path: test-results/
+          path: |
+            test-results/
+            tests/e2e/__baselines_artifacts__/
+          if-no-files-found: ignore
+          retention-days: 14
 
-  # ── Job 3: Dependency Security Scan ─────────────────────────────────────────
+  # ── Job 6: Dependency Security Scan ────────────────────────────────────────
   security-scan:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
@@ -331,8 +422,39 @@ jobs:
         with:
           name: dependency-audit
           path: audit.json
+          if-no-files-found: ignore
 
-  # ── Job 4: Android APK Build (manual only) ──────────────────────────────────
+  # ── Job 7: Gate ────────────────────────────────────────────────────────────
+  # One check to require instead of five. `always()` is what makes it run when
+  # an upstream job failed (a skipped gate would otherwise read as success);
+  # `needs.*.result` is then the whole answer.
+  gate:
+    name: Test Gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [test-backend, lint, e2e, system-tests]
+    steps:
+      - name: Require every test job to have passed
+        run: |
+          set -euo pipefail
+          failed=0
+          # Bracket notation: these job ids contain hyphens, which dot notation
+          # does not resolve reliably.
+          for result in \
+            "backend=${{ needs['test-backend'].result }}" \
+            "lint=${{ needs.lint.result }}" \
+            "e2e=${{ needs.e2e.result }}" \
+            "system=${{ needs['system-tests'].result }}"; do
+            name="${result%%=*}"
+            state="${result#*=}"
+            echo "$name: $state"
+            if [ "$state" != "success" ]; then
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+  # ── Job 8: Android APK Build (manual only) ─────────────────────────────────
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -357,7 +479,7 @@ jobs:
           name: android-release-apk
           path: mobile_app/build/app/outputs/flutter-apk/app-release.apk
 
-  # ── Job 5: Windows Desktop Build (manual only) ──────────────────────────────
+  # ── Job 9: Windows Desktop Build (manual only) ─────────────────────────────
   build-windows:
     name: Build Windows Desktop (Tauri)
     runs-on: windows-latest
