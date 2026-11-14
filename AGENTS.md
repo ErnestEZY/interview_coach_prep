@@ -95,6 +95,15 @@ seeded row.
   must be injected with a context init script before any page script runs.
 - A line ending in a full stop is a paragraph boundary in `resume-text.js`.
   Fixtures written to exercise paragraph merging have to wrap mid-sentence.
+- `frontend/static/js/app.min.js` is the file every page loads, and it is not
+  minified — it is a byte-identical copy of `app.js`. Edit both and confirm the
+  hashes still match, or the change reaches `app.js` readers and not browsers.
+- Bootstrap 5 has no responsive `w-*` utilities. `w-sm-auto` is not a class, so
+  `w-100 w-sm-auto` is full width at every breakpoint and the flex row shrinks
+  both children instead; the hero CTAs ended up as two-line labels in the
+  992–1199px range. The pair now uses `text-nowrap` + `flex-sm-wrap` +
+  `justify-content-sm-center`: a caption never breaks, and a row too narrow for
+  both buttons stacks them.
 
 ## Decisions
 
@@ -110,6 +119,15 @@ sweep delete another's seeds.
 
 **Blocking CI is deliberately narrow:** crash-class lint plus the suites above.
 Style stays advisory so the report exists without gating a push.
+
+**Two clocks end a session, and one does not replace the other.** The token's
+`exp` is the outer bound, counted down into the badge each authenticated page
+shows. The idle clock in `app.js` is the inner bound: an hour without pointer,
+key, wheel, scroll or touch input ends the session, and the user lands on the
+login page with `?reason=idle` under a sticky notice. Returning to a hidden tab
+is deliberately not activity — the time away is what is being measured.
+`window.__ICP_IDLE_TIMEOUT_MS` shortens the interval for the browser tests and
+is never set by the application.
 
 ## Conventions
 

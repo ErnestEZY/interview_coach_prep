@@ -123,12 +123,19 @@
           <div class="col-lg-6 animate-fade-in">
             <h1 class="display-3 fw-bold mb-4">Master Your Next <br><span class="text-primary">Interview</span></h1>
             <p class="lead mb-5 text-secondary">Get structured resume feedback, practice with a professional AI-powered mock interview, and search for tailored job opportunities based on your skills.</p>
-            <div class="d-flex flex-column flex-sm-row gap-3">
-              <a class="btn btn-primary btn-lg px-5 py-3 rounded-pill w-100 w-sm-auto" id="home-primary-cta"
+            <!-- The pair never breaks a caption. `text-nowrap` keeps each label on
+                 one line, and `flex-sm-wrap` lets a button take its own line
+                 instead of letting the row squeeze both captions into two-line
+                 buttons of different heights. Width comes from `align-items:
+                 stretch` while the row is a column; the `w-100 w-sm-auto` pair
+                 that used to sit here did nothing above the breakpoint, because
+                 Bootstrap has no responsive `w-*` utilities. -->
+            <div class="d-flex flex-column flex-sm-row flex-sm-wrap justify-content-sm-center gap-3">
+              <a class="btn btn-primary btn-lg px-4 py-3 rounded-pill text-nowrap" id="home-primary-cta"
                  :href="logged ? dashboardUrl : '/static/pages/login.html'">
                 <span>{{ logged ? dashboardText : 'Get Started' }}</span>
               </a>
-              <a class="btn btn-outline-light btn-lg px-4 py-3 rounded-pill w-100 w-sm-auto" href="/static/pages/about.html" aria-label="Learn more about Interview Coach Prep">Learn More About ICP</a>
+              <a class="btn btn-outline-light btn-lg px-4 py-3 rounded-pill text-nowrap" href="/static/pages/about.html" aria-label="Learn more about Interview Coach Prep">Learn More About ICP</a>
             </div>
           </div>
           <div class="col-lg-6 mt-5 mt-lg-0 animate-slide-up">

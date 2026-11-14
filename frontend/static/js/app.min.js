@@ -163,7 +163,11 @@ const icpState = {
       if (token && token !== 'null' && token !== 'undefined') {
         fetch((this.apiBase || '') + '/api/auth/logout', {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token }
+          headers: { 'Authorization': 'Bearer ' + token },
+          // keepalive: the idle logout redirects in the same tick, and a
+          // navigation would otherwise abort this request and leave the
+          // account's dashboard state pointing at the session just ended.
+          keepalive: true
         }).catch(() => {});  // always silent — never block UI
       }
     } catch (_) {}
@@ -520,6 +524,159 @@ Object.assign(window.icp, {
     });
   }
 });
+
+// --- Idle logout ----------------------------------------------------------
+// The token's `exp` is the outer bound on a session: every page counts it down
+// and the token dies at a fixed moment whatever the user does. This is the
+// inner bound. A tab left open on a desk should not stay signed in for the
+// token's whole life, and a machine taken away from its desk should not stay
+// signed in at all.
+//
+// Idle means no input the browser reports to the page. Coming back to a hidden
+// tab is deliberately *not* activity: the time spent away is the thing being
+// measured, so a tab that wakes after an hour signs out on waking.
+//
+// `window.__ICP_IDLE_TIMEOUT_MS` overrides the interval. That is how the
+// browser tests reach the whole path in seconds instead of an hour; nothing in
+// the app sets it.
+const ICP_IDLE_TIMEOUT_MS = 60 * 60 * 1000;
+const ICP_IDLE_ACTIVITY = [
+  'mousemove', 'mousedown', 'pointerdown', 'keydown', 'wheel', 'scroll',
+  'touchstart', 'touchmove'
+];
+
+const icpIdle = (function () {
+  const override = Number(window.__ICP_IDLE_TIMEOUT_MS);
+  const timeoutMs = override > 0 ? override : ICP_IDLE_TIMEOUT_MS;
+  // Four checks per timeout, kept inside 250ms..1s: frequent enough that the
+  // logout lands close to the boundary, rare enough not to wake the CPU.
+  const tickMs = Math.max(250, Math.min(1000, Math.floor(timeoutMs / 4)));
+
+  let lastActivity = Date.now();
+  let tick = null;
+  let watching = false;
+
+  const signedIn = () => !!icpState.token;
+  const onActivity = () => { lastActivity = Date.now(); };
+
+  function onVisibilityChange() {
+    // Background tabs throttle timers, so the moment the tab is visible again
+    // is the first honest chance to notice that the session went idle.
+    if (document.visibilityState === 'visible') check();
+  }
+
+  function stop() {
+    if (tick) { clearInterval(tick); tick = null; }
+    if (watching) {
+      ICP_IDLE_ACTIVITY.forEach((name) =>
+        window.removeEventListener(name, onActivity, true)
+      );
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      watching = false;
+    }
+  }
+
+  function endSession() {
+    stop();
+    const adminPage = window.location.pathname.indexOf('icp-admin-') !== -1;
+    // clearToken() empties localStorage and sessionStorage, so the reason has
+    // to travel in the URL. That is also what stops the notice from coming
+    // back after the user dismisses it — dismissing rewrites the URL.
+    icpState.clearToken();
+    const loginPage = adminPage
+      ? atob('L3N0YXRpYy9wYWdlcy9pY3AtYWRtaW4tYXV0aC05ZjJkOGI0ZS5odG1s')
+      : '/static/pages/login.html';
+    window.location.replace(loginPage + '?reason=idle');
+  }
+
+  function check() {
+    if (!signedIn()) { stop(); return; }
+    if (Date.now() - lastActivity >= timeoutMs) endSession();
+  }
+
+  function start() {
+    if (!signedIn() || watching) return;
+    lastActivity = Date.now();
+    // Capture phase: a page that stops propagation on its own handlers must
+    // not be able to hide the user's activity from this watcher.
+    ICP_IDLE_ACTIVITY.forEach((name) =>
+      window.addEventListener(name, onActivity, { capture: true, passive: true })
+    );
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    tick = setInterval(check, tickMs);
+    watching = true;
+    check();
+  }
+
+  // Signing in arms the watch; signing out anywhere disarms it.
+  window.addEventListener('auth:changed', () => { stop(); start(); });
+  start();
+
+  return {
+    timeoutMs,
+    start,
+    stop,
+    check,
+    lastActivityAt: () => lastActivity,
+    isWatching: () => watching
+  };
+})();
+
+window.icp.idle = icpIdle;
+
+/**
+ * The notice a login page shows after an idle logout.
+ *
+ * Rendered from the URL, not from storage: clearToken() has just emptied
+ * sessionStorage, and a banner that reappeared on every reload of the login
+ * page would be a bug report rather than a courtesy. Dismissing it rewrites
+ * the URL so a refresh stays clean.
+ */
+function showIdleLogoutNotice() {
+  const authPage = /(login\.html|icp-admin-auth-)/.test(window.location.pathname);
+  const params = new URLSearchParams(window.location.search);
+  if (!authPage || params.get('reason') !== 'idle') return;
+  if (document.getElementById('idle-logout-notice')) return;
+
+  const notice = document.createElement('div');
+  notice.id = 'idle-logout-notice';
+  notice.setAttribute('role', 'status');
+  notice.setAttribute('aria-live', 'polite');
+  notice.className =
+    'd-flex align-items-center gap-2 px-3 py-2 bg-warning text-dark ' +
+    'border-bottom border-dark border-opacity-25';
+  notice.style.position = 'sticky';
+  notice.style.top = '0';
+  notice.style.zIndex = '1080';
+
+  const icon = document.createElement('i');
+  icon.className = 'bi bi-clock-history';
+  icon.setAttribute('aria-hidden', 'true');
+
+  const text = document.createElement('span');
+  text.className = 'small fw-semibold flex-grow-1';
+  text.textContent = 'You were logged out due to inactivity. Please sign in again to continue.';
+
+  const dismiss = document.createElement('button');
+  dismiss.type = 'button';
+  dismiss.className = 'btn-close btn-close-dark';
+  dismiss.setAttribute('aria-label', 'Dismiss inactivity notice');
+  dismiss.addEventListener('click', () => {
+    notice.remove();
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  });
+
+  notice.append(icon, text, dismiss);
+  document.body.insertAdjacentElement('afterbegin', notice);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', showIdleLogoutNotice);
+} else {
+  showIdleLogoutNotice();
+}
 
 // Global Startup Check: Just record the current startup_id.
 // We no longer redirect or clear localStorage here — that was causing false
