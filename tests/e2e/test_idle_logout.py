@@ -114,6 +114,79 @@ def test_activity_keeps_the_session_alive(idle_clock):
     assert page.locator(NOTICE).count() == 0
 
 
+def test_input_after_the_deadline_ends_the_session(idle_clock):
+    """Late input belongs to a session that already ended.
+
+    The idle tick is silenced here so the input handler is the only thing that
+    can notice the deadline. A handler that renews the clock first and leaves
+    the comparison to the next tick never sees the deadline at all — and in a
+    real tab that means the first mousemove after an hour away quietly keeps
+    the session alive.
+    """
+    context = idle_clock(1200)
+    # Silence the idle tick and nothing else: it is the one interval armed with
+    # a callback named `check`. Every other timer on the page keeps running.
+    context.add_init_script(
+        "(() => {"
+        "  const real = window.setInterval;"
+        "  window.setInterval = (fn, ms) =>"
+        "    (fn && fn.name === 'check') ? 0 : real.call(window, fn, ms);"
+        "})();"
+    )
+    page = context.new_page()
+    page.goto(f"{BASE_URL}/static/pages/dashboard.html")
+
+    page.wait_for_timeout(1600)
+    # Nothing has fired yet: the deadline passed unseen because the tick is dead.
+    # Without this the redirect below could be the tick's doing, not the handler's.
+    assert "dashboard.html" in page.url
+    assert page.evaluate("window.icp.idle.isWatching()") is True
+
+    page.mouse.move(240, 240)
+
+    page.wait_for_url(IDLE_LOGIN_URL, timeout=10000)
+    expect(page.locator(NOTICE)).to_be_visible()
+    assert page.evaluate("localStorage.getItem('token')") is None
+
+
+def test_an_idle_tab_cannot_sign_out_the_session_another_tab_started(
+    idle_clock, admin_user_token
+):
+    """Shared storage belongs to the session that is actually using it.
+
+    Both tabs share one localStorage. The first tab caches the user token; the
+    second signs in as an administrator and overwrites the stored token. When
+    the first tab's clock expires it must stop watching and leave the live
+    session alone — clearToken() would take the administrator's token, and
+    every key saved beside it, with it.
+    """
+    _require_valid_token(admin_user_token, "admin")
+    context = idle_clock(1200)
+    first = context.new_page()
+    first.goto(f"{BASE_URL}/static/pages/dashboard.html")
+
+    # A document that loads no scripts of its own: enough to write the storage
+    # the two tabs share, without arming a second idle watcher.
+    second = context.new_page()
+    second.goto(f"{BASE_URL}/robots.txt")
+    second.evaluate("t => localStorage.setItem('token', t)", admin_user_token)
+    assert first.evaluate("localStorage.getItem('token')") == admin_user_token
+
+    # Re-arm so the deadline is measured from the swap rather than from page
+    # load: this tab still holds the user token in memory, which is the point.
+    first.evaluate("window.icp.idle.stop(); window.icp.idle.start();")
+    first.wait_for_timeout(1600)
+
+    assert first.evaluate("localStorage.getItem('token')") == admin_user_token, (
+        "the idle tab erased a token it did not own"
+    )
+    assert "login.html" not in first.url, "the idle tab signed the live session out"
+    assert first.locator(NOTICE).count() == 0
+    assert first.evaluate("window.icp.idle.isWatching()") is False, (
+        "the idle tab kept watching a session it no longer owns"
+    )
+
+
 def test_a_signed_out_page_never_starts_the_watch(browser):
     """No token, no session to end — the landing page must not redirect."""
     context = browser.new_context()

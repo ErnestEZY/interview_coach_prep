@@ -35,11 +35,14 @@ jobs:
     env:
       JWT_SECRET: e2e-test-secret
       MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
-      # One database per engine. The matrix legs run in parallel, and the
-      # fixtures seed rows whose ids, dates and counts the tests then assert on:
-      # a shared name let one engine's session-start sweep delete another's
-      # seeds, and let the history assertions count another engine's rows.
-      DB_NAME: icp_e2e_test_${{ matrix.name }}
+      # One database per engine, per run. The matrix legs run in parallel, and
+      # the fixtures seed rows whose ids, dates and counts the tests then assert
+      # on: a shared name let one engine's session-start sweep delete another's
+      # seeds, and let the history assertions count another engine's rows. The
+      # run id extends the same reasoning to two overlapping workflow runs —
+      # a scheduled sweep and a manual one — which the engine name alone did
+      # not separate.
+      DB_NAME: icp_e2e_test_${{ matrix.name }}_${{ github.run_id }}_${{ github.run_attempt }}
       MISTRAL_API_KEY: fake-key
       GROQ_API_KEY: fake-groq-key
       BAZAARLINK_API_KEY: fake-bl-key
@@ -113,3 +116,28 @@ jobs:
             tests/e2e/__baselines_artifacts__/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Drop this run's test database
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+
+          name = os.environ["DB_NAME"]
+          # A prefix guard, not politeness: DB_NAME is interpolated from the
+          # workflow, and a drop is irreversible. Refuse anything that is not
+          # obviously a test database.
+          if not name.startswith("icp_e2e_test_"):
+              raise SystemExit(f"refusing to drop non-test database {name!r}")
+
+          from pymongo import MongoClient
+
+          try:
+              MongoClient(
+                  os.environ["MONGO_URI"], serverSelectionTimeoutMS=15000
+              ).drop_database(name)
+              print(f"dropped {name}")
+          except Exception as exc:
+              # Cleanup never decides whether the run was good: a cluster that
+              # is unreachable afterwards is worth a warning, not a red build.
+              print(f"could not drop {name}: {exc}")
+          PY

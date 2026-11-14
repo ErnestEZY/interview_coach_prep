@@ -108,6 +108,9 @@ seeded row.
   under ten stars with "manual review required". Ask for one with a
   `@coderabbitai review` comment on the PR, or tick the *Trigger review*
   checkbox in its first comment.
+- `git diff --check` is useless here: the index stores CRLF and
+  `core.autocrlf` is `false`, so every added line is reported as trailing
+  whitespace. Judge whitespace by the file, not by that command.
 
 ## Decisions
 
@@ -124,10 +127,15 @@ lint, pip-audit — and ends in the single `Test Gate` check to require.
 jobs in one workflow behind `if:`s, which made every pull request list five
 `skipped` checks; a skipped check reads like a failure that never started.
 
-**Cross-browser runs monthly and on demand, one database per engine.** The
-matrix legs run in parallel against rows the tests assert on, so each leg sets
-its own `DB_NAME` (`icp_e2e_test_<engine>`). A shared name lets one engine's
-sweep delete another's seeds.
+**Cross-browser runs monthly and on demand, one database per engine per run.**
+The matrix legs run in parallel against rows the tests assert on, so each leg
+sets its own `DB_NAME` (`icp_e2e_test_<engine>_<run_id>_<attempt>`). A shared
+name lets one engine's sweep delete another's seeds. The run id covers the
+other collision: a pull request and a push to main overlap, and the chromium
+job seeds the same rows under a fixed name. Every job that seeds derives its
+name from `github.run_id`, and each drops that database in an `if: always()`
+step behind a prefix guard — otherwise the scheme leaves one database behind
+per run on a cluster that is shared.
 
 **Blocking CI is deliberately narrow:** crash-class lint plus the suites above.
 Style stays advisory so the report exists without gating a push.

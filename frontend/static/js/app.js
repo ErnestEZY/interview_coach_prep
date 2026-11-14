@@ -557,7 +557,14 @@ const icpIdle = (function () {
   let watching = false;
 
   const signedIn = () => !!icpState.token;
-  const onActivity = () => { lastActivity = Date.now(); };
+  const onActivity = () => {
+    // Input that arrives after the deadline belongs to a session that already
+    // ended. Renewing the timestamp here would let the first mousemove outrace
+    // the overdue timer and quietly keep the session alive, so the deadline is
+    // checked before the clock is reset — not only on the next tick.
+    if (Date.now() - lastActivity >= timeoutMs) { endSession(); return; }
+    lastActivity = Date.now();
+  };
 
   function onVisibilityChange() {
     // Background tabs throttle timers, so the moment the tab is visible again
@@ -578,6 +585,17 @@ const icpIdle = (function () {
 
   function endSession() {
     stop();
+
+    // Ownership check before anything shared is touched. Another tab can have
+    // signed in since this one cached its token, and clearToken() removes the
+    // stored token plus every key saved beside it: an idle tab in the
+    // background would then log out the session the user is actively using.
+    // A tab whose token is no longer the stored one owns nothing — it stops
+    // watching and leaves the live session alone.
+    let stored = null;
+    try { stored = localStorage.getItem('token'); } catch (_) {}
+    if (stored && stored !== icpState.token) return;
+
     const adminPage = window.location.pathname.indexOf('icp-admin-') !== -1;
     // clearToken() empties localStorage and sessionStorage, so the reason has
     // to travel in the URL. That is also what stops the notice from coming

@@ -205,7 +205,12 @@ jobs:
     env:
       JWT_SECRET: e2e-test-secret
       MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
-      DB_NAME: icp_e2e_test
+      # One database per run attempt. Two runs share this cluster — a pull
+      # request and a push to main overlap all the time — and the suites seed
+      # accounts and rows they then assert on, so a fixed name lets one run
+      # delete the other's fixtures mid-test. The drop step at the end of the
+      # job keeps the run-scoped names from accumulating.
+      DB_NAME: icp_e2e_test_${{ github.run_id }}_${{ github.run_attempt }}
       MISTRAL_API_KEY: fake-key
       GROQ_API_KEY: fake-groq-key
       BAZAARLINK_API_KEY: fake-bl-key
@@ -271,6 +276,32 @@ jobs:
             tests/e2e/__baselines_artifacts__/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Drop this run's test database
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+
+          name = os.environ["DB_NAME"]
+          # A prefix guard, not politeness: DB_NAME is interpolated from the
+          # workflow, and a drop is irreversible. Refuse anything that is not
+          # obviously a test database.
+          if not name.startswith("icp_e2e_test_"):
+              raise SystemExit(f"refusing to drop non-test database {name!r}")
+
+          from pymongo import MongoClient
+
+          try:
+              MongoClient(
+                  os.environ["MONGO_URI"], serverSelectionTimeoutMS=15000
+              ).drop_database(name)
+              print(f"dropped {name}")
+          except Exception as exc:
+              # Cleanup never decides whether the commit was good: a cluster
+              # that is unreachable after the run is worth a warning, not a
+              # red build.
+              print(f"could not drop {name}: {exc}")
+          PY
 
   # ── Job 4: System Tests (real stack) ───────────────────────────────────────
   # The suite starts its own uvicorn on a free port with ICP_DB_NAME set to a
@@ -283,6 +314,9 @@ jobs:
     env:
       JWT_SECRET: system-test-secret
       MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
+      # Same reasoning as the E2E job: the suite boots its own server against a
+      # throwaway database, so the name has to belong to this run alone.
+      ICP_SYSTEM_TEST_DB: icp_system_test_${{ github.run_id }}_${{ github.run_attempt }}
       MISTRAL_API_KEY: fake-key
       GROQ_API_KEY: fake-groq-key
       BAZAARLINK_API_KEY: fake-bl-key
@@ -318,6 +352,26 @@ jobs:
             tests/system/.server.log
           if-no-files-found: ignore
           retention-days: 14
+      - name: Drop this run's throwaway database
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+
+          name = os.environ["ICP_SYSTEM_TEST_DB"]
+          if not name.startswith("icp_system_test_"):
+              raise SystemExit(f"refusing to drop non-test database {name!r}")
+
+          from pymongo import MongoClient
+
+          try:
+              MongoClient(
+                  os.environ["MONGO_URI"], serverSelectionTimeoutMS=15000
+              ).drop_database(name)
+              print(f"dropped {name}")
+          except Exception as exc:
+              print(f"could not drop {name}: {exc}")
+          PY
 
   # ── Job 5: Dependency Security Scan ────────────────────────────────────────
   security-scan:
