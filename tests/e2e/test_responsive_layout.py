@@ -182,7 +182,14 @@ CTA_EDGES_JS = """() => {
   const row = primary.parentElement.getBoundingClientRect();
   const a = primary.getBoundingClientRect();
   const b = secondary.getBoundingClientRect();
-  return { left: a.left - row.left, right: row.right - b.right };
+  const centre = (r) => r.left + r.width / 2;
+  return {
+    stacked: Math.abs(a.top - b.top) > 1,
+    left: a.left - row.left,
+    right: row.right - b.right,
+    primaryOff: centre(a) - centre(row),
+    secondaryOff: centre(b) - centre(row),
+  };
 }"""
 
 @pytest.mark.parametrize("width,height", CTA_WIDTHS)
@@ -229,9 +236,21 @@ def test_hero_ctas_never_break_a_caption(browser, width, height):
         )
 
         edges = page.evaluate(CTA_EDGES_JS)
-        assert abs(edges["left"] - edges["right"]) <= 2, (
-            f"the CTA pair sits off-centre at {width}x{height}: "
-            f"{edges['left']:.1f}px left, {edges['right']:.1f}px right"
-        )
+        if edges["stacked"]:
+            # Two buttons on two lines are centred against the row, not against
+            # each other: comparing the outer gaps would compare a left edge on
+            # one line with a right edge on another, and their difference is
+            # half the width gap between the captions. That would fail a layout
+            # that is correct. Compare each centre to the row's centre instead.
+            for edge in ("primaryOff", "secondaryOff"):
+                assert abs(edges[edge]) <= 2, (
+                    f"stacked CTA is off-centre at {width}x{height}: "
+                    f"{edge} sits {edges[edge]:.1f}px from the row centre"
+                )
+        else:
+            assert abs(edges["left"] - edges["right"]) <= 2, (
+                f"the CTA pair sits off-centre at {width}x{height}: "
+                f"{edges['left']:.1f}px left, {edges['right']:.1f}px right"
+            )
     finally:
         context.close()
