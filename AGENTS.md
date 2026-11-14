@@ -104,6 +104,10 @@ seeded row.
   992–1199px range. The pair now uses `text-nowrap` + `flex-sm-wrap` +
   `justify-content-sm-center`: a caption never breaks, and a row too narrow for
   both buttons stacks them.
+- CodeRabbit does not review this repository automatically: it skips every PR
+  under ten stars with "manual review required". Ask for one with a
+  `@coderabbitai review` comment on the PR, or tick the *Trigger review*
+  checkbox in its first comment.
 
 ## Decisions
 
@@ -111,6 +115,14 @@ seeded row.
 rasterised with the host's system font stack and the same screenshot differs
 between Windows and the Ubuntu runner. CI therefore runs `-m "not vrt"`. The
 baselines are still committed, because a reviewable image diff is worth having.
+
+**CI is split by the question it answers.** `build_apps.yml` holds only what
+answers "is this commit good?" — backend suites, Chromium E2E, system tests,
+lint, pip-audit — and ends in the single `Test Gate` check to require.
+`cross_browser.yml` (monthly + on demand) holds Firefox/WebKit/Edge, and
+`release_builds.yml` (on demand) holds the APK and the MSI. They used to be
+jobs in one workflow behind `if:`s, which made every pull request list five
+`skipped` checks; a skipped check reads like a failure that never started.
 
 **Cross-browser runs monthly and on demand, one database per engine.** The
 matrix legs run in parallel against rows the tests assert on, so each leg sets
