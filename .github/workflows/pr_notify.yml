@@ -1,0 +1,148 @@
+name: PR Notify
+
+# Two messages, both aimed at the same decision: "may I approve this yet?"
+# The first says a pull request is waiting for a reviewer; the second says the
+# CI it was waiting on has finished. `synchronize` is deliberately absent from
+# the first list — a message on every push trains the reader to ignore the chat,
+# and the push is exactly what the second message already reports on.
+#
+# `workflow_run` is only honoured when this file exists on the default branch,
+# so the "CI finished" half is silent until this merges to main. The "waiting
+# for review" half works from the branch, because a `pull_request` event uses
+# the workflow definition in the head branch.
+#
+# Nothing here is a gate. No job appears in any `needs:`, so a red row can
+# never block a merge; see the CI split in AGENTS.md.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  workflow_run:
+    workflows: ["ICP - CI/CD Pipeline"]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  # Re-opening or re-marking a pull request ready should not double-ping.
+  group: pr-notify-${{ github.event.pull_request.number || github.event.workflow_run.id }}
+  cancel-in-progress: true
+
+jobs:
+  waiting-for-review:
+    name: PR Notify (Telegram)
+    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - name: Send the pull request to Telegram
+        # Every field arrives through `env:`, never interpolated into the
+        # script body. A pull request title is text someone else wrote; `${{ }}`
+        # pasted into a `run:` block would let it execute as shell.
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_ADDITIONS: ${{ github.event.pull_request.additions }}
+          PR_DELETIONS: ${{ github.event.pull_request.deletions }}
+          PR_FILES: ${{ github.event.pull_request.changed_files }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+
+          # Committable before the secrets exist: the workflow stays green and
+          # starts working the moment both are set in repository settings.
+          # `:-` and not a bare `$VAR`: `set -u` would fail the job outright if
+          # a secret were ever removed from the env block instead of emptied.
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+            echo "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID are not set - nothing to send."
+            exit 0
+          fi
+
+          text=$(printf '%s\n' \
+            "Pull request awaiting your review" \
+            "" \
+            "#${PR_NUMBER} ${PR_TITLE}" \
+            "by ${PR_AUTHOR} -> ${PR_BASE}" \
+            "+${PR_ADDITIONS} / -${PR_DELETIONS} in ${PR_FILES} file(s)" \
+            "" \
+            "${PR_URL}")
+
+          # No parse_mode: a title containing _ or * would break Markdown and
+          # silently drop the message. Plain text always arrives.
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-delay 2 --retry-connrefused \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${text}" \
+            --data-urlencode "disable_web_page_preview=true" \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+          echo "notified: #${PR_NUMBER}"
+
+  ci-finished:
+    name: PR Notify (CI result)
+    if: ${{ github.event_name == 'workflow_run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      # The repository is public, where this endpoint needs no token at all;
+      # asking for the scopes keeps the workflow correct if it ever goes private.
+      actions: read
+      pull-requests: read
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      GH_TOKEN: ${{ github.token }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+    steps:
+      - name: Send the CI result for every pull request in the run
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+            echo "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID are not set - nothing to send."
+            exit 0
+          fi
+
+          # A cancelled or skipped run decided nothing worth a message, and a
+          # push to main carries no pull request to approve.
+          case "${CONCLUSION:-}" in
+            success|failure) ;;
+            *) echo "conclusion '${CONCLUSION:-}' is not worth a message"; exit 0 ;;
+          esac
+
+          prs=$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/pull_requests" \
+            | python3 -c 'import json,sys; print(" ".join(str(p["number"]) for p in json.load(sys.stdin)))')
+
+          if [ -z "${prs}" ]; then
+            echo "run ${RUN_ID} is not attached to a pull request"
+            exit 0
+          fi
+
+          for pr in ${prs}; do
+            if [ "${CONCLUSION}" = "success" ]; then
+              lead="CI green on #${pr} - ready for your approval"
+            else
+              lead="CI red on #${pr} - the run needs a look"
+            fi
+
+            text=$(printf '%s\n' \
+              "${lead}" \
+              "" \
+              "https://github.com/${GITHUB_REPOSITORY}/pull/${pr}")
+
+            curl --fail-with-body --silent --show-error \
+              --retry 3 --retry-delay 2 --retry-connrefused \
+              --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+              --data-urlencode "text=${text}" \
+              --data-urlencode "disable_web_page_preview=true" \
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
+            echo "notified: #${pr} ${CONCLUSION}"
+          done

@@ -140,6 +140,20 @@ per run on a cluster that is shared.
 **Blocking CI is deliberately narrow:** crash-class lint plus the suites above.
 Style stays advisory so the report exists without gating a push.
 
+**A notification is a side channel, never part of the gate.** `pr_notify.yml`
+messages a Telegram chat when a pull request is opened or marked ready, and again
+when the CI run attached to it finishes. No job feeds a `needs:`, so a Telegram
+outage or an unset secret cannot redden a commit: a missing
+`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` prints one line and exits 0, which is why
+the workflow is committable before the chat exists. `synchronize` is absent from
+the trigger list on purpose — a ping on every push trains the reader to ignore
+the chat, and the push is what the CI message already reports on. Every
+pull-request field travels through a step `env:` block and never through `${{ }}`
+inside `run:`: a title is text someone else wrote, and interpolating it would let
+it execute as shell. Messages go out as plain text, because a title containing
+`_` or `*` breaks Markdown parsing and Telegram drops the message instead of
+escaping it.
+
 **Two clocks end a session, and one does not replace the other.** The token's
 `exp` is the outer bound, counted down into the badge each authenticated page
 shows. The idle clock in `app.js` is the inner bound: an hour without pointer,
