@@ -1,0 +1,143 @@
+name: ICP - Cross-Browser Parity
+
+# The machines a user might actually be holding.
+#
+# Chromium runs on every push and pull request in build_apps.yml, because it is
+# the engine the gate can afford to wait for. Firefox, WebKit and Edge are a
+# different question — "did this engine break?" — and three more engines at
+# roughly fifteen minutes each is not something every commit should block on.
+#
+# They used to live inside build_apps.yml behind a job-level `if`, which meant
+# every pull request showed three `skipped` checks. A skipped check is not a
+# neutral thing to look at: it reads like something failed to start. Here they
+# simply do not exist on a pull request, and the answer to "did WebKit break?"
+# is the monthly sweep or the Run workflow button.
+on:
+  workflow_dispatch:
+  schedule:
+    # Monthly cross-browser parity run (1st of each month, 02:00 UTC)
+    - cron: '0 2 1 * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-cross-browser:
+    name: E2E Cross-Browser (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Job-level env: same parity rule as the chromium job — pytest fixtures
+    # seed accounts and rows directly in the DB the backend uses.
+    env:
+      JWT_SECRET: e2e-test-secret
+      MONGO_URI: ${{ secrets.MONGO_URI || 'mongodb://localhost:27017' }}
+      # One database per engine, per run. The matrix legs run in parallel, and
+      # the fixtures seed rows whose ids, dates and counts the tests then assert
+      # on: a shared name let one engine's session-start sweep delete another's
+      # seeds, and let the history assertions count another engine's rows. The
+      # run id extends the same reasoning to two overlapping workflow runs —
+      # a scheduled sweep and a manual one — which the engine name alone did
+      # not separate.
+      DB_NAME: icp_e2e_test_${{ matrix.name }}_${{ github.run_id }}_${{ github.run_attempt }}
+      MISTRAL_API_KEY: fake-key
+      GROQ_API_KEY: fake-groq-key
+      BAZAARLINK_API_KEY: fake-bl-key
+      OPENROUTER_API_KEY: fake-or-key
+      GEMINI_API_KEY: fake-gemini-key
+      ORCA_API_KEY: fake-orca-key
+      RATE_LIMIT_PER_MINUTE: "9999"
+      ADMIN_INVITE_CODE: ICP-SECURE-2026-ADMIN
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: firefox
+            install: firefox
+            args: "--browser firefox"
+          - name: webkit
+            install: webkit
+            args: "--browser webkit"
+          - name: edge
+            install: msedge
+            args: "--browser chromium --browser-channel msedge"
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Install Playwright browser (${{ matrix.name }})
+        run: python -m playwright install ${{ matrix.install }} --with-deps
+      - name: Start backend
+        run: |
+          set -euo pipefail
+          python -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 \
+            > "$RUNNER_TEMP/backend.log" 2>&1 &
+          for _ in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8001/api/auth/config > /dev/null; then
+              echo "backend ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "backend did not answer on /api/auth/config within 90s"
+          tail -n 200 "$RUNNER_TEMP/backend.log"
+          exit 1
+      - name: Run E2E Tests (${{ matrix.name }})
+        run: >-
+          python -m pytest tests/e2e/
+          -v --tb=short
+          -m "not vrt"
+          ${{ matrix.args }}
+          --screenshot=only-on-failure --video=retain-on-failure
+          --junitxml=test-results/e2e-${{ matrix.name }}.xml
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8001
+      - name: Backend log (on failure)
+        if: failure()
+        run: tail -n 200 "$RUNNER_TEMP/backend.log" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-results-${{ matrix.name }}
+          path: |
+            test-results/
+            tests/e2e/__baselines_artifacts__/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Drop this run's test database
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+
+          name = os.environ["DB_NAME"]
+          # A prefix guard, not politeness: DB_NAME is interpolated from the
+          # workflow, and a drop is irreversible. Refuse anything that is not
+          # obviously a test database.
+          if not name.startswith("icp_e2e_test_"):
+              raise SystemExit(f"refusing to drop non-test database {name!r}")
+
+          from pymongo import MongoClient
+
+          try:
+              MongoClient(
+                  os.environ["MONGO_URI"], serverSelectionTimeoutMS=15000
+              ).drop_database(name)
+              print(f"dropped {name}")
+          except Exception as exc:
+              # Cleanup never decides whether the run was good: a cluster that
+              # is unreachable afterwards is worth a warning, not a red build.
+              print(f"could not drop {name}: {exc}")
+          PY

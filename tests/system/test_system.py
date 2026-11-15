@@ -51,8 +51,9 @@ BASE_URL = os.environ.get("SYSTEM_BASE_URL", "http://127.0.0.1:8002")
 
 # The database a self-started server writes to. It is not the live one, and it
 # is not called DB_NAME because tests/conftest.py already pins that name for
-# the mocked unit suites.
-THROWAWAY_DB = "icp_system_test"
+# the mocked unit suites. CI overrides the name per run so two overlapping
+# workflow runs cannot seed and delete each other's rows.
+THROWAWAY_DB = os.environ.get("ICP_SYSTEM_TEST_DB", "icp_system_test")
 
 # ── Pytest hook to add --system-base-url CLI option ──────────────────────────
 # Declared in conftest.py beside this file: pytest only calls pytest_addoption

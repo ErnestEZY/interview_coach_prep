@@ -1,8 +1,9 @@
 """Responsive layout coverage: phone portrait and tablet portrait/landscape.
 
 Verifies that key pages render without horizontal overflow, keep their primary
-controls reachable and tappable, and that the hero CTA buttons only stretch
-full-width below the Bootstrap `sm` breakpoint (class `w-100 w-sm-auto`).
+controls reachable and tappable, and that the hero CTA pair stays symmetric at
+every width between 320 and 1440 — single-line captions, equal heights, and a
+centred pair, whether the two buttons share a row or each takes its own line.
 """
 import os
 
@@ -155,3 +156,101 @@ def test_cta_full_width_only_on_phone(browser):
     assert measurements["tablet-landscape"] <= landscape_width * 0.6, (
         f"tablet-landscape CTA should be content-width, got {measurements['tablet-landscape']}"
     )
+
+
+# Widths where the hero column changes character: phone column, the `sm`
+# breakpoint itself, tablet portrait and landscape, the `lg` floor where the
+# hero splits into two columns, and a wide desktop.
+CTA_WIDTHS = [
+    pytest.param(320, 640, id="narrow-320"),
+    pytest.param(390, 844, id="phone-390"),
+    pytest.param(576, 800, id="sm-floor-576"),
+    pytest.param(768, 1024, id="tablet-portrait-768"),
+    pytest.param(992, 768, id="lg-floor-992"),
+    pytest.param(1024, 768, id="tablet-landscape-1024"),
+    pytest.param(1180, 820, id="tablet-landscape-1180"),
+    pytest.param(1440, 900, id="desktop-1440"),
+]
+
+# A `btn-lg` with `py-3` measures ~64px. A caption that breaks onto a second
+# line makes it ~94px, which is the number this guards against.
+ONE_LINE_MAX_HEIGHT = 80
+
+CTA_EDGES_JS = """() => {
+  const primary = document.querySelector('#home-primary-cta');
+  const secondary = document.querySelector('a[aria-label="Learn more about Interview Coach Prep"]');
+  const row = primary.parentElement.getBoundingClientRect();
+  const a = primary.getBoundingClientRect();
+  const b = secondary.getBoundingClientRect();
+  const centre = (r) => r.left + r.width / 2;
+  return {
+    stacked: Math.abs(a.top - b.top) > 1,
+    left: a.left - row.left,
+    right: row.right - b.right,
+    primaryOff: centre(a) - centre(row),
+    secondaryOff: centre(b) - centre(row),
+  };
+}"""
+
+@pytest.mark.parametrize("width,height", CTA_WIDTHS)
+def test_hero_ctas_never_break_a_caption(browser, width, height):
+    """The CTA pair stays symmetric however the window is squeezed.
+
+    Reported from a narrowed desktop window: "Learn More About ICP" wrapped to
+    two lines, and because the row let both buttons shrink, "Get Started"
+    wrapped with it — two 94px buttons with broken captions where 64px would
+    do. The pair is now `text-nowrap` + `flex-sm-wrap`: a caption never breaks,
+    and a row that cannot hold both buttons moves one onto its own line rather
+    than compressing the text. `justify-content-sm-center` keeps the pair, or
+    the single stacked button, centred in the column.
+    """
+    context = browser.new_context(viewport={"width": width, "height": height})
+    try:
+        page = context.new_page()
+        page.goto(f"{BASE_URL}/")
+        page.wait_for_selector("text=Master Your Next Interview")
+
+        boxes = {}
+        for name, selector in (
+            ("primary", "#home-primary-cta"),
+            ("secondary", 'a[aria-label="Learn more about Interview Coach Prep"]'),
+        ):
+            box = page.locator(selector).first.bounding_box()
+            assert box, f"{name} CTA has no box at {width}x{height}"
+            boxes[name] = box
+
+        for name, box in boxes.items():
+            assert box["height"] <= ONE_LINE_MAX_HEIGHT, (
+                f"{name} CTA is {box['height']:.0f}px tall at {width}x{height}: "
+                "its caption broke across two lines"
+            )
+            assert box["x"] >= -1 and box["x"] + box["width"] <= width + 1, (
+                f"{name} CTA hangs off the viewport at {width}x{height}: "
+                f"x={box['x']:.0f} w={box['width']:.0f}"
+            )
+
+        assert abs(boxes["primary"]["height"] - boxes["secondary"]["height"]) <= 1, (
+            f"the CTAs are different heights at {width}x{height} "
+            f"({boxes['primary']['height']:.0f} vs {boxes['secondary']['height']:.0f}) "
+            "— one caption wrapped and the other did not"
+        )
+
+        edges = page.evaluate(CTA_EDGES_JS)
+        if edges["stacked"]:
+            # Two buttons on two lines are centred against the row, not against
+            # each other: comparing the outer gaps would compare a left edge on
+            # one line with a right edge on another, and their difference is
+            # half the width gap between the captions. That would fail a layout
+            # that is correct. Compare each centre to the row's centre instead.
+            for edge in ("primaryOff", "secondaryOff"):
+                assert abs(edges[edge]) <= 2, (
+                    f"stacked CTA is off-centre at {width}x{height}: "
+                    f"{edge} sits {edges[edge]:.1f}px from the row centre"
+                )
+        else:
+            assert abs(edges["left"] - edges["right"]) <= 2, (
+                f"the CTA pair sits off-centre at {width}x{height}: "
+                f"{edges['left']:.1f}px left, {edges['right']:.1f}px right"
+            )
+    finally:
+        context.close()
