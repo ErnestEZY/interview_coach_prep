@@ -161,9 +161,18 @@ def test_an_idle_tab_cannot_sign_out_the_session_another_tab_started(
     every key saved beside it, with it.
     """
     _require_valid_token(admin_user_token, "admin")
-    context = idle_clock(1200)
+    # Wide enough that the two navigations below cannot reach the deadline: a
+    # clock that expires mid-setup signs the first tab out correctly, and every
+    # assertion after that reports the harness instead of the behaviour.
+    context = idle_clock(5000)
     first = context.new_page()
     first.goto(f"{BASE_URL}/static/pages/dashboard.html")
+    assert "dashboard.html" in first.url, (
+        "the first tab signed itself out while the test was still setting up"
+    )
+    # Hold the clock still for the whole of the setup, so the only deadline
+    # this test measures is the one it arms itself, after the swap.
+    first.evaluate("window.icp.idle.stop()")
 
     # A document that loads no scripts of its own: enough to write the storage
     # the two tabs share, without arming a second idle watcher.
@@ -174,8 +183,8 @@ def test_an_idle_tab_cannot_sign_out_the_session_another_tab_started(
 
     # Re-arm so the deadline is measured from the swap rather than from page
     # load: this tab still holds the user token in memory, which is the point.
-    first.evaluate("window.icp.idle.stop(); window.icp.idle.start();")
-    first.wait_for_timeout(1600)
+    first.evaluate("window.icp.idle.start()")
+    first.wait_for_timeout(5400)
 
     assert first.evaluate("localStorage.getItem('token')") == admin_user_token, (
         "the idle tab erased a token it did not own"

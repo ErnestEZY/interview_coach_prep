@@ -74,13 +74,22 @@ jobs:
 
           # No parse_mode: a title containing _ or * would break Markdown and
           # silently drop the message. Plain text always arrives.
-          curl --fail-with-body --silent --show-error \
+          #
+          # Delivery failure is a warning, never an error. `--fail-with-body`
+          # exits nonzero on a 4xx/5xx, and `set -e` would turn that into a red
+          # check on the pull request — the one thing this workflow exists not
+          # to do. No `needs:` is not the same guarantee.
+          if curl --fail-with-body --silent --show-error \
             --retry 3 --retry-delay 2 --retry-connrefused \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=${text}" \
             --data-urlencode "disable_web_page_preview=true" \
             "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
-          echo "notified: #${PR_NUMBER}"
+          then
+            echo "notified: #${PR_NUMBER}"
+          else
+            echo "::warning::Telegram did not accept the message for #${PR_NUMBER}; the pull request is unaffected."
+          fi
 
   ci-finished:
     name: PR Notify (CI result)
@@ -115,11 +124,13 @@ jobs:
             *) echo "conclusion '${CONCLUSION:-}' is not worth a message"; exit 0 ;;
           esac
 
+          # The run object carries its pull requests as `pull_requests`. There
+          # is no `/actions/runs/{id}/pull_requests` endpoint — it answers 404.
           prs=$(curl --fail-with-body --silent --show-error \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/pull_requests" \
-            | python3 -c 'import json,sys; print(" ".join(str(p["number"]) for p in json.load(sys.stdin)))')
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" \
+            | python3 -c 'import json,sys; print(" ".join(str(p["number"]) for p in json.load(sys.stdin)["pull_requests"]))')
 
           if [ -z "${prs}" ]; then
             echo "run ${RUN_ID} is not attached to a pull request"
@@ -138,11 +149,15 @@ jobs:
               "" \
               "https://github.com/${GITHUB_REPOSITORY}/pull/${pr}")
 
-            curl --fail-with-body --silent --show-error \
+            if curl --fail-with-body --silent --show-error \
               --retry 3 --retry-delay 2 --retry-connrefused \
               --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
               --data-urlencode "text=${text}" \
               --data-urlencode "disable_web_page_preview=true" \
               "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"
-            echo "notified: #${pr} ${CONCLUSION}"
+            then
+              echo "notified: #${pr} ${CONCLUSION}"
+            else
+              echo "::warning::Telegram did not accept the message for #${pr}; the run is unaffected."
+            fi
           done

@@ -135,7 +135,10 @@ other collision: a pull request and a push to main overlap, and the chromium
 job seeds the same rows under a fixed name. Every job that seeds derives its
 name from `github.run_id`, and each drops that database in an `if: always()`
 step behind a prefix guard — otherwise the scheme leaves one database behind
-per run on a cluster that is shared.
+per run on a cluster that is shared. Each drop bounds both server selection
+(`serverSelectionTimeoutMS`) and the command itself (`timeoutMS`): a cluster
+that accepts the connection and then stalls would otherwise hold the step until
+the job timeout and redden a run that had already passed.
 
 **Blocking CI is deliberately narrow:** crash-class lint plus the suites above.
 Style stays advisory so the report exists without gating a push.
@@ -145,7 +148,10 @@ messages a Telegram chat when a pull request is opened or marked ready, and agai
 when the CI run attached to it finishes. No job feeds a `needs:`, so a Telegram
 outage or an unset secret cannot redden a commit: a missing
 `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` prints one line and exits 0, which is why
-the workflow is committable before the chat exists. `synchronize` is absent from
+the workflow is committable before the chat exists, and a rejected delivery is a
+`::warning::` rather than a failure — `curl --fail-with-body` under `set -e`
+would otherwise turn a Telegram 5xx into a red check on the pull request.
+`synchronize` is absent from
 the trigger list on purpose — a ping on every push trains the reader to ignore
 the chat, and the push is what the CI message already reports on. Every
 pull-request field travels through a step `env:` block and never through `${{ }}`

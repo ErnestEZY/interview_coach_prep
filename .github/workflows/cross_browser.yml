@@ -132,8 +132,14 @@ jobs:
           from pymongo import MongoClient
 
           try:
+              # serverSelectionTimeoutMS bounds finding a server; timeoutMS
+              # bounds the command itself. Without both, a cluster that accepts
+              # the connection and then stops answering can hold this step until
+              # the job timeout, which reads as a failed run after a green one.
               MongoClient(
-                  os.environ["MONGO_URI"], serverSelectionTimeoutMS=15000
+                  os.environ["MONGO_URI"],
+                  serverSelectionTimeoutMS=15000,
+                  timeoutMS=15000,
               ).drop_database(name)
               print(f"dropped {name}")
           except Exception as exc:
