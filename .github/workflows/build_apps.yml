@@ -53,7 +53,13 @@ jobs:
   # these suites need no database service and cannot be affected by one.
   test-backend:
     name: Backend Tests
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`. This job apt-installs wkhtmltopdf and its
+    # library list names a package that only 24.04 still carries: on 26.04
+    # `libgdk-pixbuf2.0-0` is gone and apt exits 100 before a single test runs.
+    # The `ubuntu-latest` fleet is mid-migration, so the same label silently
+    # hands out two different operating systems — a green job one hour, a red
+    # one the next, with no commit in between.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
       JWT_SECRET: pytest-secret-key

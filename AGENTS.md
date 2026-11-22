@@ -111,6 +111,12 @@ seeded row.
 - `git diff --check` is useless here: the index stores CRLF and
   `core.autocrlf` is `false`, so every added line is reported as trailing
   whitespace. Judge whitespace by the file, not by that command.
+- `ubuntu-latest` is two operating systems at once right now. The fleet is
+  mid-migration to 26.04, where `libgdk-pixbuf2.0-0` no longer exists, so the
+  backend job's `apt-get install` list exits 100 and takes every suite down with
+  it before a test starts. That job pins `ubuntu-24.04` for this reason. Do not
+  put it back on `ubuntu-latest` without first checking the wkhtmltopdf library
+  list against both images.
 
 ## Decisions
 
