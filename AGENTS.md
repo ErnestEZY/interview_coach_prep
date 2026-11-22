@@ -95,6 +95,28 @@ seeded row.
   must be injected with a context init script before any page script runs.
 - A line ending in a full stop is a paragraph boundary in `resume-text.js`.
   Fixtures written to exercise paragraph merging have to wrap mid-sentence.
+- `frontend/static/js/app.min.js` is the file every page loads, and it is not
+  minified — it is a byte-identical copy of `app.js`. Edit both and confirm the
+  hashes still match, or the change reaches `app.js` readers and not browsers.
+- Bootstrap 5 has no responsive `w-*` utilities. `w-sm-auto` is not a class, so
+  `w-100 w-sm-auto` is full width at every breakpoint and the flex row shrinks
+  both children instead; the hero CTAs ended up as two-line labels in the
+  992–1199px range. The pair now uses `text-nowrap` + `flex-sm-wrap` +
+  `justify-content-sm-center`: a caption never breaks, and a row too narrow for
+  both buttons stacks them.
+- CodeRabbit does not review this repository automatically: it skips every PR
+  under ten stars with "manual review required". Ask for one with a
+  `@coderabbitai review` comment on the PR, or tick the *Trigger review*
+  checkbox in its first comment.
+- `git diff --check` is useless here: the index stores CRLF and
+  `core.autocrlf` is `false`, so every added line is reported as trailing
+  whitespace. Judge whitespace by the file, not by that command.
+- `ubuntu-latest` is two operating systems at once right now. The fleet is
+  mid-migration to 26.04, where `libgdk-pixbuf2.0-0` no longer exists, so the
+  backend job's `apt-get install` list exits 100 and takes every suite down with
+  it before a test starts. That job pins `ubuntu-24.04` for this reason. Do not
+  put it back on `ubuntu-latest` without first checking the wkhtmltopdf library
+  list against both images.
 
 ## Decisions
 
@@ -103,13 +125,55 @@ rasterised with the host's system font stack and the same screenshot differs
 between Windows and the Ubuntu runner. CI therefore runs `-m "not vrt"`. The
 baselines are still committed, because a reviewable image diff is worth having.
 
-**Cross-browser runs monthly and on demand, one database per engine.** The
-matrix legs run in parallel against rows the tests assert on, so each leg sets
-its own `DB_NAME` (`icp_e2e_test_<engine>`). A shared name lets one engine's
-sweep delete another's seeds.
+**CI is split by the question it answers.** `build_apps.yml` holds only what
+answers "is this commit good?" — backend suites, Chromium E2E, system tests,
+lint, pip-audit — and ends in the single `Test Gate` check to require.
+`cross_browser.yml` (monthly + on demand) holds Firefox/WebKit/Edge, and
+`release_builds.yml` (on demand) holds the APK and the MSI. They used to be
+jobs in one workflow behind `if:`s, which made every pull request list five
+`skipped` checks; a skipped check reads like a failure that never started.
+
+**Cross-browser runs monthly and on demand, one database per engine per run.**
+The matrix legs run in parallel against rows the tests assert on, so each leg
+sets its own `DB_NAME` (`icp_e2e_test_<engine>_<run_id>_<attempt>`). A shared
+name lets one engine's sweep delete another's seeds. The run id covers the
+other collision: a pull request and a push to main overlap, and the chromium
+job seeds the same rows under a fixed name. Every job that seeds derives its
+name from `github.run_id`, and each drops that database in an `if: always()`
+step behind a prefix guard — otherwise the scheme leaves one database behind
+per run on a cluster that is shared. Each drop bounds both server selection
+(`serverSelectionTimeoutMS`) and the command itself (`timeoutMS`): a cluster
+that accepts the connection and then stalls would otherwise hold the step until
+the job timeout and redden a run that had already passed.
 
 **Blocking CI is deliberately narrow:** crash-class lint plus the suites above.
 Style stays advisory so the report exists without gating a push.
+
+**A notification is a side channel, never part of the gate.** `pr_notify.yml`
+messages a Telegram chat when a pull request is opened or marked ready, and again
+when the CI run attached to it finishes. No job feeds a `needs:`, so a Telegram
+outage or an unset secret cannot redden a commit: a missing
+`TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` prints one line and exits 0, which is why
+the workflow is committable before the chat exists, and a rejected delivery is a
+`::warning::` rather than a failure — `curl --fail-with-body` under `set -e`
+would otherwise turn a Telegram 5xx into a red check on the pull request.
+`synchronize` is absent from
+the trigger list on purpose — a ping on every push trains the reader to ignore
+the chat, and the push is what the CI message already reports on. Every
+pull-request field travels through a step `env:` block and never through `${{ }}`
+inside `run:`: a title is text someone else wrote, and interpolating it would let
+it execute as shell. Messages go out as plain text, because a title containing
+`_` or `*` breaks Markdown parsing and Telegram drops the message instead of
+escaping it.
+
+**Two clocks end a session, and one does not replace the other.** The token's
+`exp` is the outer bound, counted down into the badge each authenticated page
+shows. The idle clock in `app.js` is the inner bound: an hour without pointer,
+key, wheel, scroll or touch input ends the session, and the user lands on the
+login page with `?reason=idle` under a sticky notice. Returning to a hidden tab
+is deliberately not activity — the time away is what is being measured.
+`window.__ICP_IDLE_TIMEOUT_MS` shortens the interval for the browser tests and
+is never set by the application.
 
 ## Conventions
 
